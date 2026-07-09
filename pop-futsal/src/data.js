@@ -129,6 +129,8 @@ export const ESTADO_INICIAL = {
   obs_partido: '',
 
   // Sección 5 - Conclusión
-  conclusion: '',
+  conclusiones: [],
   acta_extra: '',
+  ingreso_local: '',
+  ingreso_visita: '',
 };
