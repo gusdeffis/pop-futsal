@@ -1,5 +1,7 @@
 export function generarActaTexto(datos) {
-  if (!datos.conclusion) {
+  const conclusiones = datos.conclusiones || [];
+
+  if (conclusiones.length === 0) {
     return 'Seleccioná la conclusión del partido para generar el acta.';
   }
 
@@ -10,7 +12,7 @@ export function generarActaTexto(datos) {
     susp: 'El partido fue SUSPENDIDO. Se eleva informe al Tribunal de Disciplina Deportiva.',
   };
 
-  let partes = [textos[datos.conclusion]];
+  let partes = conclusiones.map(c => textos[c]).filter(Boolean);
 
   const incidentes = [];
   if (datos.invasion) incidentes.push('invasión de campo');
@@ -19,19 +21,15 @@ export function generarActaTexto(datos) {
   if (datos.gresca) incidentes.push('gresca generalizada');
   if (datos.publico_l) incidentes.push('incidentes de público local');
   if (datos.publico_v) incidentes.push('incidentes de público visitante');
-  if (incidentes.length > 0) {
-    partes.push(`Se registraron: ${incidentes.join(', ')}.`);
-  }
+  if (incidentes.length > 0) partes.push(`Se registraron: ${incidentes.join(', ')}.`);
 
-  const campoProblemas = [];
-  if (datos.ilum_obs) campoProblemas.push('problemas de iluminación');
-  if (datos.humedad) campoProblemas.push('humedad en el campo');
-  if (datos.goteras) campoProblemas.push('goteras');
-  if (datos.arcos_obs) campoProblemas.push('problemas en arcos/redes');
-  if (datos.tribunas) campoProblemas.push('inconvenientes en tribunas');
-  if (campoProblemas.length > 0) {
-    partes.push(`Campo de juego: ${campoProblemas.join(', ')}.`);
-  }
+  const campoProbs = [];
+  if (datos.ilum_obs) campoProbs.push('problemas de iluminación');
+  if (datos.humedad) campoProbs.push('humedad en el campo');
+  if (datos.goteras) campoProbs.push('goteras');
+  if (datos.arcos_obs) campoProbs.push('problemas en arcos/redes');
+  if (datos.tribunas) campoProbs.push('inconvenientes en tribunas');
+  if (campoProbs.length > 0) partes.push(`Campo de juego: ${campoProbs.join(', ')}.`);
 
   if (datos.comenzo_si === 'no' && datos.motivo_inicio) {
     partes.push(`El partido no comenzó en horario. Motivo: ${datos.motivo_inicio}.`);
@@ -39,9 +37,7 @@ export function generarActaTexto(datos) {
   if (datos.excedido && datos.motivo_et) {
     partes.push(`El entretiempo fue excedido. Motivo: ${datos.motivo_et}.`);
   }
-  if (datos.obs_partido && datos.obs_partido.trim()) {
-    partes.push(datos.obs_partido.trim());
-  }
+  if (datos.obs_partido?.trim()) partes.push(datos.obs_partido.trim());
 
   return partes.join(' ');
 }
