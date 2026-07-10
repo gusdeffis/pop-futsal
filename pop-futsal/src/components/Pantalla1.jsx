@@ -1,5 +1,6 @@
-import { Header, Campo, Input, Select, Divider, BtnNext } from './UI';
-import { TORNEOS, FECHAS, CATEGORIAS, CLUBES, ESTADIOS, ARBITROS, OFICIALES_AFA } from '../data';
+import { useEffect } from 'react';
+import { Header, Campo, Input, Select, BtnNext } from './UI';
+import { FECHAS } from '../data';
 
 // Auto-avance en campo fecha: "4" → "07" → "2026"
 function useFechaInput(value, onChange) {
@@ -12,10 +13,23 @@ function useFechaInput(value, onChange) {
   return handleChange;
 }
 
-export default function Pantalla1({ datos, setDatos, onNext }) {
+function fechaHoy() {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${now.getFullYear()}`;
+}
+
+export default function Pantalla1({ datos, setDatos, onNext, listas }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const valido = datos.torneo && datos.local && datos.visitante && datos.arbitro;
   const handleFecha = useFechaInput(datos.dia, set('dia'));
+
+  // Auto-completa el día con la fecha de hoy si todavía está vacío
+  useEffect(() => {
+    if (!datos.dia) set('dia')(fechaHoy());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-formato hora: "1830" → "18:30"
   const handleHora = (val) => {
@@ -29,34 +43,35 @@ export default function Pantalla1({ datos, setDatos, onNext }) {
       <Header paso={1} />
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-        {/* Torneo */}
-        <Campo label="Torneo" required>
-          <Select value={datos.torneo} onChange={set('torneo')} options={TORNEOS} placeholder="Seleccioná el torneo" />
-        </Campo>
-
-        {/* Fecha N° + Partido N° + Div + Cat en una fila */}
-        <div style={{ display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr', gap: 8 }}>
-          <Campo label="Fecha N°">
-            <Select value={datos.fecha_nro} onChange={set('fecha_nro')} options={FECHAS} placeholder="N°" />
-          </Campo>
-          <Campo label="Partido N°">
-            <Input value={datos.nro} onChange={set('nro')} placeholder="N°" type="number" />
+        {/* Torneo + M/F en la misma fila */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 96px', gap: 8 }}>
+          <Campo label="Torneo" required>
+            <Select value={datos.torneo} onChange={set('torneo')} options={listas.torneos} placeholder="Seleccioná el torneo" />
           </Campo>
           <Campo label="División">
             <div style={{ display: 'flex', gap: 4 }}>
               {['M', 'F'].map(d => (
                 <button key={d} onClick={() => set('division')(d)} style={{
-                  flex: 1, height: 44, borderRadius: 8, border: '1.5px solid',
-                  borderColor: datos.division === d ? '#0d1f4e' : '#b8c8e8',
-                  background: datos.division === d ? '#0d1f4e' : '#e8edf8',
+                  flex: 1, height: 44, borderRadius: 8, border: '1.5px solid #0d1f4e',
+                  background: datos.division === d ? '#0d1f4e' : '#c6dbf5',
                   color: datos.division === d ? '#fff' : '#0d1f4e',
                   fontWeight: 700, fontSize: 14, cursor: 'pointer',
                 }}>{d}</button>
               ))}
             </div>
           </Campo>
+        </div>
+
+        {/* Fecha N° + Categoría + Partido N° en la segunda fila */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <Campo label="Fecha N°">
+            <Select value={datos.fecha_nro} onChange={set('fecha_nro')} options={FECHAS} placeholder="N°" />
+          </Campo>
           <Campo label="Categoría">
-            <Select value={datos.cat} onChange={set('cat')} options={CATEGORIAS} placeholder="Cat." />
+            <Select value={datos.cat} onChange={set('cat')} options={listas.categorias} placeholder="Cat." />
+          </Campo>
+          <Campo label="Partido N°">
+            <Input value={datos.nro} onChange={set('nro')} placeholder="N°" type="number" />
           </Campo>
         </div>
 
@@ -70,24 +85,20 @@ export default function Pantalla1({ datos, setDatos, onNext }) {
           </Campo>
         </div>
 
-        <Divider />
-
         {/* Equipos */}
         <Campo label="Local" required>
-          <Select value={datos.local} onChange={set('local')} options={CLUBES} placeholder="Equipo local" />
+          <Select value={datos.local} onChange={set('local')} options={listas.clubes} placeholder="Equipo local" />
         </Campo>
         <Campo label="Visitante" required>
-          <Select value={datos.visitante} onChange={set('visitante')} options={CLUBES} placeholder="Equipo visitante" />
+          <Select value={datos.visitante} onChange={set('visitante')} options={listas.clubes} placeholder="Equipo visitante" />
         </Campo>
         <Campo label="Estadio">
-          <Select value={datos.estadio} onChange={set('estadio')} options={ESTADIOS} placeholder="Estadio" />
+          <Select value={datos.estadio} onChange={set('estadio')} options={listas.estadios} placeholder="Estadio" />
         </Campo>
-
-        <Divider />
 
         {/* Árbitro y delegados */}
         <Campo label="Árbitro" required>
-          <Select value={datos.arbitro} onChange={set('arbitro')} options={ARBITROS} placeholder="Seleccioná el árbitro" />
+          <Select value={datos.arbitro} onChange={set('arbitro')} options={listas.arbitros} placeholder="Seleccioná el árbitro" />
         </Campo>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <Campo label="Delegado Local">
@@ -98,7 +109,7 @@ export default function Pantalla1({ datos, setDatos, onNext }) {
           </Campo>
         </div>
         <Campo label="Oficial AFA">
-          <Select value={datos.oficial_afa} onChange={set('oficial_afa')} options={OFICIALES_AFA} placeholder="Seleccioná el oficial" />
+          <Select value={datos.oficial_afa} onChange={set('oficial_afa')} options={listas.oficiales} placeholder="Seleccioná el oficial" />
         </Campo>
 
       </div>

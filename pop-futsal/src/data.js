@@ -1,35 +1,37 @@
 // POP Futsal - Datos base
-// Actualizar estas listas según los datos del torneo
+// Las listas DEFAULT_* son el respaldo (fallback) para cuando no hay conexión
+// o falla la carga desde Google Sheets. Salen del AcroForm oficial POP_2026_v62.pdf.
+// La fuente "viva" son las hojas de Google Sheets listadas en SHEET_URLS (ver useListas.js).
 
-export const TORNEOS = [
-  'Camp. de 1° A', 'Camp. de 1° B', 'Camp. de 1° C',
-  'Camp. de 3° A', 'Camp. de 3° B', 'Camp. de 3° C',
-  'Inferiores 1a', 'Inferiores 3a',
+export const DEFAULT_TORNEOS = [
+  'Camp. de 1° A', 'Camp. de 1° B', 'Camp. de 1° C', 'Camp. de 1° D',
+  'Copa Argentina', 'Copa de Oro', 'Copa de Plata',
+  'Copa Futuro Oro', 'Copa Futuro Plata', 'Final Four',
+  'Inferiores', 'Inferiores A', 'Inferiores B', 'Inferiores C', 'Inferiores D',
+  'Liga Nacional', 'Supercopa', 'Torneo Integración',
 ];
 
-export const FECHAS = Array.from({ length: 47 }, (_, i) => String(i + 1));
-
-export const CATEGORIAS = ['1a', '3a', '4a', '5a', '6a', '7a'];
-
-export const CLUBES = [
-  '17 de Agosto', 'America del Sud', 'Barracas Central',
-  'Boca Jrs.', 'Camioneros', 'Estrella de Boedo',
-  'Estudiantil Porteño', 'Ferro Carril Oeste', 'Glorias de Tigre',
-  'Hebraica', 'Independiente', 'Jorge Newbery',
-  'Kimberley', "Newell's", 'Pinocho',
-  'Racing Club', 'River Plate', 'San Lorenzo',
+export const FECHAS = [
+  ...Array.from({ length: 40 }, (_, i) => String(i + 1)),
+  'PO', '32°', '16°', '8°', '4°', 'Semi', 'Final',
 ];
 
-export const ESTADIOS = [
-  '17 de Agosto', 'America del Sud', 'Barracas Central',
-  'Boca Jrs.', 'Camioneros', 'Estrella de Boedo',
-  'Estudiantil Porteño', 'Ferro Carril Oeste', 'Glorias de Tigre',
-  'Hebraica', 'Independiente', 'Jorge Newbery',
-  'Kimberley', "Newell's", 'Pinocho',
-  'Racing Club', 'River Plate', 'San Lorenzo',
+export const DEFAULT_CATEGORIAS = ['1a', '3a', '4a', '5a', '6a', '7a', '8a'];
+
+export const DEFAULT_CLUBES = [
+  '17 DE AGOSTO', 'AMERICA DEL SUD', 'BARRACAS CENTRAL', 'BOCA',
+  'CAMIONEROS', 'EST. PORTEÑO', 'ESTRELLA DE BOEDO', 'FERRO',
+  'GLORIAS DE TIGRE', 'HEBRAICA', 'INDEPENDIENTE', 'JORGE NEWBERY',
+  'KIMBERLEY', 'NEWELLS', 'PINOCHO', 'RACING', 'RIVER', 'SAN LORENZO',
 ];
 
-export const ARBITROS = [
+export const DEFAULT_ESTADIOS = [
+  '17 DE AGOSTO', 'ALVEAR', 'AMERICA', 'BOCA', 'DON BOSCO',
+  'ESTRELLA DE BOEDO', 'FERRO', 'GB SPORT', 'GLORIAS', 'HEBRAICA',
+  'NEWBERY', 'NEWELLS', 'PINOCHO', 'RACING', 'SAN LORENZO', 'VILLA MODELO',
+];
+
+export const DEFAULT_ARBITROS = [
   'ABELARDO, Micaela', 'ALBERTI, Agustín', 'ALEGRE, Daniel',
   'ALIANELLI, Ramiro', 'ALCARAZ, Gustavo', 'ALVAREZ, Julieta',
   'ARRIETA, Aldana', 'AVALOS, Ian', 'AVARO, Berenice',
@@ -71,25 +73,39 @@ export const ARBITROS = [
   'YASINSKYJ, Ignacio',
 ];
 
-export const OFICIALES_AFA = [
+export const DEFAULT_OFICIALES_AFA = [
   'Agustín Andrenacci', 'Andres Lobo', 'Ángel Sabio',
   'Fabián Teplitzky', 'Fernando Depirro', 'Gustavo Deffis',
   'Hernan Lomba', 'Juan Chamorro', 'Juan Meles',
   'Marcelo Maradei', 'Pablo Diaz', 'Sebastián Sgarra',
 ];
 
-export const MOTIVOS_INICIO = [
+export const DEFAULT_MOTIVOS_INICIO = [
   '', 'Partido de 3ra Div.', 'Cancha Ocupada',
   'Local en Vestuario', 'Visita en Vestuario', 'Ambos en Vestuario',
   'Limpieza de Cancha', 'Falla en Tablero', 'Arcos y Redes',
   'Cuerpo Técnico', 'Otro motivo',
 ];
 
-export const MOTIVOS_ET = [
+export const DEFAULT_MOTIVOS_ET = [
   '', 'Local en Vestuario', 'Visita en Vestuario', 'Ambos en Vestuario',
   'Limpieza de Cancha', 'Falla en Tablero', 'Arcos y Redes',
   'Cuerpo Técnico', 'Otro motivo',
 ];
+
+// Links CSV publicados de la planilla "POPA-2026-Datos". Cada uno corresponde
+// a una pestaña publicada como Archivo > Compartir > Publicar en la web > csv.
+// Si una queda en null, la app usa el DEFAULT_* de arriba hasta que se publique.
+export const SHEET_URLS = {
+  torneos: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=471220477&single=true&output=csv',
+  clubes: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=0&single=true&output=csv',
+  estadios: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=291075130&single=true&output=csv',
+  arbitros: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=925457710&single=true&output=csv',
+  oficiales: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=1380718279&single=true&output=csv',
+  categorias: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=1519839119&single=true&output=csv', // categorias
+  motivosInicio: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=718313407&single=true&output=csv',
+  motivosET: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=1002892177&single=true&output=csv',
+};
 
 export const ESTADO_INICIAL = {
   // Sección 1 - Datos del partido
@@ -118,6 +134,7 @@ export const ESTADO_INICIAL = {
 
   // Sección 4 - Observaciones
   tablero_fallas: false, sin_balon: false, medico_obs: false, policia: false,
+  calent_supl: false,
   fuera_zona_l: false, fuera_zona_v: false,
   sin_chalecos_l: false, sin_chalecos_v: false,
   con_balones_l: false, con_balones_v: false,

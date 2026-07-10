@@ -1,4 +1,4 @@
-import { Header, SeccionHeader, CheckRojo, LVRojo, Textarea, Divider, BtnNext, BtnBack } from './UI';
+import { Header, SeccionHeader, CheckRojo, LVRojo, Textarea, BtnNext, BtnBack } from './UI';
 
 export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
@@ -22,30 +22,30 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
           <CheckRojo label="Sin Policía" checked={datos.policia} onChange={set('policia')} />
         </div>
 
-        <Divider />
-
-        {/* Calentamiento suplentes - 2 columnas */}
+        {/* Calentamiento suplentes - checkbox maestro que despliega el detalle */}
         <div style={{ fontSize: 11, fontWeight: 700, color: '#c03030', letterSpacing: .5, textTransform: 'uppercase' }}>
           Calentamiento suplentes
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {[
-            ['fuera_zona_l', 'fuera_zona_v', 'Fuera de Zona'],
-            ['sin_chalecos_l', 'sin_chalecos_v', 'Sin Chalecos'],
-            ['con_balones_l', 'con_balones_v', 'Con Balones'],
-            ['mas5_l', 'mas5_v', 'Más de 5 jugadores'],
-          ].map(([cl, cv, label]) => (
-            <div key={label} style={{ background: '#fff8f8', border: '1.5px solid #f5a0a0', borderRadius: 8, padding: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#c03030', marginBottom: 8 }}>{label}</div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <LVRojo label="Local" checked={datos[cl]} onChange={set(cl)} />
-                <LVRojo label="Visita" checked={datos[cv]} onChange={set(cv)} />
-              </div>
-            </div>
-          ))}
-        </div>
+        <CheckRojo label="Hubo incumplimiento en el calentamiento de suplentes" checked={datos.calent_supl} onChange={set('calent_supl')} />
 
-        <Divider />
+        {datos.calent_supl && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {[
+              ['fuera_zona_l', 'fuera_zona_v', 'Fuera de Zona'],
+              ['sin_chalecos_l', 'sin_chalecos_v', 'Sin Chalecos'],
+              ['con_balones_l', 'con_balones_v', 'Con Balones'],
+              ['mas5_l', 'mas5_v', 'Más de 5 jugadores'],
+            ].map(([cl, cv, label]) => (
+              <div key={label} style={{ background: '#fbdbe1', border: '1.5px solid #e03030', borderRadius: 8, padding: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#c03030', marginBottom: 8 }}>{label}</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <LVRojo label="Local" checked={datos[cl]} onChange={set(cl)} />
+                  <LVRojo label="Visita" checked={datos[cv]} onChange={set(cv)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Campo de juego */}
         <div style={{ fontSize: 11, fontWeight: 700, color: '#c03030', letterSpacing: .5, textTransform: 'uppercase' }}>
@@ -57,8 +57,6 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
           ))}
         </div>
 
-        <Divider />
-
         {/* Incidentes */}
         <div style={{ fontSize: 11, fontWeight: 700, color: '#c03030', letterSpacing: .5, textTransform: 'uppercase' }}>
           Incidentes
@@ -68,7 +66,7 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
             <CheckRojo key={c} label={l} checked={datos[c]} onChange={set(c)} />
           ))}
         </div>
-        <div style={{ background: '#fff8f8', border: '1.5px solid #f5a0a0', borderRadius: 8, padding: 10 }}>
+        <div style={{ background: '#fbdbe1', border: '1.5px solid #e03030', borderRadius: 8, padding: 10 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#c03030', marginBottom: 8 }}>Público</div>
           <div style={{ display: 'flex', gap: 6 }}>
             <LVRojo label="Local" checked={datos.publico_l} onChange={set('publico_l')} />
@@ -76,12 +74,10 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
           </div>
         </div>
 
-        <Divider />
-
         <div style={{ fontSize: 11, fontWeight: 700, color: '#c03030', letterSpacing: .5, textTransform: 'uppercase' }}>
           Observaciones
         </div>
-        <Textarea value={datos.obs_partido} onChange={set('obs_partido')} placeholder="Describí incidentes u observaciones del partido..." minHeight={100} />
+        <Textarea variant="rosa" value={datos.obs_partido} onChange={set('obs_partido')} placeholder="Describí incidentes u observaciones del partido..." minHeight={100} />
 
       </div>
       <div style={{ padding: '8px 16px 24px', display: 'flex', gap: 10 }}>

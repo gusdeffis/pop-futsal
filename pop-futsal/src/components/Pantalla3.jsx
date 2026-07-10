@@ -1,21 +1,34 @@
-import { Header, SeccionHeader, HoraInput, CheckAzul, Textarea, Divider, BtnNext, BtnBack } from './UI';
-import { MOTIVOS_INICIO, MOTIVOS_ET } from '../data';
+import { useEffect } from 'react';
+import { Header, SeccionHeader, HoraInput, CheckAzul, Textarea, BtnNext, BtnBack } from './UI';
 
 const selectStyle = {
-  width: '100%', height: 44, border: '1.5px solid #b8c8e8', borderRadius: 8,
+  width: '100%', height: 44, border: '1.5px solid #0d1f4e', borderRadius: 8,
   padding: '0 12px', fontSize: 14, color: '#0d1f4e', fontWeight: 600,
-  background: '#e8edf8', appearance: 'none', outline: 'none',
+  background: '#c6dbf5', appearance: 'none', outline: 'none',
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d1f4e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
   backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
 };
 
-export default function Pantalla3({ datos, setDatos, onNext, onBack }) {
+// Calcula minutos entre dos horas "HH:MM". Si inicio_2t < final_1t asume que cruzó la hora.
+function calcularMinutos(inicio, fin) {
+  if (!inicio || !fin || !inicio.includes(':') || !fin.includes(':')) return '';
+  const [h1, m1] = inicio.split(':').map(Number);
+  const [h2, m2] = fin.split(':').map(Number);
+  if ([h1, m1, h2, m2].some(n => Number.isNaN(n))) return '';
+  let mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+  if (mins < 0) mins += 24 * 60;
+  return String(mins);
+}
+
+export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
 
-  const handleHoraET = (val) => {
-    let v = val.replace(/[^0-9]/g, '');
-    set('et_min')(v);
-  };
+  // ET = Inicio 2°T - Final 1°T, se recalcula solo
+  useEffect(() => {
+    const calculado = calcularMinutos(datos.final_1t, datos.inicio_2t);
+    if (calculado !== datos.et_min) set('et_min')(calculado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datos.final_1t, datos.inicio_2t]);
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
@@ -25,16 +38,11 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack }) {
         <SeccionHeader>3. Control de horarios</SeccionHeader>
 
         {/* Ingreso al campo */}
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
-          Ingreso al campo de juego
-        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           <HoraInput label="Formación Local" value={datos.ingreso_local || ''} onChange={v => setDatos(d => ({ ...d, ingreso_local: v }))} />
           <HoraInput label="Formación Visita" value={datos.ingreso_visita || ''} onChange={v => setDatos(d => ({ ...d, ingreso_visita: v }))} />
           <HoraInput label="Ingreso campo" value={datos.ingreso} onChange={set('ingreso')} />
         </div>
-
-        <Divider />
 
         {/* Protocolo y comienzo */}
         <CheckAzul label="Protocolo de inicio cumplido" checked={datos.protocolo} onChange={set('protocolo')} />
@@ -61,14 +69,12 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack }) {
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#e03030', marginBottom: 6 }}>Motivo de demora de inicio</div>
             <select style={selectStyle} value={datos.motivo_inicio} onChange={e => set('motivo_inicio')(e.target.value)}>
-              {MOTIVOS_INICIO.map(o => <option key={o} value={o}>{o || '— Sin motivo —'}</option>)}
+              {listas.motivosInicio.map(o => <option key={o} value={o}>{o || '— Sin motivo —'}</option>)}
             </select>
           </div>
         )}
 
         <HoraInput label="Hora de inicio real del partido" value={datos.hora_real} onChange={set('hora_real')} />
-
-        <Divider />
 
         {/* Primer tiempo */}
         <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Primer tiempo</div>
@@ -77,29 +83,27 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack }) {
           <HoraInput label="Inicio 2° T" value={datos.inicio_2t} onChange={set('inicio_2t')} />
         </div>
 
-        <Divider />
-
         {/* Entretiempo */}
         <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Entretiempo</div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', marginBottom: 4 }}>Duración ET</div>
-            <input type="number" value={datos.et_min} onChange={e => set('et_min')(e.target.value)}
-              placeholder="0"
-              style={{ width: 72, height: 44, border: '1.5px solid #b8c8e8', borderRadius: 8, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#0d1f4e', background: '#e8edf8', outline: 'none' }} />
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', marginBottom: 4 }}>Duración ET (auto)</div>
+            <div style={{ width: 72, height: 44, border: '1.5px solid #0d1f4e', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: '#0d1f4e', background: '#c6dbf5' }}>
+              {datos.et_min || '—'}
+            </div>
             <div style={{ fontSize: 10, color: '#0d1f4e', textAlign: 'center', marginTop: 2, fontWeight: 600 }}>minutos</div>
           </div>
           <div style={{ flex: 1 }}>
             <div onClick={() => set('excedido')(!datos.excedido)} style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              background: datos.excedido ? '#fff0f0' : '#fff8f8',
-              border: `1.5px solid ${datos.excedido ? '#e03030' : '#f5a0a0'}`,
+              background: datos.excedido ? '#8f1010' : '#fff',
+              border: '1.5px solid #e03030',
               borderRadius: 8, padding: '13px 10px', cursor: 'pointer',
             }}>
-              <div style={{ width: 22, height: 22, borderRadius: 4, background: datos.excedido ? '#e03030' : '#ffd0d0', border: `2px solid ${datos.excedido ? '#e03030' : '#f5a0a0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {datos.excedido && <span style={{ color: '#fff', fontSize: 14 }}>✓</span>}
+              <div style={{ width: 22, height: 22, borderRadius: 4, background: datos.excedido ? '#fff' : '#fbdbe1', border: `2px solid ${datos.excedido ? '#fff' : '#e03030'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {datos.excedido && <span style={{ color: '#8f1010', fontSize: 14, fontWeight: 700 }}>✓</span>}
               </div>
-              <span style={{ fontSize: 13, color: datos.excedido ? '#e03030' : '#c05050', fontWeight: datos.excedido ? 700 : 600 }}>ET excedido</span>
+              <span style={{ fontSize: 13, color: datos.excedido ? '#fff' : '#e03030', fontWeight: 700 }}>ET excedido</span>
             </div>
           </div>
         </div>
@@ -108,16 +112,12 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack }) {
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#e03030', marginBottom: 6 }}>Motivo de demora en entretiempo</div>
             <select style={selectStyle} value={datos.motivo_et} onChange={e => set('motivo_et')(e.target.value)}>
-              {MOTIVOS_ET.map(o => <option key={o} value={o}>{o || '— Sin motivo —'}</option>)}
+              {listas.motivosET.map(o => <option key={o} value={o}>{o || '— Sin motivo —'}</option>)}
             </select>
           </div>
         )}
 
-        <Divider />
-
         <HoraInput label="Final del partido" value={datos.final_partido} onChange={set('final_partido')} />
-
-        <Divider />
 
         <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Observaciones de horarios</div>
         <Textarea value={datos.obs_horarios} onChange={set('obs_horarios')} placeholder="Observaciones sobre horarios..." />

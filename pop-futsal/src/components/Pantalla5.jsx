@@ -1,5 +1,7 @@
 import { Header, SeccionHeader, Campo, Input, Textarea, Divider, BtnBack } from './UI';
 import { generarActaTexto } from '../utils/acta';
+import { useState } from 'react';
+import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
 
 const CONCL_OPCIONES = [
   { id: 'normal', label: 'Partido Normal', color: '#1a7a3a', bg: '#e8f5ee', exclusivo: true },
@@ -8,7 +10,7 @@ const CONCL_OPCIONES = [
   { id: 'susp', label: 'Suspensión', color: '#e03030', bg: '#fff0f0', exclusivo: false },
 ];
 
-export default function Pantalla5({ datos, setDatos, onBack }) {
+export default function Pantalla5({ datos, setDatos, onBack, onInicio }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
 
   const conclusiones = datos.conclusiones || [];
@@ -31,6 +33,21 @@ export default function Pantalla5({ datos, setDatos, onBack }) {
   };
 
   const actaTexto = generarActaTexto(datos);
+  const [generandoPDF, setGenerandoPDF] = useState(false);
+  const [errorPDF, setErrorPDF] = useState('');
+
+  const handleGenerarPDF = async () => {
+    setGenerandoPDF(true);
+    setErrorPDF('');
+    try {
+      const { bytes, nombreSugerido } = await generarPDFOficial(datos);
+      descargarPDF(bytes, nombreSugerido);
+    } catch (e) {
+      setErrorPDF('No se pudo generar el PDF. Revisá tu conexión e intentá de nuevo.');
+    } finally {
+      setGenerandoPDF(false);
+    }
+  };
 
   const handleWhatsApp = () => {
     const resLocal = datos.res_local || '-';
@@ -133,15 +150,22 @@ export default function Pantalla5({ datos, setDatos, onBack }) {
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <BtnBack onClick={onBack} />
-          <button onClick={() => alert('Generación de PDF en desarrollo')}
-            style={{ flex: 1, height: 50, background: '#0d1f4e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-            📄 Generar PDF oficial
+          <button onClick={handleGenerarPDF} disabled={generandoPDF}
+            style={{ flex: 1, height: 50, background: generandoPDF ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: generandoPDF ? 'wait' : 'pointer' }}>
+            {generandoPDF ? '⏳ Generando...' : '📄 Generar PDF oficial'}
           </button>
         </div>
+        {errorPDF && <div style={{ color: '#e03030', fontSize: 12, fontWeight: 600 }}>{errorPDF}</div>}
         <button onClick={handleWhatsApp}
           style={{ width: '100%', height: 50, background: '#25d366', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
           💬 Compartir por WhatsApp
         </button>
+        {onInicio && (
+          <button onClick={onInicio}
+            style={{ width: '100%', height: 44, background: '#fff', color: '#0d1f4e', border: '1.5px solid #0d1f4e', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            🏠 Volver al inicio
+          </button>
+        )}
       </div>
     </div>
   );
