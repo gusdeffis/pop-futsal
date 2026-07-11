@@ -282,8 +282,9 @@ export function BtnBack({ onClick }) {
   return (
     <button onClick={onClick} style={{
       height: 50, width: 50, background: C.celeste, color: C.azul,
-      border: `1.5px solid ${C.celesteBorde}`, borderRadius: 8,
-      fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      border: `2px solid ${C.celesteBorde}`, borderRadius: 8,
+      fontSize: 22, fontWeight: 900, cursor: 'pointer', padding: 0, lineHeight: 1,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}>←</button>
   );
 }
@@ -291,9 +292,9 @@ export function BtnBack({ onClick }) {
 export function BtnSalir({ onClick }) {
   return (
     <button onClick={onClick} title="Salir" style={{
-      height: 50, width: 50, background: C.naranja, color: '#fff',
-      border: `1.5px solid ${C.naranja}`, borderRadius: 8,
-      fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      height: 50, width: 50, background: '#f2811d', color: '#fff',
+      border: `2px solid ${C.naranja}`, borderRadius: 8, padding: 0, lineHeight: 1,
+      fontSize: 20, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}>🚪</button>
   );
 }

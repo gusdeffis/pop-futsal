@@ -1,8 +1,38 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { APPS_SCRIPT_PARTIDOS_URL } from './data';
 
 const KEY = 'pop_partido_actual';
 const KEY_HISTORIAL = 'pop_historial';
+const KEY_LOGIN = 'pop_login';
+const LOGIN_DURA_MS = 8 * 60 * 60 * 1000; // 8 horas sin actividad
+
+// Guarda quién está identificado, con la hora. Se usa para no pedir el PIN
+// de nuevo solo por cambiar de app o apagar la pantalla.
+export function guardarLogin(nombre) {
+  try { localStorage.setItem(KEY_LOGIN, JSON.stringify({ nombre, ts: Date.now() })); } catch {}
+}
+
+// Devuelve el nombre logueado si sigue vigente (menos de 8hs de inactividad),
+// y de paso renueva el reloj. Si ya venció, lo borra y devuelve null.
+export function cargarLogin() {
+  try {
+    const raw = localStorage.getItem(KEY_LOGIN);
+    if (!raw) return null;
+    const { nombre, ts } = JSON.parse(raw);
+    if (Date.now() - ts > LOGIN_DURA_MS) {
+      localStorage.removeItem(KEY_LOGIN);
+      return null;
+    }
+    guardarLogin(nombre); // renueva el reloj: mientras se use, no vence
+    return nombre;
+  } catch {
+    return null;
+  }
+}
+
+export function borrarLogin() {
+  localStorage.removeItem(KEY_LOGIN);
+}
 
 function guardarAhora(datos, pantalla) {
   try {
@@ -15,20 +45,11 @@ function guardarAhora(datos, pantalla) {
 }
 
 export function useAutoSave(datos, pantalla) {
-  const pantallaAnterior = useRef(pantalla);
-
   useEffect(() => {
-    // Si lo que cambió fue la pantalla (navegación Siguiente/Atrás), se guarda
-    // al instante, sin esperar el debounce, para no perder nada si se cierra la app.
-    if (pantallaAnterior.current !== pantalla) {
-      pantallaAnterior.current = pantalla;
-      guardarAhora(datos, pantalla);
-      return;
-    }
-    // Si lo que cambió fue un campo (tipeo), se espera un poco para no escribir
-    // en cada tecla.
-    const timer = setTimeout(() => guardarAhora(datos, pantalla), 400);
-    return () => clearTimeout(timer);
+    // Guarda al instante en cada cambio, sin esperar nada. Es un poco más
+    // de escritura en el celular, pero así no hay ninguna ventana de tiempo
+    // en la que algo pueda perderse si se cierra o cambia de app de golpe.
+    guardarAhora(datos, pantalla);
   }, [datos, pantalla]);
 }
 
@@ -90,10 +111,12 @@ export function guardarEnHistorial(datos, actaTexto, enviadoNube) {
 }
 
 // Marca (o desmarca) una entrada existente del historial como enviada a la
-// planilla compartida, sin tocar el resto de sus datos.
+// planilla compartida, con la fecha exacta del envío.
 export function marcarEnviadoNube(id, enviado) {
   const historial = obtenerHistorial();
-  const actualizado = historial.map(h => h.id === id ? { ...h, enviadoNube: !!enviado } : h);
+  const actualizado = historial.map(h => h.id === id
+    ? { ...h, enviadoNube: !!enviado, fechaEnvioNube: enviado ? new Date().toISOString() : h.fechaEnvioNube }
+    : h);
   localStorage.setItem(KEY_HISTORIAL, JSON.stringify(actualizado));
 }
 

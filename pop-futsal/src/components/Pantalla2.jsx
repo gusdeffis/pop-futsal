@@ -34,11 +34,15 @@ function CampoDemora({ label, okKey, demLKey, demVKey, datos, set }) {
         )}
         <span style={{ fontSize: 11, color: txtColor, fontWeight: 700, marginLeft: checked ? 8 : 0 }}>LOCAL</span>
         <input type="number" value={datos[demLKey]} disabled={checked} onChange={e => set(demLKey)(e.target.value)}
-          placeholder="0" style={{ width: 46, height: 34, border: '1.5px solid #0d1f4e', borderRadius: 6, textAlign: 'center', fontSize: 14, background: checked ? '#8fa9d9' : '#c6dbf5', color: '#0d1f4e', fontWeight: 600, outline: 'none' }} />
+          placeholder="0" style={{ width: 46, height: 34, border: '1.5px solid #0d1f4e', borderRadius: 6, textAlign: 'center', fontSize: 14, fontWeight: 700, outline: 'none',
+            background: checked ? '#8fa9d9' : (Number(datos[demLKey]) > 0 ? '#e03030' : '#c6dbf5'),
+            color: !checked && Number(datos[demLKey]) > 0 ? '#fff' : '#0d1f4e' }} />
         <span style={{ fontSize: 11, color: txtColor, fontWeight: 600 }}>min.</span>
         <span style={{ fontSize: 11, color: txtColor, fontWeight: 700, marginLeft: 4 }}>VISITA</span>
         <input type="number" value={datos[demVKey]} disabled={checked} onChange={e => set(demVKey)(e.target.value)}
-          placeholder="0" style={{ width: 46, height: 34, border: '1.5px solid #0d1f4e', borderRadius: 6, textAlign: 'center', fontSize: 14, background: checked ? '#8fa9d9' : '#c6dbf5', color: '#0d1f4e', fontWeight: 600, outline: 'none' }} />
+          placeholder="0" style={{ width: 46, height: 34, border: '1.5px solid #0d1f4e', borderRadius: 6, textAlign: 'center', fontSize: 14, fontWeight: 700, outline: 'none',
+            background: checked ? '#8fa9d9' : (Number(datos[demVKey]) > 0 ? '#e03030' : '#c6dbf5'),
+            color: !checked && Number(datos[demVKey]) > 0 ? '#fff' : '#0d1f4e' }} />
         <span style={{ fontSize: 11, color: txtColor, fontWeight: 600 }}>min.</span>
       </div>
     </div>

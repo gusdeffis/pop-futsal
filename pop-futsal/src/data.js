@@ -129,7 +129,7 @@ export const OFICIAL_PINS = {
 
 // Versión de la app: se muestra en la pantalla de inicio, debajo del botón
 // Ingresar. Subir este número cuando le pases una versión nueva a Gustavo.
-export const APP_VERSION = 'v10';
+export const APP_VERSION = 'v14';
 
 // Apps Script que guarda cada partido finalizado en la planilla compartida
 // "POPA-2026-Partidos" (además del historial local del dispositivo).

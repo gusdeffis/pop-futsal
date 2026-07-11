@@ -9,15 +9,21 @@ import PantallaHistorial from './components/PantallaHistorial';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
 import { generarActaTexto } from './utils/acta';
-import { useAutoSave, cargarGuardado, guardarInmediato, limpiarGuardado, obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube } from './useAutoSave';
+import {
+  useAutoSave, cargarGuardado, guardarInmediato, limpiarGuardado,
+  obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube,
+  guardarLogin, cargarLogin, borrarLogin,
+} from './useAutoSave';
 
 export default function App() {
+  const loginInicial = cargarLogin();
+
   const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial'
   const [pantalla, setPantalla] = useState(1);
   const [datos, setDatos] = useState(ESTADO_INICIAL);
   const [guardado, setGuardado] = useState(null);
   const [historial, setHistorial] = useState([]);
-  const [oficialLogueado, setOficialLogueado] = useState(null);
+  const [oficialLogueado, setOficialLogueado] = useState(loginInicial);
   const listas = useListas();
 
   useEffect(() => {
@@ -43,12 +49,28 @@ export default function App() {
     };
   }, [datos, pantalla, vista]);
 
+  const handleLogin = (nombre) => {
+    guardarLogin(nombre);
+    setOficialLogueado(nombre);
+  };
+
+  const handleLogout = () => {
+    borrarLogin();
+    setOficialLogueado(null);
+  };
+
   const irAInicio = () => {
     setGuardado(cargarGuardado());
     setVista('inicio');
   };
 
   const nuevoPartido = () => {
+    // Si ya hay un partido sin terminar, confirmar antes de borrarlo —
+    // para no perder datos por tocar este botón por error.
+    if (cargarGuardado()) {
+      const ok = window.confirm('Ya tenés un partido sin terminar. Si empezás uno nuevo, se va a borrar. ¿Querés continuar igual?');
+      if (!ok) return;
+    }
     limpiarGuardado();
     setDatos(ESTADO_INICIAL);
     setPantalla(1);
@@ -99,8 +121,8 @@ export default function App() {
         oficiales={listas.oficiales}
         pines={listas.pines}
         oficialLogueado={oficialLogueado}
-        onLogin={setOficialLogueado}
-        onLogout={() => setOficialLogueado(null)}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
       />
     );
   }

@@ -40,12 +40,13 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
   const actaTexto = generarActaTexto(datos);
   const [generandoPDF, setGenerandoPDF] = useState(false);
   const [errorPDF, setErrorPDF] = useState('');
+  const [pdfEditable, setPdfEditable] = useState(false); // por defecto: bloqueado
 
   const handleGenerarPDF = async () => {
     setGenerandoPDF(true);
     setErrorPDF('');
     try {
-      const { bytes, nombreSugerido } = await generarPDFOficial(datos);
+      const { bytes, nombreSugerido } = await generarPDFOficial(datos, { editable: pdfEditable });
       descargarPDF(bytes, nombreSugerido);
     } catch (e) {
       setErrorPDF('No se pudo generar el PDF. Revisá tu conexión e intentá de nuevo.');
@@ -60,7 +61,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
     setEnviandoWSP(true);
     setErrorPDF('');
     try {
-      const { bytes, nombreSugerido } = await generarPDFOficial(datos);
+      const { bytes, nombreSugerido } = await generarPDFOficial(datos, { editable: pdfEditable });
       const archivo = new File([bytes], nombreSugerido, { type: 'application/pdf' });
       if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
         await navigator.share({
@@ -83,26 +84,43 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
     }
   };
 
+  const calcularMin = (inicio, fin) => {
+    if (!inicio || !fin || !inicio.includes(':') || !fin.includes(':')) return null;
+    const [h1, m1] = inicio.split(':').map(Number);
+    const [h2, m2] = fin.split(':').map(Number);
+    if ([h1, m1, h2, m2].some(Number.isNaN)) return null;
+    let mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (mins < 0) mins += 24 * 60;
+    return mins;
+  };
+
   const handleWhatsApp = () => {
     const resLocal = datos.res_local || '-';
     const resVisita = datos.res_visitante || '-';
     const concl = conclusiones.map(c => CONCL_OPCIONES.find(o => o.id === c)?.label).filter(Boolean).join(' / ');
+    const demoraIngreso = calcularMin(datos.ingreso, datos.hora_real);
     const texto =
-      `*POP - Planilla Oficial de Partido Futsal*\n` +
+      `Futsal\n` +
+      `Planilla Oficial de Partido\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📋 *${datos.torneo}* | Fecha ${datos.fecha_nro}\n` +
+      `📋 ${datos.torneo} | Fecha ${datos.fecha_nro}\n` +
       `📅 ${datos.dia} | ${datos.hora} hs\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `⚽ *${datos.local}* ${resLocal} - ${resVisita} *${datos.visitante}*\n` +
+      `⚽ ${datos.local}  ${resLocal} \n` +
+      `vs  ${datos.visitante}  ${resVisita}\n` +
       `🏟️ ${datos.estadio}\n` +
       `🟡 Árbitro: ${datos.arbitro}\n` +
-      `👤 Oficial AFA: ${datos.oficial_afa}\n` +
+      `👤 Oficial AFA:  ${datos.oficial_afa}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `⏱️ Ingreso: ${datos.ingreso} | Inicio real: ${datos.hora_real}\n` +
-      `⏱️ Final 1°T: ${datos.final_1t} | Inicio 2°T: ${datos.inicio_2t}\n` +
-      `⏱️ Final partido: ${datos.final_partido}\n` +
+      `⏱️ Ingreso:  ${datos.ingreso || '-'} \n` +
+      ` Inicio Real:  ${datos.hora_real || '-'}\n` +
+      (demoraIngreso != null ? `Demora: ${demoraIngreso} min.\n` : '') +
+      `Final 1°T:  ${datos.final_1t || '-'} \n` +
+      `Inicio 2°T:  ${datos.inicio_2t || '-'}\n` +
+      `ET:  ${datos.et_min || '-'} min.\n` +
+      `⏱️ Final : ${datos.final_partido || '-'}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📝 *Conclusión: ${concl}*\n\n` +
+      `📝 Conclusión: \n${concl}\n\n` +
       `*ACTA FINAL:*\n${actaTexto}` +
       (datos.acta_extra ? `\n${datos.acta_extra}` : '');
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`);
@@ -187,6 +205,17 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
 
       {/* Botones finales */}
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div onClick={() => setPdfEditable(v => !v)} style={{
+          display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+          background: '#f0f2f8', border: '1px solid #b8c8e8', borderRadius: 8, padding: '10px 12px',
+        }}>
+          <div style={{ width: 18, height: 18, borderRadius: 4, background: pdfEditable ? '#0d1f4e' : '#fff', border: '2px solid #0d1f4e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {pdfEditable && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#0d1f4e' }}>
+            Generar el PDF editable (por defecto sale bloqueado, sin poder modificarse)
+          </span>
+        </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <BtnBack onClick={onBack} />
           <button onClick={handleGenerarPDF} disabled={generandoPDF}
@@ -200,7 +229,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
           {enviandoWSP ? '⏳ Preparando...' : '📎 ENVIAR FORMULARIO por WhatsApp'}
         </button>
         <button onClick={handleWhatsApp}
-          style={{ width: '100%', height: 50, background: '#25d366', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+          style={{ width: '100%', height: 50, background: '#25d366', color: '#000', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
           💬 COMPARTIR DATOS por WhatsApp
         </button>
         {onFinalizar && (
@@ -212,7 +241,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         {onInicio && (
           <button onClick={onInicio}
             style={{ width: '100%', height: 44, background: '#fff', color: '#0d1f4e', border: '1.5px solid #0d1f4e', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-            🏠 Volver al inicio
+            🏠 Volver a la pantalla de inicio
           </button>
         )}
       </div>

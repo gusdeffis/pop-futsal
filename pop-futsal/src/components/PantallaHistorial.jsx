@@ -59,38 +59,51 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
           </div>
         )}
 
-        {historial.map(h => (
-          <div key={h.id} onClick={() => onEditar(h)} style={{ border: `1.5px solid ${C.azul}`, borderRadius: 10, padding: 12, background: C.celeste, cursor: 'pointer' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        {historial.map(h => {
+          const enviado = h.enviadoNube;
+          const bgTarjeta = enviado ? '#c8ecd4' : C.celeste;
+          const colorTexto = enviado ? '#1a5c30' : C.azul;
+          return (
+          <div key={h.id} onClick={() => onEditar(h)} style={{ border: `1.5px solid ${enviado ? '#1a7a3a' : C.azul}`, borderRadius: 10, padding: 12, background: bgTarjeta, cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'stretch', gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: C.azul, fontWeight: 700, textTransform: 'uppercase' }}>
+                <div style={{ fontSize: 11, color: colorTexto, fontWeight: 700, textTransform: 'uppercase' }}>
                   {h.torneo} {h.fecha_nro && `· Fecha ${h.fecha_nro}`} {h.cat && `· Cat. ${h.cat}`}
                 </div>
-                <div style={{ fontSize: 15, color: C.azul, fontWeight: 700, marginTop: 4 }}>
-                  {h.local} {h.res_local ?? '-'} — {h.res_visitante ?? '-'} {h.visitante}
+                <div style={{ fontSize: 15, color: colorTexto, fontWeight: 700, marginTop: 4, lineHeight: 1.3 }}>
+                  <div>{h.local} {h.res_local ?? '-'}</div>
+                  <div>vs {h.visitante} {h.res_visitante ?? '-'}</div>
+                </div>
+                <div style={{ fontSize: 11, color: colorTexto, fontWeight: 700, marginTop: 4 }}>
+                  {h.dia}
                 </div>
                 <div style={{ fontSize: 11, color: '#5a6b8c', marginTop: 2 }}>
-                  {h.dia} · guardado {new Date(h.timestamp).toLocaleString('es-AR')}
+                  {enviado
+                    ? `enviado ${h.fechaEnvioNube ? new Date(h.fechaEnvioNube).toLocaleString('es-AR') : ''}`
+                    : `guardado ${new Date(h.timestamp).toLocaleString('es-AR')}`}
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch', flexShrink: 0, width: 110 }}>
                 <button onClick={e => enviarWSP(e, h)} disabled={enviandoId === h.id}
-                  style={{ flexShrink: 0, background: enviandoId === h.id ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 10px', fontSize: 10, fontWeight: 700, cursor: enviandoId === h.id ? 'wait' : 'pointer', textAlign: 'center' }}>
+                  style={{ flex: 1, minHeight: 52, background: enviandoId === h.id ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 8px', fontSize: 12, fontWeight: 700, cursor: enviandoId === h.id ? 'wait' : 'pointer', textAlign: 'center' }}>
                   {enviandoId === h.id ? '⏳' : '📎'} Enviar Form x WSP
                 </button>
                 {h.enviadoNube ? (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: C.verde }}>☁️ Enviado a planilla</span>
+                  <div style={{ flex: 1, minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#1a5c30' }}>
+                    ☁️ Enviado a planilla
+                  </div>
                 ) : (
                   <button onClick={e => subirANube(e, h)} disabled={subiendoId === h.id}
-                    style={{ flexShrink: 0, background: subiendoId === h.id ? '#e0a0a0' : C.rojo, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 10px', fontSize: 10, fontWeight: 700, cursor: subiendoId === h.id ? 'wait' : 'pointer', textAlign: 'center' }}>
+                    style={{ flex: 1, minHeight: 52, background: subiendoId === h.id ? '#e0a0a0' : C.rojo, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 8px', fontSize: 12, fontWeight: 700, cursor: subiendoId === h.id ? 'wait' : 'pointer', textAlign: 'center' }}>
                     {subiendoId === h.id ? '⏳ Subiendo...' : '☁️ No enviado — Subir'}
                   </button>
                 )}
               </div>
             </div>
-            <div style={{ fontSize: 11, color: C.azul, fontWeight: 700, marginTop: 6 }}>✏️ Tocar para editar</div>
+            <div style={{ fontSize: 11, color: colorTexto, fontWeight: 700, marginTop: 6 }}>✏️ Tocar para editar</div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -76,7 +76,8 @@ function nombreArchivo(datos) {
   return partes.length ? partes.join('_') : 'POPA_partido';
 }
 
-export async function generarPDFOficial(datos) {
+export async function generarPDFOficial(datos, opciones = {}) {
+  const { editable = false } = opciones;
   const bytesPlantilla = await fetch('/plantilla_popa.pdf').then(r => {
     if (!r.ok) throw new Error('No se pudo cargar la plantilla del PDF oficial');
     return r.arrayBuffer();
@@ -145,12 +146,16 @@ export async function generarPDFOficial(datos) {
   // con el valor recién puesto sin que el usuario tenga que hacer click.
   try { form.updateFieldAppearances(); } catch { /* no crítico */ }
 
-  // 9. Bloquear el PDF: marca cada campo como solo-lectura (no se puede editar),
-  // sin aplanar el formulario. Aplanar (form.flatten()) generaba un PDF con
+  // 9. Bloquear el PDF (por defecto): marca cada campo como solo-lectura, para
+  // que no se pueda editar. Aplanar (form.flatten()) generaba un PDF con
   // errores en algunos lectores (probado), así que se descartó esa opción:
   // esto logra el mismo resultado — no editable — de forma más compatible.
-  for (const campo of form.getFields()) {
-    try { campo.enableReadOnly(); } catch { /* no crítico */ }
+  // Si se pide "editable", se salta este paso y el PDF queda con el
+  // formulario abierto, como cualquier PDF con campos rellenables.
+  if (!editable) {
+    for (const campo of form.getFields()) {
+      try { campo.enableReadOnly(); } catch { /* no crítico */ }
+    }
   }
 
   const bytesFinal = await pdfDoc.save();

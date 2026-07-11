@@ -95,7 +95,7 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
             </button>
 
             <button onClick={onHistorial} style={{
-              minHeight: 64, background: '#fff', color: C.azul, border: `1.5px solid ${C.azul}`, borderRadius: 10,
+              minHeight: 64, background: '#c8ecd4', color: '#1a7a3a', border: `1.5px solid #1a7a3a`, borderRadius: 10,
               fontSize: 16, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
