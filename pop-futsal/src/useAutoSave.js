@@ -1,19 +1,38 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 const KEY = 'pop_partido_actual';
 const KEY_HISTORIAL = 'pop_historial';
 
+function guardarAhora(datos, pantalla) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      datos, pantalla, timestamp: new Date().toISOString(),
+    }));
+  } catch {
+    // localStorage lleno o no disponible: se ignora, no es crítico
+  }
+}
+
 export function useAutoSave(datos, pantalla) {
+  const pantallaAnterior = useRef(pantalla);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem(KEY, JSON.stringify({
-        datos,
-        pantalla,
-        timestamp: new Date().toISOString(),
-      }));
-    }, 500);
+    // Si lo que cambió fue la pantalla (navegación Siguiente/Atrás), se guarda
+    // al instante, sin esperar el debounce, para no perder nada si se cierra la app.
+    if (pantallaAnterior.current !== pantalla) {
+      pantallaAnterior.current = pantalla;
+      guardarAhora(datos, pantalla);
+      return;
+    }
+    // Si lo que cambió fue un campo (tipeo), se espera un poco para no escribir
+    // en cada tecla.
+    const timer = setTimeout(() => guardarAhora(datos, pantalla), 400);
     return () => clearTimeout(timer);
   }, [datos, pantalla]);
+}
+
+export function guardarInmediato(datos, pantalla) {
+  guardarAhora(datos, pantalla);
 }
 
 export function cargarGuardado() {

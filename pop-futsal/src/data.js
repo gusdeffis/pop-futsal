@@ -11,7 +11,7 @@ export const DEFAULT_TORNEOS = [
   'Liga Nacional', 'Supercopa', 'Torneo Integración',
 ];
 
-export const FECHAS = [
+export const DEFAULT_FECHAS = [
   ...Array.from({ length: 40 }, (_, i) => String(i + 1)),
   'PO', '32°', '16°', '8°', '4°', 'Semi', 'Final',
 ];
@@ -103,8 +103,28 @@ export const SHEET_URLS = {
   arbitros: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=925457710&single=true&output=csv',
   oficiales: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=1380718279&single=true&output=csv',
   categorias: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=1519839119&single=true&output=csv', // categorias
+  partidos: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=734516177&single=true&output=csv', // fechas
   motivosInicio: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=718313407&single=true&output=csv',
   motivosET: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVNC49afGMrgq6wBdjdiY-g7YQPHdmonQPIw1BjO9-Ianl4kfgtGE3gQws5BmTfkJKvYMMq9FOiW17/pub?gid=1002892177&single=true&output=csv',
+};
+
+// PIN de 4 dígitos por Oficial AFA — este es el RESPALDO por si la hoja de
+// Sheets todavía no está publicada o falla la conexión. Una vez que publiques
+// la hoja "PINs" (columnas: Nombre | PIN) los PINs se manejan desde ahí y
+// esto deja de usarse. Todos arrancan en "1234" acá por si hace falta.
+export const OFICIAL_PINS = {
+  'Agustín Andrenacci': '1234',
+  'Andres Lobo': '1234',
+  'Ángel Sabio': '1234',
+  'Fabián Teplitzky': '1234',
+  'Fernando Depirro': '1234',
+  'Gustavo Deffis': '1234',
+  'Hernan Lomba': '1234',
+  'Juan Chamorro': '1234',
+  'Juan Meles': '1234',
+  'Marcelo Maradei': '1234',
+  'Pablo Diaz': '1234',
+  'Sebastián Sgarra': '1234',
 };
 
 export const ESTADO_INICIAL = {

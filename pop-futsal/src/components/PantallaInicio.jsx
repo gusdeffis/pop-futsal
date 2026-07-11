@@ -1,6 +1,27 @@
+import { useState } from 'react';
+
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', rojo: '#e03030' };
 
-export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHistorial }) {
+function validarPin(pines, nombre, pin) {
+  const entrada = Object.entries(pines || {}).find(
+    ([n]) => n.toUpperCase() === (nombre || '').toUpperCase()
+  );
+  return entrada && entrada[1] === pin;
+}
+
+export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHistorial, oficiales, pines, oficialLogueado, onLogin, onLogout }) {
+  const [nombre, setNombre] = useState('');
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+
+  const handleIngresar = () => {
+    if (!nombre) { setError('Elegí tu nombre.'); return; }
+    if (pin.length !== 4) { setError('El PIN tiene 4 dígitos.'); return; }
+    if (!validarPin(pines, nombre, pin)) { setError('Nombre o PIN incorrecto.'); return; }
+    setError('');
+    onLogin(nombre);
+  };
+
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif', display: 'flex', flexDirection: 'column' }}>
       <div style={{ background: C.azul, padding: '32px 24px 28px', textAlign: 'center' }}>
@@ -10,35 +31,74 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'center' }}>
+      <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center', alignItems: 'stretch', maxWidth: 360, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
-        <button onClick={onNuevo} style={{
-          height: 64, background: C.azul, color: '#fff', border: 'none', borderRadius: 10,
-          fontSize: 16, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
-        }}>
-          📋 Nuevo Partido
-        </button>
+        {!oficialLogueado ? (
+          <>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.azul, textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center', marginBottom: -4 }}>
+              Identificate para entrar
+            </div>
+            <select value={nombre} onChange={e => { setNombre(e.target.value); setError(''); }} style={{
+              height: 48, border: `1.5px solid ${C.azul}`, borderRadius: 8, padding: '0 12px',
+              fontSize: 15, fontWeight: 600, color: C.azul, background: C.celeste, outline: 'none',
+            }}>
+              <option value="">Seleccioná tu nombre</option>
+              {(oficiales || []).map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <input
+              type="tel" inputMode="numeric" maxLength={4} value={pin}
+              onChange={e => { setPin(e.target.value.replace(/[^0-9]/g, '')); setError(''); }}
+              placeholder="PIN (4 dígitos)"
+              style={{
+                height: 48, border: `1.5px solid ${C.azul}`, borderRadius: 8, padding: '0 12px',
+                fontSize: 18, fontWeight: 700, color: C.azul, background: C.celeste, outline: 'none',
+                letterSpacing: 6, textAlign: 'center',
+              }}
+            />
+            {error && <div style={{ color: C.rojo, fontSize: 12, fontWeight: 700, textAlign: 'center' }}>{error}</div>}
+            <button onClick={handleIngresar} style={{
+              minHeight: 52, background: C.azul, color: '#fff', border: 'none', borderRadius: 10,
+              fontSize: 15, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
+            }}>
+              Ingresar
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 12, color: '#5a6b8c', textAlign: 'center', marginBottom: -4 }}>
+              Conectado como <strong style={{ color: C.azul }}>{oficialLogueado}</strong> ·{' '}
+              <span onClick={onLogout} style={{ color: C.rojo, cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>salir</span>
+            </div>
 
-        <button onClick={onContinuar} disabled={!guardado} style={{
-          height: 64, background: guardado ? C.celeste : '#eee', color: guardado ? C.azul : '#999',
-          border: `1.5px solid ${guardado ? C.azul : '#ddd'}`, borderRadius: 10,
-          fontSize: 16, fontWeight: 700, cursor: guardado ? 'pointer' : 'not-allowed',
-          textTransform: 'uppercase', letterSpacing: .3, display: 'flex', flexDirection: 'column', gap: 2,
-        }}>
-          <span>▶ Continuar Partido</span>
-          {guardado?.datos?.torneo && (
-            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'none' }}>
-              {guardado.datos.local} vs {guardado.datos.visitante}
-            </span>
-          )}
-        </button>
+            <button onClick={onNuevo} style={{
+              minHeight: 64, background: C.azul, color: '#fff', border: 'none', borderRadius: 10,
+              fontSize: 16, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              📋 Nuevo Partido
+            </button>
 
-        <button onClick={onHistorial} style={{
-          height: 64, background: '#fff', color: C.azul, border: `1.5px solid ${C.azul}`, borderRadius: 10,
-          fontSize: 16, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
-        }}>
-          🗂️ Historial de Partidos
-        </button>
+            <button onClick={onContinuar} disabled={!guardado} style={{
+              minHeight: 64, background: guardado ? C.celeste : '#eee', color: guardado ? C.azul : '#999',
+              border: `1.5px solid ${guardado ? C.azul : '#ddd'}`, borderRadius: 10,
+              fontSize: 16, fontWeight: 700, cursor: guardado ? 'pointer' : 'not-allowed',
+              textTransform: 'uppercase', letterSpacing: .3,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px' }}>
+              <span style={{ lineHeight: 1 }}>▶ Continuar Partido</span>
+              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'none', textAlign: 'center', lineHeight: 1 }}>
+                {guardado?.datos?.torneo ? `${guardado.datos.local || '—'} vs ${guardado.datos.visitante || '—'}` : '\u00A0'}
+              </span>
+            </button>
+
+            <button onClick={onHistorial} style={{
+              minHeight: 64, background: '#fff', color: C.azul, border: `1.5px solid ${C.azul}`, borderRadius: 10,
+              fontSize: 16, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              🗂️ Historial de Partidos
+            </button>
+          </>
+        )}
 
       </div>
     </div>

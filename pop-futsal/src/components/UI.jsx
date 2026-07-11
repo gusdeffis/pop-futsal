@@ -4,10 +4,11 @@ const C = {
   celeste: '#c6dbf5',
   celesteBorde: '#0d1f4e',
   rojo: '#e03030',
-  rojoOscuro: '#8f1010',
-  // Rosa: fondo de campos en pantalla 4, borde rojo siempre visible
+  // Bordó: paleta de la pantalla 4 (Observaciones durante el partido)
+  bordo: '#7a1030',
+  // Rosa: fondo de campos en pantalla 4, borde bordó siempre visible
   rosa: '#fbdbe1',
-  rosaBorde: '#e03030',
+  rosaBorde: '#7a1030',
   verde: '#1a7a3a',
   borde: '#dde1ec',
   fondo: '#f8f9fc',
@@ -15,6 +16,11 @@ const C = {
   textoSec: '#666',
   blanco: '#ffffff',
 };
+
+// Fuerza mayúsculas en todo lo que se tipea en la app (campos de texto y
+// observaciones), para que quede prolijo y uniforme sin que el Oficial AFA
+// tenga que acordarse de usar mayúsculas.
+const upper = (v) => (typeof v === 'string' ? v.toUpperCase() : v);
 
 export function Header({ paso, total = 5 }) {
   const pasos = ['DATOS', 'CONTROL', 'HORARIOS', 'OBS.', 'ACTA'];
@@ -49,7 +55,7 @@ export function Header({ paso, total = 5 }) {
 export function SeccionHeader({ children, rojo }) {
   return (
     <div style={{
-      background: rojo ? C.rojo : C.azul,
+      background: rojo ? C.bordo : C.azul,
       color: '#fff', fontSize: 11, fontWeight: 700,
       letterSpacing: .5, padding: '7px 12px', borderRadius: 6,
       textTransform: 'uppercase',
@@ -74,7 +80,7 @@ function baseStyle(variant) {
   const border = variant === 'rosa' ? C.rosaBorde : C.celesteBorde;
   return {
     height: 44, border: `1.5px solid ${border}`, borderRadius: 8,
-    padding: '0 12px', fontSize: 15, color: C.azul, fontWeight: 600,
+    padding: '0 12px', fontSize: 15, color: variant === 'rosa' ? '#000' : C.azul, fontWeight: 600,
     background: bg, width: '100%', outline: 'none', boxSizing: 'border-box',
   };
 }
@@ -84,7 +90,7 @@ export function Input({ value, onChange, placeholder, type = 'text', style = {},
     <input
       type={type}
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={e => onChange(type === 'text' ? upper(e.target.value) : e.target.value)}
       onKeyUp={onKeyUp}
       placeholder={placeholder}
       style={{ ...baseStyle(variant), ...style }}
@@ -99,7 +105,7 @@ export function Select({ value, onChange, options, placeholder, variant = 'celes
       onChange={e => onChange(e.target.value)}
       style={{
         ...baseStyle(variant),
-        color: value ? C.azul : '#5a6b8c',
+        color: value ? (variant === 'rosa' ? '#000' : C.azul) : '#5a6b8c',
         appearance: 'none',
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d1f4e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
@@ -112,74 +118,77 @@ export function Select({ value, onChange, options, placeholder, variant = 'celes
   );
 }
 
-// Checkbox azul - para items normales (instalaciones, etc.) - blanco hasta marcar, azul oscuro al marcar
+// Checkbox azul - para items normales (instalaciones, etc.)
+// Sin marcar: fondo celeste, casillero blanco. Marcado: fondo azul, casillero celeste.
 export function CheckAzul({ label, checked, onChange }) {
   return (
     <div onClick={() => onChange(!checked)} style={{
       display: 'flex', alignItems: 'center', gap: 10,
-      background: checked ? C.azul : C.blanco,
+      background: checked ? C.azul : C.celeste,
       border: `1.5px solid ${C.azul}`,
       borderRadius: 8, padding: '12px 10px', cursor: 'pointer',
       userSelect: 'none', transition: 'all .15s',
     }}>
       <div style={{
         width: 22, height: 22, borderRadius: 4, flexShrink: 0,
-        background: checked ? '#fff' : C.celeste,
-        border: `2px solid ${checked ? '#fff' : C.azul}`,
+        background: checked ? C.celeste : '#fff',
+        border: `2px solid ${checked ? C.celeste : C.azul}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {checked && <span style={{ color: C.azul, fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
       </div>
-      <span style={{ fontSize: 13, color: checked ? '#fff' : C.azul, lineHeight: 1.2, fontWeight: 600 }}>
+      <span style={{ fontSize: 13, color: checked ? '#fff' : C.azul, lineHeight: 1.2, fontWeight: 600, textTransform: 'uppercase' }}>
         {label}
       </span>
     </div>
   );
 }
 
-// Checkbox rojo - para incumplimientos/problemas - blanco hasta marcar, rojo oscuro al marcar
+// Checkbox bordó - para incumplimientos/problemas (pantalla 4)
+// Sin marcar: fondo rosa, casillero blanco, letra negra. Marcado: fondo bordó, casillero rosa, letra blanca.
 export function CheckRojo({ label, checked, onChange }) {
   return (
     <div onClick={() => onChange(!checked)} style={{
       display: 'flex', alignItems: 'center', gap: 10,
-      background: checked ? C.rojoOscuro : C.blanco,
-      border: `1.5px solid ${C.rojo}`,
+      background: checked ? C.bordo : C.rosa,
+      border: `1.5px solid ${C.bordo}`,
       borderRadius: 8, padding: '12px 10px', cursor: 'pointer',
       userSelect: 'none', transition: 'all .15s',
     }}>
       <div style={{
         width: 22, height: 22, borderRadius: 4, flexShrink: 0,
-        background: checked ? '#fff' : C.rosa,
-        border: `2px solid ${checked ? '#fff' : C.rojo}`,
+        background: checked ? C.rosa : '#fff',
+        border: `2px solid ${checked ? C.rosa : C.bordo}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {checked && <span style={{ color: C.rojoOscuro, fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
+        {checked && <span style={{ color: C.bordo, fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
       </div>
-      <span style={{ fontSize: 13, color: checked ? '#fff' : C.rojo, lineHeight: 1.2, fontWeight: 700 }}>
+      <span style={{ fontSize: 13, color: checked ? '#fff' : '#000', lineHeight: 1.2, fontWeight: 700, textTransform: 'uppercase' }}>
         {label}
       </span>
     </div>
   );
 }
 
-// Chip L/V rojo para incumplimientos - blanco hasta marcar, rojo oscuro al marcar
+// Chip L/V bordó para incumplimientos (Calentamiento Suplentes) - letras cortas
+// para que no se rompa el ancho de la fila.
 export function LVRojo({ label, checked, onChange }) {
   return (
     <div onClick={() => onChange(!checked)} style={{
       display: 'flex', alignItems: 'center', gap: 6,
-      border: `1.5px solid ${C.rojo}`,
-      borderRadius: 6, padding: '7px 12px',
-      background: checked ? C.rojoOscuro : '#fff',
+      border: `1.5px solid ${C.bordo}`,
+      borderRadius: 6, padding: '7px 10px',
+      background: checked ? C.bordo : '#fff',
       cursor: 'pointer', fontSize: 12, fontWeight: 700,
-      color: checked ? '#fff' : C.rojo,
+      color: checked ? '#fff' : '#000',
     }}>
       <div style={{
         width: 16, height: 16, borderRadius: 3, flexShrink: 0,
-        background: checked ? '#fff' : C.rosa,
-        border: `2px solid ${checked ? '#fff' : C.rojo}`,
+        background: checked ? C.rosa : '#fff',
+        border: `2px solid ${checked ? C.rosa : C.bordo}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {checked && <span style={{ color: C.rojoOscuro, fontSize: 10, fontWeight: 700 }}>✓</span>}
+        {checked && <span style={{ color: C.bordo, fontSize: 10, fontWeight: 700 }}>✓</span>}
       </div>
       {label}
     </div>
@@ -201,15 +210,15 @@ export function HoraInput({ value, onChange, label, variant = 'celeste' }) {
   };
   return (
     <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: C.azul, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: variant === 'rosa' ? '#000' : C.azul, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
       <input
         type="text" value={value}
         onChange={e => handleChange(e.target.value)}
         placeholder="--:--" maxLength={5}
-        style={{ fontSize: 26, fontWeight: 700, color: C.azul, border: 'none', background: 'transparent', width: '100%', outline: 'none', letterSpacing: 2 }}
+        style={{ fontSize: 26, fontWeight: 700, color: variant === 'rosa' ? '#000' : C.azul, border: 'none', background: 'transparent', width: '100%', outline: 'none', letterSpacing: 2 }}
       />
       <button onClick={setAhora} style={{
-        background: C.rojo, color: '#fff', border: 'none', borderRadius: 6,
+        background: variant === 'rosa' ? C.bordo : C.rojo, color: '#fff', border: 'none', borderRadius: 6,
         padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
       }}>▶ Ahora</button>
     </div>
@@ -220,8 +229,8 @@ export function Textarea({ value, onChange, placeholder, minHeight = 80, variant
   const bg = variant === 'rosa' ? C.rosa : C.celeste;
   const border = variant === 'rosa' ? C.rosaBorde : C.celesteBorde;
   return (
-    <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      style={{ width: '100%', minHeight, border: `1.5px solid ${border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, color: C.azul, background: bg, resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+    <textarea value={value} onChange={e => onChange(upper(e.target.value))} placeholder={placeholder}
+      style={{ width: '100%', minHeight, border: `1.5px solid ${border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, color: variant === 'rosa' ? '#000' : C.azul, background: bg, resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
     />
   );
 }

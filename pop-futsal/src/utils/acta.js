@@ -37,6 +37,8 @@ export function generarActaTexto(datos) {
   if (datos.excedido && datos.motivo_et) {
     partes.push(`El entretiempo fue excedido. Motivo: ${datos.motivo_et}.`);
   }
+  if (datos.obs_previo?.trim()) partes.push(`Control previo: ${datos.obs_previo.trim()}`);
+  if (datos.obs_horarios?.trim()) partes.push(`Horarios: ${datos.obs_horarios.trim()}`);
   if (datos.obs_partido?.trim()) partes.push(datos.obs_partido.trim());
 
   return partes.join(' ');

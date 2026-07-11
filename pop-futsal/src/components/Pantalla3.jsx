@@ -74,37 +74,30 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
           </div>
         )}
 
-        <HoraInput label="Hora de inicio real del partido" value={datos.hora_real} onChange={set('hora_real')} />
-
-        {/* Primer tiempo */}
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Primer tiempo</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {/* Hora real de inicio + Primer tiempo, todo en una línea */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <HoraInput label="Inicio Real" value={datos.hora_real} onChange={set('hora_real')} />
           <HoraInput label="Final 1° T" value={datos.final_1t} onChange={set('final_1t')} />
           <HoraInput label="Inicio 2° T" value={datos.inicio_2t} onChange={set('inicio_2t')} />
         </div>
 
         {/* Entretiempo */}
         <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Entretiempo</div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', marginBottom: 4 }}>Duración ET (auto)</div>
-            <div style={{ width: 72, height: 44, border: '1.5px solid #0d1f4e', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: '#0d1f4e', background: '#c6dbf5' }}>
-              {datos.et_min || '—'}
-            </div>
-            <div style={{ fontSize: 10, color: '#0d1f4e', textAlign: 'center', marginTop: 2, fontWeight: 600 }}>minutos</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid #0d1f4e', borderRadius: 8, padding: '8px 10px', background: '#c6dbf5' }}>
+            <span style={{ fontSize: 20, fontWeight: 700, color: '#0d1f4e' }}>{datos.et_min || '—'}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#0d1f4e' }}>min. ET</span>
           </div>
-          <div style={{ flex: 1 }}>
-            <div onClick={() => set('excedido')(!datos.excedido)} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              background: datos.excedido ? '#8f1010' : '#fff',
-              border: '1.5px solid #e03030',
-              borderRadius: 8, padding: '13px 10px', cursor: 'pointer',
-            }}>
-              <div style={{ width: 22, height: 22, borderRadius: 4, background: datos.excedido ? '#fff' : '#fbdbe1', border: `2px solid ${datos.excedido ? '#fff' : '#e03030'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {datos.excedido && <span style={{ color: '#8f1010', fontSize: 14, fontWeight: 700 }}>✓</span>}
-              </div>
-              <span style={{ fontSize: 13, color: datos.excedido ? '#fff' : '#e03030', fontWeight: 700 }}>ET excedido</span>
+          <div onClick={() => set('excedido')(!datos.excedido)} style={{
+            flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+            background: datos.excedido ? '#8f1010' : '#fff',
+            border: '1.5px solid #e03030',
+            borderRadius: 8, padding: '10px', cursor: 'pointer',
+          }}>
+            <div style={{ width: 20, height: 20, borderRadius: 4, background: datos.excedido ? '#fff' : '#fbdbe1', border: `2px solid ${datos.excedido ? '#fff' : '#e03030'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {datos.excedido && <span style={{ color: '#8f1010', fontSize: 13, fontWeight: 700 }}>✓</span>}
             </div>
+            <span style={{ fontSize: 12, color: datos.excedido ? '#fff' : '#e03030', fontWeight: 700, textTransform: 'uppercase' }}>Excedido</span>
           </div>
         </div>
 

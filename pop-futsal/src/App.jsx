@@ -9,7 +9,7 @@ import PantallaHistorial from './components/PantallaHistorial';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
 import { generarActaTexto } from './utils/acta';
-import { useAutoSave, cargarGuardado, limpiarGuardado, obtenerHistorial, guardarEnHistorial } from './useAutoSave';
+import { useAutoSave, cargarGuardado, guardarInmediato, limpiarGuardado, obtenerHistorial, guardarEnHistorial } from './useAutoSave';
 
 export default function App() {
   const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial'
@@ -17,6 +17,7 @@ export default function App() {
   const [datos, setDatos] = useState(ESTADO_INICIAL);
   const [guardado, setGuardado] = useState(null);
   const [historial, setHistorial] = useState([]);
+  const [oficialLogueado, setOficialLogueado] = useState(null);
   const listas = useListas();
 
   useEffect(() => {
@@ -25,13 +26,22 @@ export default function App() {
 
   useAutoSave(datos, pantalla);
 
-  // Cada vez que se llega a la pantalla de Acta, se guarda/actualiza el partido en el historial
+  // Guardado reforzado: si el usuario sale de la app (cambia a otra app,
+  // apaga la pantalla, cierra la pestaña) sin esperar el debounce normal,
+  // esto guarda al instante para no perder los últimos cambios.
   useEffect(() => {
-    if (vista === 'partido' && pantalla === 5 && datos.torneo) {
-      guardarEnHistorial(datos, generarActaTexto(datos));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vista, pantalla]);
+    const handler = () => {
+      if (document.visibilityState === 'hidden' && vista === 'partido') {
+        guardarInmediato(datos, pantalla);
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    window.addEventListener('pagehide', handler);
+    return () => {
+      document.removeEventListener('visibilitychange', handler);
+      window.removeEventListener('pagehide', handler);
+    };
+  }, [datos, pantalla, vista]);
 
   const irAInicio = () => {
     setGuardado(cargarGuardado());
@@ -59,12 +69,42 @@ export default function App() {
     setVista('historial');
   };
 
+  // Se llama al tocar "Finalizar Partido" en el Acta: pasa el partido al
+  // historial y libera el partido "en curso" (Continuar Partido queda vacío
+  // hasta que se arranque uno nuevo).
+  const finalizarPartido = () => {
+    guardarEnHistorial(datos, generarActaTexto(datos) + (datos.acta_extra ? ' ' + datos.acta_extra : ''));
+    limpiarGuardado();
+    setGuardado(null);
+    setVista('inicio');
+  };
+
+  // Se llama al tocar un partido del historial: lo vuelve a cargar como
+  // partido activo, empezando por la pantalla de Datos, para editarlo.
+  const editarDesdeHistorial = (entrada) => {
+    setDatos(entrada.datos);
+    setPantalla(1);
+    setVista('partido');
+  };
+
   if (vista === 'inicio') {
-    return <PantallaInicio guardado={guardado} onNuevo={nuevoPartido} onContinuar={continuarPartido} onHistorial={irAHistorial} />;
+    return (
+      <PantallaInicio
+        guardado={guardado}
+        onNuevo={nuevoPartido}
+        onContinuar={continuarPartido}
+        onHistorial={irAHistorial}
+        oficiales={listas.oficiales}
+        pines={listas.pines}
+        oficialLogueado={oficialLogueado}
+        onLogin={setOficialLogueado}
+        onLogout={() => setOficialLogueado(null)}
+      />
+    );
   }
 
   if (vista === 'historial') {
-    return <PantallaHistorial historial={historial} onBack={irAInicio} />;
+    return <PantallaHistorial historial={historial} onBack={irAInicio} onEditar={editarDesdeHistorial} />;
   }
 
   return (
@@ -73,7 +113,7 @@ export default function App() {
       {pantalla === 2 && <Pantalla2 datos={datos} setDatos={setDatos} onNext={() => { setPantalla(3); window.scrollTo(0,0); }} onBack={() => { setPantalla(1); window.scrollTo(0,0); }} />}
       {pantalla === 3 && <Pantalla3 datos={datos} setDatos={setDatos} listas={listas} onNext={() => { setPantalla(4); window.scrollTo(0,0); }} onBack={() => { setPantalla(2); window.scrollTo(0,0); }} />}
       {pantalla === 4 && <Pantalla4 datos={datos} setDatos={setDatos} onNext={() => { setPantalla(5); window.scrollTo(0,0); }} onBack={() => { setPantalla(3); window.scrollTo(0,0); }} />}
-      {pantalla === 5 && <Pantalla5 datos={datos} setDatos={setDatos} onBack={() => { setPantalla(4); window.scrollTo(0,0); }} onInicio={irAInicio} />}
+      {pantalla === 5 && <Pantalla5 datos={datos} setDatos={setDatos} onBack={() => { setPantalla(4); window.scrollTo(0,0); }} onInicio={irAInicio} onFinalizar={finalizarPartido} />}
     </div>
   );
 }

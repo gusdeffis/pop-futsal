@@ -10,8 +10,13 @@ const CONCL_OPCIONES = [
   { id: 'susp', label: 'Suspensión', color: '#e03030', bg: '#fff0f0', exclusivo: false },
 ];
 
-export default function Pantalla5({ datos, setDatos, onBack, onInicio }) {
+export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinalizar }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
+
+  const handleFinalizar = () => {
+    const ok = window.confirm('¿Finalizar este partido? Va a pasar al Historial. Podés volver a editarlo desde ahí si hace falta.');
+    if (ok) onFinalizar();
+  };
 
   const conclusiones = datos.conclusiones || [];
 
@@ -46,6 +51,35 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio }) {
       setErrorPDF('No se pudo generar el PDF. Revisá tu conexión e intentá de nuevo.');
     } finally {
       setGenerandoPDF(false);
+    }
+  };
+
+  const [enviandoWSP, setEnviandoWSP] = useState(false);
+
+  const handleEnviarFormWSP = async () => {
+    setEnviandoWSP(true);
+    setErrorPDF('');
+    try {
+      const { bytes, nombreSugerido } = await generarPDFOficial(datos);
+      const archivo = new File([bytes], nombreSugerido, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({
+          files: [archivo],
+          title: 'Planilla POP Futsal',
+          text: `${datos.local} vs ${datos.visitante} — ${datos.torneo}`,
+        });
+      } else {
+        // El celular no soporta compartir archivos desde el navegador:
+        // se descarga el PDF para que lo adjunte a mano en WhatsApp.
+        descargarPDF(bytes, nombreSugerido);
+        alert('Tu celular no permite adjuntar el PDF directo desde acá. Se descargó el archivo: adjuntalo manualmente en WhatsApp.');
+      }
+    } catch (e) {
+      if (e?.name !== 'AbortError') {
+        setErrorPDF('No se pudo enviar el formulario. Probá con "Generar PDF oficial" y adjuntalo a mano.');
+      }
+    } finally {
+      setEnviandoWSP(false);
     }
   };
 
@@ -138,7 +172,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio }) {
           </div>
           <textarea
             value={datos.acta_extra}
-            onChange={e => set('acta_extra')(e.target.value)}
+            onChange={e => set('acta_extra')(e.target.value.toUpperCase())}
             placeholder="Agregá texto adicional si es necesario..."
             style={{ width: '100%', minHeight: 60, border: '1.5px solid #b8c8e8', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: '#0d1f4e', background: '#fff', resize: 'vertical', fontFamily: 'inherit', outline: 'none', marginTop: 10, boxSizing: 'border-box' }}
           />
@@ -156,10 +190,20 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio }) {
           </button>
         </div>
         {errorPDF && <div style={{ color: '#e03030', fontSize: 12, fontWeight: 600 }}>{errorPDF}</div>}
+        <button onClick={handleEnviarFormWSP} disabled={enviandoWSP}
+          style={{ width: '100%', height: 50, background: enviandoWSP ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: enviandoWSP ? 'wait' : 'pointer' }}>
+          {enviandoWSP ? '⏳ Preparando...' : '📎 Enviar Form x WSP'}
+        </button>
         <button onClick={handleWhatsApp}
           style={{ width: '100%', height: 50, background: '#25d366', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
           💬 Compartir por WhatsApp
         </button>
+        {onFinalizar && (
+          <button onClick={handleFinalizar}
+            style={{ width: '100%', height: 52, background: '#1a7a3a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            ✅ Finalizar Partido
+          </button>
+        )}
         {onInicio && (
           <button onClick={onInicio}
             style={{ width: '100%', height: 44, background: '#fff', color: '#0d1f4e', border: '1.5px solid #0d1f4e', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>

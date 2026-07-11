@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Header, Campo, Input, Select, BtnNext } from './UI';
-import { FECHAS } from '../data';
 
 // Auto-avance en campo fecha: "4" → "07" → "2026"
 function useFechaInput(value, onChange) {
@@ -65,7 +64,7 @@ export default function Pantalla1({ datos, setDatos, onNext, listas }) {
         {/* Fecha N° + Categoría + Partido N° en la segunda fila */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           <Campo label="Fecha N°">
-            <Select value={datos.fecha_nro} onChange={set('fecha_nro')} options={FECHAS} placeholder="N°" />
+            <Select value={datos.fecha_nro} onChange={set('fecha_nro')} options={listas.fechas} placeholder="N°" />
           </Campo>
           <Campo label="Categoría">
             <Select value={datos.cat} onChange={set('cat')} options={listas.categorias} placeholder="Cat." />
@@ -92,14 +91,17 @@ export default function Pantalla1({ datos, setDatos, onNext, listas }) {
         <Campo label="Visitante" required>
           <Select value={datos.visitante} onChange={set('visitante')} options={listas.clubes} placeholder="Equipo visitante" />
         </Campo>
-        <Campo label="Estadio">
-          <Select value={datos.estadio} onChange={set('estadio')} options={listas.estadios} placeholder="Estadio" />
-        </Campo>
 
-        {/* Árbitro y delegados */}
-        <Campo label="Árbitro" required>
-          <Select value={datos.arbitro} onChange={set('arbitro')} options={listas.arbitros} placeholder="Seleccioná el árbitro" />
-        </Campo>
+        {/* Estadio y Árbitro en la misma línea */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <Campo label="Estadio">
+            <Select value={datos.estadio} onChange={set('estadio')} options={listas.estadios} placeholder="Estadio" />
+          </Campo>
+          <Campo label="Árbitro" required>
+            <Select value={datos.arbitro} onChange={set('arbitro')} options={listas.arbitros} placeholder="Árbitro" />
+          </Campo>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <Campo label="Delegado Local">
             <Input value={datos.deleg_l} onChange={set('deleg_l')} placeholder="Nombre" />
@@ -113,7 +115,7 @@ export default function Pantalla1({ datos, setDatos, onNext, listas }) {
         </Campo>
 
       </div>
-      <div style={{ padding: '8px 16px 24px' }}>
+      <div style={{ padding: '8px 16px 24px', display: 'flex', gap: 10 }}>
         <BtnNext onClick={onNext} disabled={!valido}>Siguiente: Control previo</BtnNext>
       </div>
     </div>
