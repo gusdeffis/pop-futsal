@@ -1,4 +1,4 @@
-import { Header, SeccionHeader, CheckRojo, LVRojo, Textarea, BtnNext, BtnBack } from './UI';
+import { Header, SeccionHeader, CheckRojo, CheckRojoChico, LVRojo, Textarea, BtnNext, BtnBack } from './UI';
 
 const BORDO = '#7a1030';
 const ROSA = '#fbdbe1';
@@ -11,7 +11,7 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
       <Header paso={4} />
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-        <SeccionHeader rojo>4. Observaciones durante el partido</SeccionHeader>
+        <SeccionHeader>4. Observaciones durante el partido</SeccionHeader>
         <div style={{ background: '#e03030', color: '#fff', fontWeight: 700, fontSize: 12, padding: '8px 12px', borderRadius: 6, textAlign: 'center', textTransform: 'uppercase', letterSpacing: .5 }}>
           Marcar si hay incumplimiento o problema
         </div>
@@ -63,7 +63,7 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           {[['goteras', 'Goteras'], ['humedad', 'Humedad'], ['tribunas', 'Tribunas']].map(([c, l]) => (
-            <CheckRojo key={c} label={l} checked={datos[c]} onChange={set(c)} />
+            <CheckRojoChico key={c} label={l} checked={datos[c]} onChange={set(c)} />
           ))}
         </div>
 

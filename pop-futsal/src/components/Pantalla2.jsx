@@ -97,9 +97,9 @@ export default function Pantalla2({ datos, setDatos, onNext, onBack }) {
 
         {/* Vestuarios: entre Pared con Protecciones y Baños Públicos */}
         <div style={{ display: 'flex', gap: 8 }}>
-          <CheckVest label="Vestuario Local" campo="vest_l" datos={datos} set={set} />
-          <CheckVest label="Vestuario Visita" campo="vest_v" datos={datos} set={set} />
-          <CheckVest label="Vestuario Árbitro" campo="vest_arb" datos={datos} set={set} />
+          <CheckVest label="Vest. Local" campo="vest_l" datos={datos} set={set} />
+          <CheckVest label="Vest. Visita" campo="vest_v" datos={datos} set={set} />
+          <CheckVest label="Vest. Árb." campo="vest_arb" datos={datos} set={set} />
         </div>
 
         {/* Baños Públicos + Limpieza */}

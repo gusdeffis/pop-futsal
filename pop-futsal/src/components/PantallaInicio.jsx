@@ -65,8 +65,9 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
           </>
         ) : (
           <>
-            <div style={{ fontSize: 14, color: '#5a6b8c', textAlign: 'center', marginBottom: -4 }}>
-              Conectado como <strong style={{ color: C.azul }}>{oficialLogueado}</strong>
+            <div style={{ textAlign: 'center', marginBottom: -4 }}>
+              <div style={{ fontSize: 14, color: '#5a6b8c' }}>Conectado como</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.azul }}>{oficialLogueado}</div>
             </div>
 
             <button onClick={onNuevo} style={{
@@ -99,7 +100,7 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
               🗂️ Historial de Partidos
             </button>
 
-            <div onClick={onLogout} style={{ textAlign: 'center', color: C.rojo, fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline', marginTop: 4 }}>
+            <div onClick={onLogout} style={{ textAlign: 'center', color: C.rojo, fontWeight: 700, fontSize: 16, cursor: 'pointer', textDecoration: 'underline', textTransform: 'uppercase', letterSpacing: .3, marginTop: 4 }}>
               Salir
             </div>
           </>

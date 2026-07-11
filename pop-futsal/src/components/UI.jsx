@@ -172,6 +172,31 @@ export function CheckRojo({ label, checked, onChange }) {
   );
 }
 
+// Igual que CheckRojo pero con letra más chica, para filas de 3 columnas angostas.
+export function CheckRojoChico({ label, checked, onChange }) {
+  return (
+    <div onClick={() => onChange(!checked)} style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      background: checked ? C.bordo : C.rosa,
+      border: `1.5px solid ${C.bordo}`,
+      borderRadius: 8, padding: '10px 8px', cursor: 'pointer',
+      userSelect: 'none', transition: 'all .15s',
+    }}>
+      <div style={{
+        width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+        background: checked ? C.rosa : '#fff',
+        border: `2px solid ${checked ? C.rosa : C.bordo}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {checked && <span style={{ color: C.bordo, fontSize: 12, lineHeight: 1, fontWeight: 700 }}>✓</span>}
+      </div>
+      <span style={{ fontSize: 11, color: checked ? '#fff' : '#000', lineHeight: 1.1, fontWeight: 700, textTransform: 'uppercase' }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
 // Chip L/V bordó para incumplimientos (Calentamiento Suplentes) - letras cortas
 // para que no se rompa el ancho de la fila.
 export function LVRojo({ label, checked, onChange }) {

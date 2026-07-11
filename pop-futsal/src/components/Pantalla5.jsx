@@ -76,7 +76,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
       }
     } catch (e) {
       if (e?.name !== 'AbortError') {
-        setErrorPDF('No se pudo enviar el formulario. Probá con "Generar PDF oficial" y adjuntalo a mano.');
+        setErrorPDF('No se pudo enviar el formulario. Probá con "GENERAR PDF" y adjuntalo a mano.');
       }
     } finally {
       setEnviandoWSP(false);
@@ -191,22 +191,22 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
           <BtnBack onClick={onBack} />
           <button onClick={handleGenerarPDF} disabled={generandoPDF}
             style={{ flex: 1, height: 50, background: generandoPDF ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: generandoPDF ? 'wait' : 'pointer' }}>
-            {generandoPDF ? '⏳ Generando...' : '📄 Generar PDF oficial'}
+            {generandoPDF ? '⏳ Generando...' : '📄 GENERAR PDF'}
           </button>
         </div>
         {errorPDF && <div style={{ color: '#e03030', fontSize: 12, fontWeight: 600 }}>{errorPDF}</div>}
         <button onClick={handleEnviarFormWSP} disabled={enviandoWSP}
-          style={{ width: '100%', height: 50, background: enviandoWSP ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: enviandoWSP ? 'wait' : 'pointer' }}>
-          {enviandoWSP ? '⏳ Preparando...' : '📎 Enviar Form x WSP'}
+          style={{ width: '100%', height: 50, background: enviandoWSP ? '#8fa3c9' : '#1a7a3a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: enviandoWSP ? 'wait' : 'pointer' }}>
+          {enviandoWSP ? '⏳ Preparando...' : '📎 ENVIAR FORMULARIO por WhatsApp'}
         </button>
         <button onClick={handleWhatsApp}
           style={{ width: '100%', height: 50, background: '#25d366', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-          💬 Compartir por WhatsApp
+          💬 COMPARTIR DATOS por WhatsApp
         </button>
         {onFinalizar && (
           <button onClick={handleFinalizar}
-            style={{ width: '100%', height: 52, background: '#1a7a3a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-            ✅ Finalizar Partido
+            style={{ width: '100%', height: 52, background: '#0d1f4e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            ✅ FINALIZAR PARTIDO
           </button>
         )}
         {onInicio && (
