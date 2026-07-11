@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { Header, SeccionHeader, HoraInput, CheckAzul, Textarea, BtnNext, BtnBack } from './UI';
 
 const selectStyle = {
-  width: '100%', height: 44, border: '1.5px solid #0d1f4e', borderRadius: 8,
+  width: '100%', height: 44, border: '1.5px solid #c96a1c', borderRadius: 8,
   padding: '0 12px', fontSize: 14, color: '#0d1f4e', fontWeight: 600,
-  background: '#c6dbf5', appearance: 'none', outline: 'none',
+  background: '#fadfba', appearance: 'none', outline: 'none',
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d1f4e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
   backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
 };
@@ -47,7 +47,7 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
         {/* Protocolo y comienzo */}
         <CheckAzul label="Protocolo de inicio cumplido" checked={datos.protocolo} onChange={set('protocolo')} />
 
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
           ¿Comenzó en hora?
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -67,7 +67,7 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
 
         {datos.comenzo_si === 'no' && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#e03030', marginBottom: 6 }}>Motivo de demora de inicio</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6 }}>Motivo de demora de inicio de partido</div>
             <select style={selectStyle} value={datos.motivo_inicio} onChange={e => set('motivo_inicio')(e.target.value)}>
               {listas.motivosInicio.map(o => <option key={o} value={o}>{o || '— Sin motivo —'}</option>)}
             </select>
@@ -82,28 +82,33 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
         </div>
 
         {/* Entretiempo */}
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Entretiempo</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Entretiempo</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid #0d1f4e', borderRadius: 8, padding: '8px 10px', background: '#c6dbf5' }}>
-            <span style={{ fontSize: 20, fontWeight: 700, color: '#0d1f4e' }}>{datos.et_min || '—'}</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#0d1f4e' }}>min. ET</span>
-          </div>
-          <div onClick={() => set('excedido')(!datos.excedido)} style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-            background: datos.excedido ? '#8f1010' : '#fff',
-            border: '1.5px solid #e03030',
-            borderRadius: 8, padding: '10px', cursor: 'pointer',
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1.5px solid #0d1f4e', borderRadius: 8, padding: '8px 14px',
+            background: datos.et_min === '' ? '#c6dbf5' : (Number(datos.et_min) <= 11 ? '#1a7a3a' : '#e03030'),
+            minWidth: 54,
           }}>
-            <div style={{ width: 20, height: 20, borderRadius: 4, background: datos.excedido ? '#fff' : '#fbdbe1', border: `2px solid ${datos.excedido ? '#fff' : '#e03030'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {datos.excedido && <span style={{ color: '#8f1010', fontSize: 13, fontWeight: 700 }}>✓</span>}
+            <span style={{ fontSize: 20, fontWeight: 700, color: datos.et_min === '' ? '#0d1f4e' : '#fff' }}>{datos.et_min || '—'}</span>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e' }}>min.</span>
+          <div onClick={() => set('excedido')(!datos.excedido)} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: datos.excedido ? '#e03030' : '#fff',
+            border: '1.5px solid #e03030',
+            borderRadius: 8, padding: '8px 10px', cursor: 'pointer',
+          }}>
+            <div style={{ width: 18, height: 18, borderRadius: 4, background: datos.excedido ? '#fff' : '#fbdbe1', border: `2px solid ${datos.excedido ? '#fff' : '#e03030'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {datos.excedido && <span style={{ color: '#e03030', fontSize: 12, fontWeight: 700 }}>✓</span>}
             </div>
-            <span style={{ fontSize: 12, color: datos.excedido ? '#fff' : '#e03030', fontWeight: 700, textTransform: 'uppercase' }}>Excedido</span>
+            <span style={{ fontSize: 11, color: datos.excedido ? '#fff' : '#e03030', fontWeight: 700, textTransform: 'uppercase' }}>Excedido</span>
           </div>
         </div>
 
         {datos.excedido && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#e03030', marginBottom: 6 }}>Motivo de demora en entretiempo</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6 }}>Motivo de demora del entretiempo</div>
             <select style={selectStyle} value={datos.motivo_et} onChange={e => set('motivo_et')(e.target.value)}>
               {listas.motivosET.map(o => <option key={o} value={o}>{o || '— Sin motivo —'}</option>)}
             </select>
@@ -112,7 +117,7 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
 
         <HoraInput label="Final del partido" value={datos.final_partido} onChange={set('final_partido')} />
 
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Observaciones de horarios</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Observaciones de horarios</div>
         <Textarea value={datos.obs_horarios} onChange={set('obs_horarios')} placeholder="Observaciones sobre horarios..." />
 
       </div>

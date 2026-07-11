@@ -6,6 +6,8 @@ const C = {
   rojo: '#e03030',
   // Bordó: paleta de la pantalla 4 (Observaciones durante el partido)
   bordo: '#7a1030',
+  naranja: '#c96a1c',
+  naranjaClaro: '#fadfba',
   // Rosa: fondo de campos en pantalla 4, borde bordó siempre visible
   rosa: '#fbdbe1',
   rosaBorde: '#7a1030',
@@ -258,5 +260,15 @@ export function BtnBack({ onClick }) {
       border: `1.5px solid ${C.celesteBorde}`, borderRadius: 8,
       fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}>←</button>
+  );
+}
+
+export function BtnSalir({ onClick }) {
+  return (
+    <button onClick={onClick} title="Salir" style={{
+      height: 50, width: 50, background: C.naranja, color: '#fff',
+      border: `1.5px solid ${C.naranja}`, borderRadius: 8,
+      fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    }}>🚪</button>
   );
 }

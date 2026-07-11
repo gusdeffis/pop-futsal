@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'POP - Planilla Oficial de Partido Futsal',
-        short_name: 'POP Futsal',
+        name: 'Planilla Oficial de Partido Futsal',
+        short_name: 'Planilla Oficial de Partido Futsal',
         description: 'Planilla Oficial de Partido - AFA Futsal',
         theme_color: '#0d1f4e',
         background_color: '#ffffff',

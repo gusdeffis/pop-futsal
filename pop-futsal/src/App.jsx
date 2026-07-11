@@ -109,7 +109,7 @@ export default function App() {
 
   return (
     <div>
-      {pantalla === 1 && <Pantalla1 datos={datos} setDatos={setDatos} listas={listas} onNext={() => { setPantalla(2); window.scrollTo(0,0); }} />}
+      {pantalla === 1 && <Pantalla1 datos={datos} setDatos={setDatos} listas={listas} onSalir={irAInicio} onNext={() => { setPantalla(2); window.scrollTo(0,0); }} />}
       {pantalla === 2 && <Pantalla2 datos={datos} setDatos={setDatos} onNext={() => { setPantalla(3); window.scrollTo(0,0); }} onBack={() => { setPantalla(1); window.scrollTo(0,0); }} />}
       {pantalla === 3 && <Pantalla3 datos={datos} setDatos={setDatos} listas={listas} onNext={() => { setPantalla(4); window.scrollTo(0,0); }} onBack={() => { setPantalla(2); window.scrollTo(0,0); }} />}
       {pantalla === 4 && <Pantalla4 datos={datos} setDatos={setDatos} onNext={() => { setPantalla(5); window.scrollTo(0,0); }} onBack={() => { setPantalla(3); window.scrollTo(0,0); }} />}

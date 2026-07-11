@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Header, Campo, Input, Select, BtnNext } from './UI';
+import { Header, Campo, Input, Select, BtnNext, BtnSalir } from './UI';
 
 // Auto-avance en campo fecha: "4" → "07" → "2026"
 function useFechaInput(value, onChange) {
@@ -19,7 +19,7 @@ function fechaHoy() {
   return `${dd}/${mm}/${now.getFullYear()}`;
 }
 
-export default function Pantalla1({ datos, setDatos, onNext, listas }) {
+export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const valido = datos.torneo && datos.local && datos.visitante && datos.arbitro;
   const handleFecha = useFechaInput(datos.dia, set('dia'));
@@ -116,6 +116,7 @@ export default function Pantalla1({ datos, setDatos, onNext, listas }) {
 
       </div>
       <div style={{ padding: '8px 16px 24px', display: 'flex', gap: 10 }}>
+        {onSalir && <BtnSalir onClick={onSalir} />}
         <BtnNext onClick={onNext} disabled={!valido}>Siguiente: Control previo</BtnNext>
       </div>
     </div>

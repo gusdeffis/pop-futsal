@@ -116,18 +116,23 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         <SeccionHeader>5. Acta Final</SeccionHeader>
 
         {/* Resultado */}
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
           Resultado del partido
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#e8edf8', border: '1.5px solid #b8c8e8', borderRadius: 10, padding: 16 }}>
           <div style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', marginBottom: 6 }}>{datos.local || 'Local'}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0d1f4e', marginBottom: 6 }}>{datos.local || 'Local'}</div>
             <input type="number" value={datos.res_local} onChange={e => set('res_local')(e.target.value)}
               style={{ width: '100%', height: 52, border: '2px solid #0d1f4e', borderRadius: 8, textAlign: 'center', fontSize: 28, fontWeight: 700, color: '#0d1f4e', background: '#fff', outline: 'none' }} />
           </div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#0d1f4e' }}>—</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, visibility: 'hidden' }}>—</div>
+            <div style={{ height: 52, display: 'flex', alignItems: 'center' }}>
+              <span style={{ fontSize: 24, fontWeight: 700, color: '#0d1f4e' }}>—</span>
+            </div>
+          </div>
           <div style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', marginBottom: 6 }}>{datos.visitante || 'Visita'}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0d1f4e', marginBottom: 6 }}>{datos.visitante || 'Visita'}</div>
             <input type="number" value={datos.res_visitante} onChange={e => set('res_visitante')(e.target.value)}
               style={{ width: '100%', height: 52, border: '2px solid #0d1f4e', borderRadius: 8, textAlign: 'center', fontSize: 28, fontWeight: 700, color: '#0d1f4e', background: '#fff', outline: 'none' }} />
           </div>
@@ -136,7 +141,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         <Divider />
 
         {/* Conclusión */}
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
           Conclusión general
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -160,7 +165,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         <Divider />
 
         {/* Acta automática */}
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
           Acta Final
         </div>
         <div style={{ background: '#e8edf8', border: '2px solid #0d1f4e', borderRadius: 10, padding: 16 }}>

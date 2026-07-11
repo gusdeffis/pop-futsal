@@ -24,7 +24,7 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ background: C.azul, padding: '32px 24px 28px', textAlign: 'center' }}>
+      <div style={{ background: C.azul, padding: '20px 24px 20px', textAlign: 'center' }}>
         <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>FUTSAL AFA</div>
         <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 12, textTransform: 'uppercase', letterSpacing: .5, marginTop: 4 }}>
           Planilla Oficial de Partido
@@ -35,8 +35,8 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
 
         {!oficialLogueado ? (
           <>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.azul, textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center', marginBottom: -4 }}>
-              Identificate para entrar
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.azul, textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center', marginBottom: -4 }}>
+              Identificate para ingresar
             </div>
             <select value={nombre} onChange={e => { setNombre(e.target.value); setError(''); }} style={{
               height: 48, border: `1.5px solid ${C.azul}`, borderRadius: 8, padding: '0 12px',
@@ -65,9 +65,8 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
           </>
         ) : (
           <>
-            <div style={{ fontSize: 12, color: '#5a6b8c', textAlign: 'center', marginBottom: -4 }}>
-              Conectado como <strong style={{ color: C.azul }}>{oficialLogueado}</strong> ·{' '}
-              <span onClick={onLogout} style={{ color: C.rojo, cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>salir</span>
+            <div style={{ fontSize: 14, color: '#5a6b8c', textAlign: 'center', marginBottom: -4 }}>
+              Conectado como <strong style={{ color: C.azul }}>{oficialLogueado}</strong>
             </div>
 
             <button onClick={onNuevo} style={{
@@ -83,11 +82,13 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
               border: `1.5px solid ${guardado ? C.azul : '#ddd'}`, borderRadius: 10,
               fontSize: 16, fontWeight: 700, cursor: guardado ? 'pointer' : 'not-allowed',
               textTransform: 'uppercase', letterSpacing: .3,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px' }}>
-              <span style={{ lineHeight: 1 }}>▶ Continuar Partido</span>
-              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'none', textAlign: 'center', lineHeight: 1 }}>
-                {guardado?.datos?.torneo ? `${guardado.datos.local || '—'} vs ${guardado.datos.visitante || '—'}` : '\u00A0'}
-              </span>
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <span style={{ lineHeight: 1.2 }}>▶ Continuar Partido</span>
+              {guardado?.datos?.torneo && (
+                <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'none', textAlign: 'center', lineHeight: 1.2 }}>
+                  {guardado.datos.local || '—'} vs {guardado.datos.visitante || '—'}
+                </span>
+              )}
             </button>
 
             <button onClick={onHistorial} style={{
@@ -97,6 +98,10 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
             }}>
               🗂️ Historial de Partidos
             </button>
+
+            <div onClick={onLogout} style={{ textAlign: 'center', color: C.rojo, fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline', marginTop: 4 }}>
+              Salir
+            </div>
           </>
         )}
 
