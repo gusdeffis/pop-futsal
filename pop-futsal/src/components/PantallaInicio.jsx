@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { APP_VERSION } from '../data';
 
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', rojo: '#e03030' };
 
@@ -62,6 +63,7 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
             }}>
               Ingresar
             </button>
+            <div style={{ textAlign: 'center', color: '#aaa', fontSize: 11 }}>{APP_VERSION}</div>
           </>
         ) : (
           <>

@@ -127,6 +127,10 @@ export const OFICIAL_PINS = {
   'Sebastián Sgarra': '1234',
 };
 
+// Versión de la app: se muestra en la pantalla de inicio, debajo del botón
+// Ingresar. Subir este número cuando le pases una versión nueva a Gustavo.
+export const APP_VERSION = 'v8';
+
 export const ESTADO_INICIAL = {
   // Sección 1 - Datos del partido
   torneo: '', fecha_nro: '', division: 'M', cat: '', dia: '',
