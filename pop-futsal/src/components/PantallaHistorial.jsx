@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
+import { generarActaTexto } from '../utils/acta';
+import { enviarAPlanillaCompartida, marcarEnviadoNube } from '../useAutoSave';
 
-const C = { azul: '#0d1f4e', celeste: '#c6dbf5' };
+const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030' };
 
-export default function PantallaHistorial({ historial, onBack, onEditar }) {
+export default function PantallaHistorial({ historial, onBack, onEditar, oficialLogueado, onRecargar }) {
   const [enviandoId, setEnviandoId] = useState(null);
+  const [subiendoId, setSubiendoId] = useState(null);
 
   const enviarWSP = async (e, h) => {
     e.stopPropagation(); // no disparar onEditar al tocar este botón
@@ -22,6 +25,20 @@ export default function PantallaHistorial({ historial, onBack, onEditar }) {
       if (err?.name !== 'AbortError') alert('No se pudo generar el PDF de este partido.');
     } finally {
       setEnviandoId(null);
+    }
+  };
+
+  const subirANube = async (e, h) => {
+    e.stopPropagation();
+    setSubiendoId(h.id);
+    try {
+      const actaTexto = h.actaTexto || generarActaTexto(h.datos);
+      const ok = await enviarAPlanillaCompartida(h.datos, actaTexto, oficialLogueado);
+      marcarEnviadoNube(h.id, ok);
+      if (!ok) alert('No se pudo subir a la planilla compartida. Revisá la conexión e intentá de nuevo.');
+      onRecargar && onRecargar();
+    } finally {
+      setSubiendoId(null);
     }
   };
 
@@ -56,10 +73,20 @@ export default function PantallaHistorial({ historial, onBack, onEditar }) {
                   {h.dia} · guardado {new Date(h.timestamp).toLocaleString('es-AR')}
                 </div>
               </div>
-              <button onClick={e => enviarWSP(e, h)} disabled={enviandoId === h.id}
-                style={{ flexShrink: 0, background: enviandoId === h.id ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 10px', fontSize: 10, fontWeight: 700, cursor: enviandoId === h.id ? 'wait' : 'pointer', textAlign: 'center' }}>
-                {enviandoId === h.id ? '⏳' : '📎'} Enviar Form x WSP
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                <button onClick={e => enviarWSP(e, h)} disabled={enviandoId === h.id}
+                  style={{ flexShrink: 0, background: enviandoId === h.id ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 10px', fontSize: 10, fontWeight: 700, cursor: enviandoId === h.id ? 'wait' : 'pointer', textAlign: 'center' }}>
+                  {enviandoId === h.id ? '⏳' : '📎'} Enviar Form x WSP
+                </button>
+                {h.enviadoNube ? (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: C.verde }}>☁️ Enviado a planilla</span>
+                ) : (
+                  <button onClick={e => subirANube(e, h)} disabled={subiendoId === h.id}
+                    style={{ flexShrink: 0, background: subiendoId === h.id ? '#e0a0a0' : C.rojo, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 10px', fontSize: 10, fontWeight: 700, cursor: subiendoId === h.id ? 'wait' : 'pointer', textAlign: 'center' }}>
+                    {subiendoId === h.id ? '⏳ Subiendo...' : '☁️ No enviado — Subir'}
+                  </button>
+                )}
+              </div>
             </div>
             <div style={{ fontSize: 11, color: C.azul, fontWeight: 700, marginTop: 6 }}>✏️ Tocar para editar</div>
           </div>

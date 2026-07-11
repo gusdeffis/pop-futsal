@@ -9,7 +9,7 @@ import PantallaHistorial from './components/PantallaHistorial';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
 import { generarActaTexto } from './utils/acta';
-import { useAutoSave, cargarGuardado, guardarInmediato, limpiarGuardado, obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida } from './useAutoSave';
+import { useAutoSave, cargarGuardado, guardarInmediato, limpiarGuardado, obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube } from './useAutoSave';
 
 export default function App() {
   const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial'
@@ -74,8 +74,8 @@ export default function App() {
   // hasta que se arranque uno nuevo).
   const finalizarPartido = () => {
     const actaTexto = generarActaTexto(datos) + (datos.acta_extra ? ' ' + datos.acta_extra : '');
-    guardarEnHistorial(datos, actaTexto);
-    enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado);
+    const id = guardarEnHistorial(datos, actaTexto);
+    enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado).then(ok => marcarEnviadoNube(id, ok));
     limpiarGuardado();
     setGuardado(null);
     setVista('inicio');
@@ -106,7 +106,7 @@ export default function App() {
   }
 
   if (vista === 'historial') {
-    return <PantallaHistorial historial={historial} onBack={irAInicio} onEditar={editarDesdeHistorial} />;
+    return <PantallaHistorial historial={historial} onBack={irAInicio} onEditar={editarDesdeHistorial} oficialLogueado={oficialLogueado} onRecargar={() => setHistorial(obtenerHistorial())} />;
   }
 
   return (
