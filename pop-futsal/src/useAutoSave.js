@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { APPS_SCRIPT_PARTIDOS_URL } from './data';
 
 const KEY = 'pop_partido_actual';
 const KEY_HISTORIAL = 'pop_historial';
@@ -84,4 +85,19 @@ export function guardarEnHistorial(datos, actaTexto) {
   const sinDuplicado = historial.filter(h => h.id !== id);
   sinDuplicado.unshift(entrada);
   localStorage.setItem(KEY_HISTORIAL, JSON.stringify(sinDuplicado.slice(0, 200)));
+}
+
+// Manda el partido finalizado a la planilla compartida "POPA-2026-Partidos"
+// (vía Apps Script). Si falla (sin conexión, etc.) no rompe nada: el partido
+// ya quedó guardado en el historial local igual.
+export async function enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado) {
+  if (!APPS_SCRIPT_PARTIDOS_URL) return;
+  try {
+    await fetch(APPS_SCRIPT_PARTIDOS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ ...datos, acta_texto: actaTexto, oficial_logueado: oficialLogueado }),
+    });
+  } catch {
+    // sin conexión o error de red: el partido igual quedó en el historial local
+  }
 }

@@ -9,7 +9,7 @@ import PantallaHistorial from './components/PantallaHistorial';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
 import { generarActaTexto } from './utils/acta';
-import { useAutoSave, cargarGuardado, guardarInmediato, limpiarGuardado, obtenerHistorial, guardarEnHistorial } from './useAutoSave';
+import { useAutoSave, cargarGuardado, guardarInmediato, limpiarGuardado, obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida } from './useAutoSave';
 
 export default function App() {
   const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial'
@@ -73,7 +73,9 @@ export default function App() {
   // historial y libera el partido "en curso" (Continuar Partido queda vacío
   // hasta que se arranque uno nuevo).
   const finalizarPartido = () => {
-    guardarEnHistorial(datos, generarActaTexto(datos) + (datos.acta_extra ? ' ' + datos.acta_extra : ''));
+    const actaTexto = generarActaTexto(datos) + (datos.acta_extra ? ' ' + datos.acta_extra : '');
+    guardarEnHistorial(datos, actaTexto);
+    enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado);
     limpiarGuardado();
     setGuardado(null);
     setVista('inicio');
