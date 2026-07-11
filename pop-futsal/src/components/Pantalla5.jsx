@@ -172,7 +172,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
           <div style={{ fontSize: 10, fontWeight: 700, color: '#0d1f4e', letterSpacing: .8, textTransform: 'uppercase', marginBottom: 8 }}>
             Texto generado automáticamente
           </div>
-          <div style={{ fontSize: 14, color: '#0d1f4e', lineHeight: 1.7, minHeight: 50, fontWeight: 500 }}>
+          <div style={{ fontSize: 14, color: '#0d1f4e', lineHeight: 1.7, minHeight: 50, fontWeight: 500, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
             {actaTexto}
           </div>
           <textarea
