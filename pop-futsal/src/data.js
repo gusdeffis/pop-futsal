@@ -129,13 +129,17 @@ export const OFICIAL_PINS = {
 
 // Versión de la app: se muestra en la pantalla de inicio, debajo del botón
 // Ingresar. Subir este número cuando le pases una versión nueva a Gustavo.
-export const APP_VERSION = 'v14';
+export const APP_VERSION = 'v16';
 
 // Apps Script que guarda cada partido finalizado en la planilla compartida
 // "POPA-2026-Partidos" (además del historial local del dispositivo).
 export const APPS_SCRIPT_PARTIDOS_URL = 'https://script.google.com/macros/s/AKfycbyPMIuZqX8tUtCEPOFbPu6PniTG5qYjEUr9D6Fmnv3bx8B4-nFUuMhwvaKzrczoW1LctQ/exec';
 
 export const ESTADO_INICIAL = {
+  // Identificador interno fijo del partido — no cambia aunque se editen
+  // Torneo/Local/Visitante después. Se completa solo, no lo toca el usuario.
+  _id: null,
+
   // Sección 1 - Datos del partido
   torneo: '', fecha_nro: '', division: 'M', cat: '', dia: '',
   hora: '', nro: '', local: '', visitante: '', estadio: '',

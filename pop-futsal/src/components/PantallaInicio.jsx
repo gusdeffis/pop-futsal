@@ -63,7 +63,7 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
             }}>
               Ingresar
             </button>
-            <div style={{ textAlign: 'center', color: '#aaa', fontSize: 11 }}>{APP_VERSION}</div>
+            <div style={{ textAlign: 'center', color: '#000', fontSize: 13, fontWeight: 700 }}>{APP_VERSION}</div>
           </>
         ) : (
           <>

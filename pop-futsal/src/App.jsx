@@ -12,7 +12,7 @@ import { generarActaTexto } from './utils/acta';
 import {
   useAutoSave, cargarGuardado, guardarInmediato, limpiarGuardado,
   obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube,
-  guardarLogin, cargarLogin, borrarLogin,
+  guardarLogin, cargarLogin, borrarLogin, generarId,
 } from './useAutoSave';
 
 export default function App() {
@@ -24,13 +24,24 @@ export default function App() {
   const [guardado, setGuardado] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [oficialLogueado, setOficialLogueado] = useState(loginInicial);
+  const [editandoDesdeHistorial, setEditandoDesdeHistorial] = useState(false);
   const listas = useListas();
 
   useEffect(() => {
     setGuardado(cargarGuardado());
   }, [vista]);
 
-  useAutoSave(datos, pantalla);
+  useAutoSave(datos, pantalla, vista === 'partido');
+
+  // Si se está editando un partido que ya estaba en el Historial (no uno
+  // nuevo), cada cambio también se refleja ahí en vivo — así, si el usuario
+  // sale sin volver a tocar "Finalizar Partido", la edición no se pierde.
+  useEffect(() => {
+    if (vista === 'partido' && editandoDesdeHistorial && datos._id) {
+      const actaTexto = generarActaTexto(datos) + (datos.acta_extra ? ' ' + datos.acta_extra : '');
+      guardarEnHistorial(datos, actaTexto);
+    }
+  }, [datos, vista, editandoDesdeHistorial]);
 
   // Guardado reforzado: si el usuario sale de la app (cambia a otra app,
   // apaga la pantalla, cierra la pestaña) sin esperar el debounce normal,
@@ -72,8 +83,9 @@ export default function App() {
       if (!ok) return;
     }
     limpiarGuardado();
-    setDatos(ESTADO_INICIAL);
+    setDatos({ ...ESTADO_INICIAL, _id: generarId() });
     setPantalla(1);
+    setEditandoDesdeHistorial(false);
     setVista('partido');
   };
 
@@ -82,6 +94,7 @@ export default function App() {
     if (g) {
       setDatos(g.datos);
       setPantalla(g.pantalla || 1);
+      setEditandoDesdeHistorial(!!obtenerHistorial().find(h => h.id === g.datos._id));
       setVista('partido');
     }
   };
@@ -106,8 +119,9 @@ export default function App() {
   // Se llama al tocar un partido del historial: lo vuelve a cargar como
   // partido activo, empezando por la pantalla de Datos, para editarlo.
   const editarDesdeHistorial = (entrada) => {
-    setDatos(entrada.datos);
+    setDatos({ ...entrada.datos, _id: entrada.datos._id || entrada.id });
     setPantalla(1);
+    setEditandoDesdeHistorial(true);
     setVista('partido');
   };
 

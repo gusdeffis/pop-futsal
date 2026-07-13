@@ -44,13 +44,15 @@ function guardarAhora(datos, pantalla) {
   }
 }
 
-export function useAutoSave(datos, pantalla) {
+export function useAutoSave(datos, pantalla, activo) {
   useEffect(() => {
-    // Guarda al instante en cada cambio, sin esperar nada. Es un poco más
-    // de escritura en el celular, pero así no hay ninguna ventana de tiempo
-    // en la que algo pueda perderse si se cierra o cambia de app de golpe.
+    // Solo guarda cuando estamos realmente dentro de un partido (activo=true).
+    // Si no, en la pantalla de inicio el estado "en blanco" por defecto
+    // pisaría un partido guardado antes de que el usuario llegue a tocar
+    // "Continuar Partido" — que es justo el bug que causaba la pérdida de datos.
+    if (!activo) return;
     guardarAhora(datos, pantalla);
-  }, [datos, pantalla]);
+  }, [datos, pantalla, activo]);
 }
 
 export function guardarInmediato(datos, pantalla) {
@@ -83,11 +85,20 @@ export function obtenerHistorial() {
   }
 }
 
-// Guarda (o actualiza si ya existe) el partido actual en el historial.
-// Se llama al llegar a la pantalla de Acta / generar PDF / compartir.
+// Genera un identificador único y estable para un partido nuevo.
+export function generarId() {
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// Guarda (o actualiza si ya existe) el partido actual en el historial, usando
+// datos._id como identificador fijo (no se recalcula desde Torneo/Local/
+// Visitante, así que editar esos campos no "pierde" la entrada original).
+// Si datos no tiene _id todavía (partidos viejos, antes de este cambio), se
+// arma uno de respaldo a partir de Torneo+Fecha+Local+Visitante.
 export function guardarEnHistorial(datos, actaTexto, enviadoNube) {
   const historial = obtenerHistorial();
-  const id = `${datos.torneo}_${datos.fecha_nro}_${datos.local}_${datos.visitante}`.replace(/\s+/g, '_');
+  const id = datos._id || `${datos.torneo}_${datos.fecha_nro}_${datos.local}_${datos.visitante}`.replace(/\s+/g, '_');
+  const previa = historial.find(h => h.id === id);
   const entrada = {
     id,
     timestamp: new Date().toISOString(),
@@ -101,8 +112,9 @@ export function guardarEnHistorial(datos, actaTexto, enviadoNube) {
     res_visitante: datos.res_visitante,
     conclusiones: datos.conclusiones,
     actaTexto,
-    datos,
-    enviadoNube: !!enviadoNube,
+    datos: { ...datos, _id: id },
+    enviadoNube: enviadoNube !== undefined ? !!enviadoNube : !!previa?.enviadoNube,
+    fechaEnvioNube: previa?.fechaEnvioNube,
   };
   const sinDuplicado = historial.filter(h => h.id !== id);
   sinDuplicado.unshift(entrada);
