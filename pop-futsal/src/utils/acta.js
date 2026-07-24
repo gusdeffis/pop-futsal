@@ -1,3 +1,5 @@
+import { textoHorariosCompleto } from './desviosHorarios';
+
 export function generarActaTexto(datos) {
   const conclusiones = datos.conclusiones || [];
 
@@ -34,30 +36,10 @@ export function generarActaTexto(datos) {
   if (datos.comenzo_si === 'no' && datos.motivo_inicio) {
     partes.push(`El partido no comenzó en horario. Motivo: ${datos.motivo_inicio}.`);
   }
-  if (datos.excedido && datos.motivo_et) {
-    partes.push(`El entretiempo fue excedido. Motivo: ${datos.motivo_et}.`);
-  }
-
-  // Demoras en entrega de planillas, formación inicial, formación de ingreso
-  // al campo y regreso post-entretiempo (cualquiera de los 2 equipos).
-  const demoras = [
-    ['Entrega de planillas', datos.plan_cred_dem_l, datos.plan_cred_dem_v],
-    ['Formación inicial', datos.form_ini_dem_l, datos.form_ini_dem_v],
-    ['Formación de ingreso al campo', datos.ingreso_local_dem, datos.ingreso_visita_dem],
-    ['Regreso post-entretiempo', datos.regreso_local_dem, datos.regreso_visita_dem],
-  ];
-  const demorasTexto = demoras
-    .filter(([, l, v]) => Number(l) > 1 || Number(v) > 1)
-    .map(([label, l, v]) => {
-      const partesEquipo = [];
-      if (Number(l) > 1) partesEquipo.push(`${datos.local || 'Local'} ${l} min.`);
-      if (Number(v) > 1) partesEquipo.push(`${datos.visitante || 'Visita'} ${v} min.`);
-      return `${label}: ${partesEquipo.join(' / ')}`;
-    });
-  if (demorasTexto.length > 0) partes.push(`Demoras registradas:\n${demorasTexto.join('\n')}`);
 
   if (datos.obs_previo?.trim()) partes.push(`Control previo: ${datos.obs_previo.trim()}`);
-  if (datos.obs_horarios?.trim()) partes.push(`Horarios: ${datos.obs_horarios.trim()}`);
+  const horarios = textoHorariosCompleto(datos);
+  if (horarios) partes.push(`Horarios: ${horarios}`);
   if (datos.obs_partido?.trim()) partes.push(datos.obs_partido.trim());
 
   return partes.join(' ');

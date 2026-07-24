@@ -122,6 +122,44 @@ export function Input({ value, onChange, placeholder, type = 'text', style = {},
   );
 }
 
+// Igual que Select, pero además permite escribir un valor que no está en la
+// lista (para amistosos con equipos/árbitros/estadios de afuera). Usa un
+// <input> con lista desplegable de sugerencias en vez de un <select> cerrado.
+export function SelectLibre({ value, onChange, options, placeholder, variant = 'celeste' }) {
+  const idRef = useRef(`dl-${Math.random().toString(36).slice(2)}`);
+  const ref = useRef(null);
+  const cursor = useRef(null);
+
+  useLayoutEffect(() => {
+    if (cursor.current != null && ref.current) {
+      ref.current.setSelectionRange(cursor.current, cursor.current);
+      cursor.current = null;
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    cursor.current = e.target.selectionStart;
+    onChange(upper(e.target.value));
+  };
+
+  return (
+    <>
+      <input
+        ref={ref}
+        list={idRef.current}
+        value={value}
+        onChange={handleChange}
+        placeholder={placeholder}
+        autoComplete="off"
+        style={{ ...baseStyle(variant), color: value ? (variant === 'rosa' ? '#000' : C.azul) : '#5a6b8c' }}
+      />
+      <datalist id={idRef.current}>
+        {options.map(o => <option key={o} value={o} />)}
+      </datalist>
+    </>
+  );
+}
+
 export function Select({ value, onChange, options, placeholder, variant = 'celeste' }) {
   return (
     <select
@@ -247,22 +285,38 @@ export function LVRojo({ label, checked, onChange }) {
 export function HoraInput({ value, onChange, label, variant = 'celeste' }) {
   const bg = variant === 'rosa' ? C.rosa : C.celeste;
   const border = variant === 'rosa' ? C.rosaBorde : C.celesteBorde;
+  const ref = useRef(null);
+  const cursor = useRef(null);
+
+  useLayoutEffect(() => {
+    if (cursor.current != null && ref.current) {
+      ref.current.setSelectionRange(cursor.current, cursor.current);
+      cursor.current = null;
+    }
+  }, [value]);
+
   const setAhora = () => {
     const now = new Date();
     onChange(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
   };
-  const handleChange = (val) => {
-    // Auto-formato: al escribir 4 dígitos agrega ':'
-    let v = val.replace(/[^0-9]/g, '');
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    const posCursor = e.target.selectionStart;
+    // Cuántos dígitos hay antes del cursor (sin contar los ":")
+    const digitosAntes = raw.slice(0, posCursor).replace(/[^0-9]/g, '').length;
+    let v = raw.replace(/[^0-9]/g, '').slice(0, 4);
     if (v.length >= 3) v = v.slice(0, 2) + ':' + v.slice(2, 4);
+    // El cursor va después de esos mismos dígitos, +1 si ya pasó los ":"
+    cursor.current = digitosAntes + (digitosAntes > 2 ? 1 : 0);
     onChange(v);
   };
   return (
     <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: variant === 'rosa' ? '#000' : C.azul, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
       <input
+        ref={ref}
         type="text" value={value}
-        onChange={e => handleChange(e.target.value)}
+        onChange={handleChange}
         placeholder="--:--" maxLength={5}
         style={{ fontSize: 26, fontWeight: 700, color: variant === 'rosa' ? '#000' : C.azul, border: 'none', background: 'transparent', width: '100%', outline: 'none', letterSpacing: 2 }}
       />

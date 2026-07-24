@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Header, SeccionHeader, HoraInput, CheckAzul, Textarea, BtnNext, BtnBack } from './UI';
+import { generarBloqueDesvios } from '../utils/desviosHorarios';
 
 const selectStyle = {
   width: '100%', height: 44, border: '1.5px solid #c96a1c', borderRadius: 8,
@@ -75,6 +76,28 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datos.final_1t, datos.regreso_local, datos.regreso_visita]);
 
+  // Duración del partido: Final del partido - Inicio Real, formato "H:MM hs"
+  useEffect(() => {
+    if (!datos.hora_real?.includes(':') || !datos.final_partido?.includes(':')) {
+      if (datos.duracion_partido !== '') set('duracion_partido')('');
+      return;
+    }
+    const [h1, m1] = datos.hora_real.split(':').map(Number);
+    const [h2, m2] = datos.final_partido.split(':').map(Number);
+    if ([h1, m1, h2, m2].some(Number.isNaN)) return;
+    let mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (mins < 0) mins += 24 * 60;
+    const texto = `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')} hs`;
+    if (texto !== datos.duracion_partido) set('duracion_partido')(texto);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datos.hora_real, datos.final_partido]);
+
+  // Los desvíos automáticos (planillas, formación, entretiempo excedido) ya
+  // no se escriben acá adentro del campo de Observaciones — se calculan
+  // aparte y se muestran como vista previa (más abajo), y recién se
+  // combinan con lo que el Oficial escriba a mano al generar el Acta/PDF.
+  const desviosDetectados = generarBloqueDesvios(datos);
+
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
       <Header paso={3} />
@@ -86,7 +109,7 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           <HoraInput label="Formación Local" value={datos.ingreso_local || ''} onChange={v => setDatos(d => ({ ...d, ingreso_local: v }))} />
           <HoraInput label="Formación Visita" value={datos.ingreso_visita || ''} onChange={v => setDatos(d => ({ ...d, ingreso_visita: v }))} />
-          <HoraInput label="Ingreso campo" value={datos.ingreso} onChange={set('ingreso')} />
+          <HoraInput label="Ingreso al Campo" value={datos.ingreso} onChange={set('ingreso')} />
         </div>
 
         {/* Protocolo y comienzo */}
@@ -122,17 +145,10 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
           </div>
         )}
 
-        {/* Hora real de inicio + Primer tiempo, todo en una línea */}
+        {/* Hora real de inicio + Primer tiempo + Entretiempo calculado */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           <HoraInput label="Inicio Real" value={datos.hora_real} onChange={set('hora_real')} />
           <HoraInput label="Final 1° T" value={datos.final_1t} onChange={set('final_1t')} />
-          <HoraInput label="Inicio 2° T" value={datos.inicio_2t} onChange={set('inicio_2t')} />
-        </div>
-
-        {/* Regreso de cada equipo para el 2do tiempo + Entretiempo calculado */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <HoraInput label="Regreso Local" value={datos.regreso_local} onChange={set('regreso_local')} />
-          <HoraInput label="Regreso Visita" value={datos.regreso_visita} onChange={set('regreso_visita')} />
           <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Entretiempo</div>
             <div style={{
@@ -151,6 +167,13 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
           </div>
         </div>
 
+        {/* Regreso de cada equipo para el 2do tiempo + Inicio 2°T */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <HoraInput label="Regreso Local" value={datos.regreso_local} onChange={set('regreso_local')} />
+          <HoraInput label="Regreso Visita" value={datos.regreso_visita} onChange={set('regreso_visita')} />
+          <HoraInput label="Inicio 2° T" value={datos.inicio_2t} onChange={set('inicio_2t')} />
+        </div>
+
         {datos.excedido && (
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6 }}>Motivo de demora del entretiempo</div>
@@ -163,9 +186,26 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
           </div>
         )}
 
-        <HoraInput label="Final del partido" value={datos.final_partido} onChange={set('final_partido')} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <HoraInput label="Final del partido" value={datos.final_partido} onChange={set('final_partido')} />
+          <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Duración</div>
+            <span style={{ fontSize: 20, fontWeight: 700, color: '#0d1f4e' }}>{datos.duracion_partido || '—'}</span>
+          </div>
+          <div />
+        </div>
 
         <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Observaciones de horarios</div>
+        {desviosDetectados.length > 0 && (
+          <div style={{ background: '#fff3cd', border: '1.5px solid #e0b84a', borderRadius: 8, padding: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#8a5a10', textTransform: 'uppercase', marginBottom: 4 }}>
+              ⚠️ Detectado automáticamente (se suma solo al Acta y al PDF, no hace falta escribirlo acá)
+            </div>
+            {desviosDetectados.map((linea, i) => (
+              <div key={i} style={{ fontSize: 12, fontWeight: 600, color: '#8a5a10' }}>{linea}</div>
+            ))}
+          </div>
+        )}
         <Textarea value={datos.obs_horarios} onChange={set('obs_horarios')} placeholder="Observaciones sobre horarios..." />
 
       </div>

@@ -104,18 +104,19 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
     const resVisita = datos.res_visitante || '-';
     const concl = conclusiones.map(c => CONCL_OPCIONES.find(o => o.id === c)?.label).filter(Boolean).join(' / ');
     const demoraIngreso = calcularMin(datos.ingreso, datos.hora_real);
+    const division = datos.division === 'M' ? 'Masculino' : datos.division === 'F' ? 'Femenino' : '';
     const texto =
-      `Futsal\n` +
-      `Planilla Oficial de Partido\n` +
+      `Futsal - Planilla de Partido\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📋 ${datos.torneo} | Fecha ${datos.fecha_nro}\n` +
+      `📋 ${datos.torneo}${division ? ` | ${division}` : ''}\n` +
+      `Fecha ${datos.fecha_nro}\n` +
       `📅 ${datos.dia} | ${datos.hora} hs\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `*L* ${datos.local}  ${resLocal} \n` +
-      `*V* ${datos.visitante}  ${resVisita}\n` +
+      `(L) ${datos.local}  ${resLocal} \n` +
+      `(V) ${datos.visitante}  ${resVisita}\n` +
       `🏟️ ${datos.estadio}\n` +
-      `🟡 Árbitro: ${datos.arbitro}\n` +
-      `👤 Oficial AFA:  ${soloApellido(datos.oficial_afa)}\n` +
+      `Árbitro: ${datos.arbitro}\n` +
+      `Oficial AFA:  ${soloApellido(datos.oficial_afa)}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `Ingreso:  ${datos.ingreso || '-'} \n` +
       `⏱️ Inicio Real:  ${datos.hora_real || '-'}\n` +
@@ -124,6 +125,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
       `Inicio 2°T:  ${datos.inicio_2t || '-'}\n` +
       `ET:  ${datos.et_min || '-'} min.\n` +
       `⏱️ Final : ${datos.final_partido || '-'}\n` +
+      `Duración: ${datos.duracion_partido || '-'}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📝 Conclusión: \n${concl}\n\n` +
       `*ACTA FINAL:*\n${actaTexto}` +

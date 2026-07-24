@@ -18,12 +18,14 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const [panelAbierto, setPanelAbierto] = useState(false);
 
-  const marcados = TODOS_LOS_ITEMS.filter(([campo]) => datos[campo]);
+  const quitarTildes = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const obsMayus = quitarTildes((datos.obs_partido || '').toUpperCase());
+  const marcados = TODOS_LOS_ITEMS.filter(([campo, label]) => datos[campo] && !obsMayus.includes(`${quitarTildes(label.toUpperCase())}:`));
 
   const handleSiguiente = () => {
-    if (marcados.length > 0 && !datos.obs_partido?.trim()) {
-      const ok = window.confirm(`Marcaste ${marcados.length} incumplimiento(s) sin agregar observación. ¿Querés detallarlos ahora, o continuar igual?\n\nOK = detallar ahora\nCancelar = continuar igual`);
-      if (ok) { setPanelAbierto(true); return; }
+    if (marcados.length > 0) {
+      const continuar = window.confirm(`Marcaste ${marcados.length} incumplimiento(s) sin observación. ¿Querés continuar igual, o detallarlos ahora?\n\nAceptar = continuar igual\nCancelar = detallar ahora`);
+      if (!continuar) { setPanelAbierto(true); return; }
     }
     onNext();
   };

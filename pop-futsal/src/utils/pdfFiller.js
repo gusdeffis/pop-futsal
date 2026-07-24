@@ -1,5 +1,6 @@
 import { PDFDocument } from 'pdf-lib';
 import { generarActaTexto } from './acta';
+import { textoHorariosCompleto } from './desviosHorarios';
 
 // ── Mapeo datos de la app -> campos del AcroForm oficial (POP_2026_v62.pdf) ──
 // Verificado cruzando la posición (x,y) de cada campo con el texto impreso más
@@ -107,7 +108,8 @@ export async function generarPDFOficial(datos, opciones = {}) {
 
   // 1. Texto
   for (const [claveApp, campoPdf] of Object.entries(CAMPOS_TEXTO)) {
-    setTexto(campoPdf, datos[claveApp]);
+    const valor = claveApp === 'obs_horarios' ? textoHorariosCompleto(datos) : datos[claveApp];
+    setTexto(campoPdf, valor);
   }
 
   // 2. Desplegables (torneo, clubes, estadio, árbitro, oficial, motivos)

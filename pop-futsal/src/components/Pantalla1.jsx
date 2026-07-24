@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Header, Campo, Input, Select, BtnNext, BtnSalir } from './UI';
+import { Header, Campo, Input, Select, SelectLibre, BtnNext, BtnSalir } from './UI';
 
 // Auto-avance en campo fecha: "4" → "07" → "2026"
 function useFechaInput(value, onChange) {
@@ -86,19 +86,19 @@ export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir }) 
 
         {/* Equipos */}
         <Campo label="Local" required>
-          <Select value={datos.local} onChange={set('local')} options={listas.clubes} placeholder="Equipo local" />
+          <SelectLibre value={datos.local} onChange={set('local')} options={listas.clubes} placeholder="Equipo local" />
         </Campo>
         <Campo label="Visitante" required>
-          <Select value={datos.visitante} onChange={set('visitante')} options={listas.clubes} placeholder="Equipo visitante" />
+          <SelectLibre value={datos.visitante} onChange={set('visitante')} options={listas.clubes} placeholder="Equipo visitante" />
         </Campo>
 
         {/* Estadio y Árbitro en la misma línea */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <Campo label="Estadio">
-            <Select value={datos.estadio} onChange={set('estadio')} options={listas.estadios} placeholder="Estadio" />
+            <SelectLibre value={datos.estadio} onChange={set('estadio')} options={listas.estadios} placeholder="Estadio" />
           </Campo>
           <Campo label="Árbitro" required>
-            <Select value={datos.arbitro} onChange={set('arbitro')} options={listas.arbitros} placeholder="Árbitro" />
+            <SelectLibre value={datos.arbitro} onChange={set('arbitro')} options={listas.arbitros} placeholder="Árbitro" />
           </Campo>
         </div>
 
@@ -111,7 +111,7 @@ export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir }) 
           </Campo>
         </div>
         <Campo label="Oficial AFA">
-          <Select value={datos.oficial_afa} onChange={set('oficial_afa')} options={listas.oficiales} placeholder="Seleccioná el oficial" />
+          <SelectLibre value={datos.oficial_afa} onChange={set('oficial_afa')} options={listas.oficiales} placeholder="Seleccioná el oficial" />
         </Campo>
 
       </div>

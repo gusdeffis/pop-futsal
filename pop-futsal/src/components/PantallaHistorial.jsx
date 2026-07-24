@@ -3,7 +3,7 @@ import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
 import { generarActaTexto } from '../utils/acta';
 import { enviarAPlanillaCompartida, marcarEnviadoNube } from '../useAutoSave';
 
-const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030', amarillo: '#fadfba', amarilloTexto: '#8a5a10' };
+const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030', amarillo: '#fef6d8', amarilloBorde: '#e0b84a' };
 
 // Convierte "DD/MM/AAAA" a fecha real para poder ordenar. Si no se puede
 // interpretar, devuelve una fecha muy vieja para que quede al final.
@@ -39,8 +39,13 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
     }
   };
 
-  const subirANube = async (e, h) => {
+  const subirANube = async (e, h, reenvio = false) => {
     e.stopPropagation();
+    if (reenvio) {
+      const fecha = h.fechaEnvioNube ? new Date(h.fechaEnvioNube).toLocaleString('es-AR') : 'antes';
+      const ok = window.confirm(`Este partido ya fue enviado el ${fecha}. ¿Querés reenviarlo? Se va a actualizar el dato anterior en la planilla.`);
+      if (!ok) return;
+    }
     setSubiendoId(h.id);
     try {
       const actaTexto = h.actaTexto || generarActaTexto(h.datos);
@@ -76,8 +81,8 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
           const enCurso = h.estado !== 'finalizado';
           const enviado = h.enviadoNube;
           const bg = enCurso ? C.amarillo : (enviado ? '#c8ecd4' : C.celeste);
-          const borde = enCurso ? '#c96a1c' : (enviado ? C.verde : C.azul);
-          const colorTexto = enCurso ? C.amarilloTexto : (enviado ? '#1a5c30' : C.azul);
+          const borde = enCurso ? C.amarilloBorde : (enviado ? C.verde : C.azul);
+          const colorTexto = enCurso ? C.rojo : (enviado ? '#1a5c30' : C.azul);
           const division = h.datos?.division === 'M' ? 'Masculino' : h.datos?.division === 'F' ? 'Femenino' : '';
           const hora = h.datos?.hora || '';
 
@@ -98,7 +103,7 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
                   <div style={{ fontSize: 16, color: colorTexto, fontWeight: 700, marginTop: 6 }}>
                     {h.dia || '(sin fecha)'}{hora && ` - ${hora} hs`}
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: enCurso ? C.amarilloTexto : (enviado ? '#1a5c30' : C.rojo), textTransform: enviado ? 'uppercase' : 'none' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: enCurso ? C.rojo : (enviado ? '#1a5c30' : C.rojo), textTransform: enviado ? 'uppercase' : 'none' }}>
                     {enCurso
                       ? `en curso · guardado ${new Date(h.timestamp).toLocaleString('es-AR')}`
                       : enviado
@@ -107,9 +112,9 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', flexShrink: 0, width: 100 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', justifyContent: 'flex-start', flexShrink: 0, width: 100 }}>
                   <button onClick={() => onEditar(h)}
-                    style={{ flex: 1, minHeight: 44, background: '#fadd2e', color: '#5a4a00', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    style={{ ...(enCurso ? {} : { flex: 1 }), minHeight: 44, background: '#fadd2e', color: '#5a4a00', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                     ✏️ EDITAR
                   </button>
                   {!enCurso && (
@@ -119,11 +124,12 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
                         {enviandoId === h.id ? '⏳' : '📎'} Enviar Form x WSP
                       </button>
                       {enviado ? (
-                        <div style={{ flex: 1, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', background: C.verde, color: '#fff', borderRadius: 6, fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>
-                          ☁️ Enviado
-                        </div>
+                        <button onClick={e => subirANube(e, h, true)} disabled={subiendoId === h.id}
+                          style={{ flex: 1, minHeight: 44, background: subiendoId === h.id ? '#8fc9a3' : C.verde, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', cursor: subiendoId === h.id ? 'wait' : 'pointer' }}>
+                          {subiendoId === h.id ? '⏳' : '☁️ Enviado'}
+                        </button>
                       ) : (
-                        <button onClick={e => subirANube(e, h)} disabled={subiendoId === h.id}
+                        <button onClick={e => subirANube(e, h, false)} disabled={subiendoId === h.id}
                           style={{ flex: 1, minHeight: 44, background: subiendoId === h.id ? '#e0a0a0' : C.rojo, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontWeight: 700, cursor: subiendoId === h.id ? 'wait' : 'pointer' }}>
                           {subiendoId === h.id ? '⏳' : '☁️ No enviado — Subir'}
                         </button>
@@ -133,7 +139,7 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
                 </div>
               </div>
               {enCurso && (
-                <div style={{ background: '#c96a1c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 5, textTransform: 'uppercase', display: 'inline-block', marginTop: 8 }}>
+                <div style={{ background: C.rojo, color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 5, textTransform: 'uppercase', display: 'inline-block', marginTop: 8 }}>
                   En curso
                 </div>
               )}

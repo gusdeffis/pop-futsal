@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Header, SeccionHeader, CheckAzul, HoraInput, Textarea, PanelCompletarObs, BtnNext, BtnBack } from './UI';
 
-// Minutos de demora = diferencia entre la hora programada del partido y la
-// hora real de llegada. Si llegó a horario o antes, la demora es 0.
+// Minutos de demora = diferencia entre la hora de referencia (1 hora antes
+// del partido) y la hora real de llegada. Si llegó a horario o antes, la
+// demora es 0.
+function sumarMinutos(hora, minutos) {
+  if (!hora || !hora.includes(':')) return '';
+  const [h, m] = hora.split(':').map(Number);
+  if ([h, m].some(Number.isNaN)) return '';
+  let total = (h * 60 + m + minutos + 24 * 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 function calcularDemora(horaProgramada, horaLlegada) {
   if (!horaProgramada || !horaLlegada || !horaProgramada.includes(':') || !horaLlegada.includes(':')) return '';
   const [h1, m1] = horaProgramada.split(':').map(Number);
@@ -17,8 +26,9 @@ function calcularDemora(horaProgramada, horaLlegada) {
 // ancho/alto que Formación Local/Visita/Ingreso de la Pantalla 3.
 function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, okKey, datos, set }) {
   useEffect(() => {
-    const demL = calcularDemora(datos.hora, datos[horaLKey]);
-    const demV = calcularDemora(datos.hora, datos[horaVKey]);
+    const referencia = sumarMinutos(datos.hora, -60); // 1 hora antes del partido
+    const demL = calcularDemora(referencia, datos[horaLKey]);
+    const demV = calcularDemora(referencia, datos[horaVKey]);
     if (demL !== datos[demLKey]) set(demLKey)(demL);
     if (demV !== datos[demVKey]) set(demVKey)(demV);
     const ok = Number(demL) <= 1 && Number(demV) <= 1 && datos[horaLKey] && datos[horaVKey];
@@ -89,12 +99,16 @@ export default function Pantalla2({ datos, setDatos, onNext, onBack }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const [panelAbierto, setPanelAbierto] = useState(false);
 
-  const faltantes = TODOS_LOS_ITEMS.filter(([campo]) => !datos[campo]);
+  // No cuenta como "faltante" si ya está marcado, o si ya se escribió algo
+  // sobre ese ítem en Observaciones (aunque siga sin tildar).
+  const quitarTildes = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const obsMayus = quitarTildes((datos.obs_previo || '').toUpperCase());
+  const faltantes = TODOS_LOS_ITEMS.filter(([campo, label]) => !datos[campo] && !obsMayus.includes(`${quitarTildes(label.toUpperCase())}:`));
 
   const handleSiguiente = () => {
     if (faltantes.length > 0) {
-      const ok = window.confirm(`Hay ${faltantes.length} instalación(es) sin marcar. ¿Querés revisarlas ahora, o continuar igual?\n\nOK = revisar ahora\nCancelar = continuar igual`);
-      if (ok) { setPanelAbierto(true); return; }
+      const continuar = window.confirm(`Hay ${faltantes.length} instalación(es) sin marcar y sin observación. ¿Querés continuar igual, o completarlas ahora?\n\nAceptar = continuar igual\nCancelar = completar observaciones ahora`);
+      if (!continuar) { setPanelAbierto(true); return; }
     }
     onNext();
   };
