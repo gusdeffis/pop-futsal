@@ -94,6 +94,11 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
     return mins;
   };
 
+  const soloApellido = (nombreCompleto) => {
+    const partes = (nombreCompleto || '').trim().split(/\s+/);
+    return partes[partes.length - 1] || '';
+  };
+
   const handleWhatsApp = () => {
     const resLocal = datos.res_local || '-';
     const resVisita = datos.res_visitante || '-';
@@ -106,14 +111,14 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
       `📋 ${datos.torneo} | Fecha ${datos.fecha_nro}\n` +
       `📅 ${datos.dia} | ${datos.hora} hs\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `⚽ ${datos.local}  ${resLocal} \n` +
-      `vs  ${datos.visitante}  ${resVisita}\n` +
+      `*L* ${datos.local}  ${resLocal} \n` +
+      `*V* ${datos.visitante}  ${resVisita}\n` +
       `🏟️ ${datos.estadio}\n` +
       `🟡 Árbitro: ${datos.arbitro}\n` +
-      `👤 Oficial AFA:  ${datos.oficial_afa}\n` +
+      `👤 Oficial AFA:  ${soloApellido(datos.oficial_afa)}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `⏱️ Ingreso:  ${datos.ingreso || '-'} \n` +
-      ` Inicio Real:  ${datos.hora_real || '-'}\n` +
+      `Ingreso:  ${datos.ingreso || '-'} \n` +
+      `⏱️ Inicio Real:  ${datos.hora_real || '-'}\n` +
       (demoraIngreso != null ? `Demora: ${demoraIngreso} min.\n` : '') +
       `Final 1°T:  ${datos.final_1t || '-'} \n` +
       `Inicio 2°T:  ${datos.inicio_2t || '-'}\n` +
@@ -190,15 +195,12 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
           <div style={{ fontSize: 10, fontWeight: 700, color: '#0d1f4e', letterSpacing: .8, textTransform: 'uppercase', marginBottom: 8 }}>
             Texto generado automáticamente
           </div>
-          <div style={{ fontSize: 14, color: '#0d1f4e', lineHeight: 1.7, minHeight: 50, fontWeight: 500, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#0d1f4e', lineHeight: 1.7, minHeight: 50, wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
             {actaTexto}
           </div>
-          <textarea
-            value={datos.acta_extra}
-            onChange={e => set('acta_extra')(e.target.value.toUpperCase())}
-            placeholder="Agregá texto adicional si es necesario..."
-            style={{ width: '100%', minHeight: 60, border: '1.5px solid #b8c8e8', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: '#0d1f4e', background: '#fff', resize: 'vertical', fontFamily: 'inherit', outline: 'none', marginTop: 10, boxSizing: 'border-box' }}
-          />
+          <div style={{ marginTop: 10 }}>
+            <Textarea value={datos.acta_extra} onChange={set('acta_extra')} placeholder="Agregá texto adicional si es necesario..." minHeight={60} />
+          </div>
         </div>
 
       </div>

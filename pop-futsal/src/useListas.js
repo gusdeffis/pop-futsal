@@ -46,6 +46,20 @@ function parsePinesCSV(texto) {
   return pines;
 }
 
+// Hoja de 2 columnas genérica: columna A = texto que se ve en la app,
+// columna B = valor exacto que hay que usar al llenar el PDF (si está vacía,
+// se usa la columna A tal cual). Devuelve { textoApp: valorPdf }.
+function parseMapaCSV(texto) {
+  const lineas = texto.split(/\r?\n/);
+  const mapa = {};
+  for (let i = 1; i < lineas.length; i++) {
+    const cols = lineas[i].split(',');
+    const a = (cols[0] ?? '').trim().replace(/^"|"$/g, '').trim();
+    const b = (cols[1] ?? '').trim().replace(/^"|"$/g, '').trim();
+    if (a) mapa[a.toUpperCase()] = (b || a).toUpperCase();
+  }
+  return mapa;
+}
 function cargarCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -81,6 +95,10 @@ export function useListas() {
       iniciales[clave] = blanco && base[0] !== '' ? ['', ...base] : base;
     }
     iniciales.pines = cacheInicial.pines || OFICIAL_PINS;
+    iniciales.motivosInicioMapa = cacheInicial.motivosInicioMapa
+      || Object.fromEntries(DEFAULT_MOTIVOS_INICIO.filter(Boolean).map(m => [m.toUpperCase(), m.toUpperCase()]));
+    iniciales.motivosETMapa = cacheInicial.motivosETMapa
+      || Object.fromEntries(DEFAULT_MOTIVOS_ET.filter(Boolean).map(m => [m.toUpperCase(), m.toUpperCase()]));
     return iniciales;
   });
   const [cargando, setCargando] = useState(true);
@@ -120,6 +138,26 @@ export function useListas() {
             if (Object.keys(pines).length > 0) {
               nuevasListas.pines = pines;
               cache.pines = pines;
+              huboActualizacion = true;
+            }
+          }
+        } catch {
+          // sin conexión o error: se mantiene el respaldo/caché existente
+        }
+      }
+
+      // Columna B de las hojas de Motivos (valor exacto para el PDF, además
+      // del texto que se ve en la app en la columna A).
+      for (const [clave, urlKey] of [['motivosInicioMapa', 'motivosInicio'], ['motivosETMapa', 'motivosET']]) {
+        const url = SHEET_URLS[urlKey];
+        if (!url) continue;
+        try {
+          const res = await fetch(url, { cache: 'no-store' });
+          if (res.ok) {
+            const mapa = parseMapaCSV(await res.text());
+            if (Object.keys(mapa).length > 0) {
+              nuevasListas[clave] = mapa;
+              cache[clave] = mapa;
               huboActualizacion = true;
             }
           }

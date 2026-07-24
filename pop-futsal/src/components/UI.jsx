@@ -1,3 +1,5 @@
+import { useRef, useState, useLayoutEffect } from 'react';
+
 const C = {
   azul: '#0d1f4e',
   // Celeste oscuro: fondo de campos en pantallas 1-3, borde azul siempre visible
@@ -88,11 +90,31 @@ function baseStyle(variant) {
 }
 
 export function Input({ value, onChange, placeholder, type = 'text', style = {}, onKeyUp, variant = 'celeste' }) {
+  const ref = useRef(null);
+  const cursor = useRef(null);
+
+  useLayoutEffect(() => {
+    if (cursor.current != null && ref.current) {
+      ref.current.setSelectionRange(cursor.current, cursor.current);
+      cursor.current = null;
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    if (type === 'text') {
+      cursor.current = e.target.selectionStart;
+      onChange(upper(e.target.value));
+    } else {
+      onChange(e.target.value);
+    }
+  };
+
   return (
     <input
+      ref={ref}
       type={type}
       value={value}
-      onChange={e => onChange(type === 'text' ? upper(e.target.value) : e.target.value)}
+      onChange={handleChange}
       onKeyUp={onKeyUp}
       placeholder={placeholder}
       style={{ ...baseStyle(variant), ...style }}
@@ -252,12 +274,42 @@ export function HoraInput({ value, onChange, label, variant = 'celeste' }) {
   );
 }
 
-export function Textarea({ value, onChange, placeholder, minHeight = 80, variant = 'celeste' }) {
+export function Textarea({ value, onChange, placeholder, minHeight = 80, variant = 'celeste', expandible = true, onFocus }) {
   const bg = variant === 'rosa' ? C.rosa : C.celeste;
   const border = variant === 'rosa' ? C.rosaBorde : C.celesteBorde;
+  const ref = useRef(null);
+  const cursor = useRef(null);
+  const [expandido, setExpandido] = useState(false);
+
+  // Conserva la posición del cursor al escribir en el medio del texto
+  // (sin esto, forzar mayúsculas en cada tecla mandaba el cursor al final).
+  useLayoutEffect(() => {
+    if (cursor.current != null && ref.current) {
+      ref.current.setSelectionRange(cursor.current, cursor.current);
+      cursor.current = null;
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    cursor.current = e.target.selectionStart;
+    onChange(upper(e.target.value));
+  };
+
   return (
-    <textarea value={value} onChange={e => onChange(upper(e.target.value))} placeholder={placeholder}
-      style={{ width: '100%', minHeight, border: `1.5px solid ${border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, color: variant === 'rosa' ? '#000' : C.azul, background: bg, resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={handleChange}
+      onFocus={() => { if (expandible) setExpandido(true); onFocus && onFocus(); }}
+      onBlur={() => setExpandido(false)}
+      placeholder={placeholder}
+      style={{
+        width: '100%', minHeight: expandido ? minHeight * 2 : minHeight,
+        border: `1.5px solid ${border}`, borderRadius: 8, padding: '10px 12px',
+        fontSize: 15, fontWeight: 700, color: variant === 'rosa' ? '#000' : C.azul,
+        background: bg, resize: 'vertical', fontFamily: 'inherit', outline: 'none',
+        boxSizing: 'border-box', transition: 'min-height .15s',
+      }}
     />
   );
 }
@@ -275,6 +327,61 @@ export function BtnNext({ onClick, children, disabled }) {
     }}>
       {children} →
     </button>
+  );
+}
+
+// Panel para completar observaciones ítem por ítem: una fila por cada
+// elemento de `items`, con un tilde (para corregir el estado ahí mismo) y un
+// campo de texto para la observación puntual de ese ítem. Al cerrar, arma
+// las líneas "Label: texto" (solo de las filas que se completaron) y las
+// agrega al campo de observaciones.
+export function PanelCompletarObs({ items, datos, set, obsField, colorBordo, onCerrar }) {
+  const [textos, setTextos] = useState({});
+  const bordo = colorBordo ? '#7a1030' : '#0d1f4e';
+  const bg = colorBordo ? '#fbdbe1' : '#c6dbf5';
+
+  const confirmar = () => {
+    const lineas = items
+      .filter(([campo]) => (textos[campo] || '').trim())
+      .map(([campo, label]) => `${label.toUpperCase()}: ${textos[campo].trim()}`);
+    if (lineas.length) {
+      const previo = datos[obsField]?.trim();
+      set(obsField)(previo ? `${previo}\n${lineas.join('\n')}` : lineas.join('\n'));
+    }
+    onCerrar();
+  };
+
+  return (
+    <div style={{ background: '#f8f9fc', border: `1.5px solid ${bordo}`, borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {items.length === 0 && (
+        <div style={{ fontSize: 12, color: '#666', textAlign: 'center' }}>No hay ítems para completar.</div>
+      )}
+      {items.map(([campo, label]) => {
+        const checked = !!datos[campo];
+        return (
+          <div key={campo} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div onClick={() => set(campo)(!checked)} style={{
+              width: 24, height: 24, borderRadius: 4, flexShrink: 0, cursor: 'pointer',
+              background: checked ? bordo : '#fff', border: `2px solid ${bordo}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {checked && <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>✓</span>}
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: bordo, width: 92, flexShrink: 0, lineHeight: 1.1 }}>{label}</span>
+            <input
+              value={textos[campo] || ''}
+              onChange={e => setTextos(t => ({ ...t, [campo]: e.target.value.toUpperCase() }))}
+              placeholder="Observación..."
+              style={{ flex: 1, height: 34, border: `1.5px solid ${bordo}`, borderRadius: 6, padding: '0 8px', fontSize: 12, fontWeight: 600, color: '#0d1f4e', background: bg, outline: 'none' }}
+            />
+          </div>
+        );
+      })}
+      <button onClick={confirmar} style={{
+        alignSelf: 'flex-end', background: bordo, color: '#fff', border: 'none', borderRadius: 6,
+        padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', marginTop: 4,
+      }}>Listo</button>
+    </div>
   );
 }
 

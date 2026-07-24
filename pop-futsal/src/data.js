@@ -129,7 +129,7 @@ export const OFICIAL_PINS = {
 
 // Versión de la app: se muestra en la pantalla de inicio, debajo del botón
 // Ingresar. Subir este número cuando le pases una versión nueva a Gustavo.
-export const APP_VERSION = 'v16';
+export const APP_VERSION = 'v22';
 
 // Apps Script que guarda cada partido finalizado en la planilla compartida
 // "POPA-2026-Partidos" (además del historial local del dispositivo).
@@ -148,7 +148,9 @@ export const ESTADO_INICIAL = {
 
   // Sección 2 - Control previo
   plan_cred_ok: false, plan_cred_dem_l: '', plan_cred_dem_v: '',
+  plan_cred_hora_l: '', plan_cred_hora_v: '',
   form_ini_ok: false, form_ini_dem_l: '', form_ini_dem_v: '',
+  form_ini_hora_l: '', form_ini_hora_v: '',
   buen_estado: false, ilum: false, mesa_crono: false, tablero: false,
   redes_per: false, altura: false, pared_prot: false, meta_anclada: false,
   banios: false, limpieza: false, camiseta: false, balon_nuevo: false,
@@ -159,9 +161,9 @@ export const ESTADO_INICIAL = {
 
   // Sección 3 - Horarios
   ingreso: '', protocolo: false, comenzo_si: null,
-  motivo_inicio: '', hora_real: '',
+  motivo_inicio: '', motivo_inicio_pdf: '', hora_real: '',
   final_1t: '', inicio_2t: '', et_min: '', excedido: false,
-  motivo_et: '', final_partido: '',
+  motivo_et: '', motivo_et_pdf: '', final_partido: '',
   obs_horarios: '',
 
   // Sección 4 - Observaciones
@@ -182,4 +184,10 @@ export const ESTADO_INICIAL = {
   acta_extra: '',
   ingreso_local: '',
   ingreso_visita: '',
+  ingreso_local_dem: '',
+  ingreso_visita_dem: '',
+  regreso_local: '',
+  regreso_visita: '',
+  regreso_local_dem: '',
+  regreso_visita_dem: '',
 };

@@ -3,14 +3,25 @@ import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
 import { generarActaTexto } from '../utils/acta';
 import { enviarAPlanillaCompartida, marcarEnviadoNube } from '../useAutoSave';
 
-const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030' };
+const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030', amarillo: '#fadfba', amarilloTexto: '#8a5a10' };
+
+// Convierte "DD/MM/AAAA" a fecha real para poder ordenar. Si no se puede
+// interpretar, devuelve una fecha muy vieja para que quede al final.
+function parseDia(dia) {
+  if (!dia) return new Date(0);
+  const partes = dia.split('/');
+  if (partes.length !== 3) return new Date(0);
+  const [d, m, a] = partes.map(Number);
+  if ([d, m, a].some(Number.isNaN)) return new Date(0);
+  return new Date(a, m - 1, d);
+}
 
 export default function PantallaHistorial({ historial, onBack, onEditar, oficialLogueado, onRecargar }) {
   const [enviandoId, setEnviandoId] = useState(null);
   const [subiendoId, setSubiendoId] = useState(null);
 
   const enviarWSP = async (e, h) => {
-    e.stopPropagation(); // no disparar onEditar al tocar este botón
+    e.stopPropagation();
     setEnviandoId(h.id);
     try {
       const { bytes, nombreSugerido } = await generarPDFOficial(h.datos);
@@ -42,13 +53,15 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
     }
   };
 
+  const ordenados = [...historial].sort((a, b) => parseDia(b.dia) - parseDia(a.dia));
+
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
       <div style={{ background: C.azul, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack} style={{ background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', width: 36, height: 36, borderRadius: 8, fontSize: 18, cursor: 'pointer' }}>←</button>
         <div>
           <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>Historial de Partidos</div>
-          <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 11 }}>{historial.length} partido{historial.length !== 1 ? 's' : ''} guardado{historial.length !== 1 ? 's' : ''} · tocá uno para editarlo</div>
+          <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 11 }}>{historial.length} partido{historial.length !== 1 ? 's' : ''}</div>
         </div>
       </div>
 
@@ -59,49 +72,72 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
           </div>
         )}
 
-        {historial.map(h => {
+        {ordenados.map(h => {
+          const enCurso = h.estado !== 'finalizado';
           const enviado = h.enviadoNube;
-          const bgTarjeta = enviado ? '#c8ecd4' : C.celeste;
-          const colorTexto = enviado ? '#1a5c30' : C.azul;
+          const bg = enCurso ? C.amarillo : (enviado ? '#c8ecd4' : C.celeste);
+          const borde = enCurso ? '#c96a1c' : (enviado ? C.verde : C.azul);
+          const colorTexto = enCurso ? C.amarilloTexto : (enviado ? '#1a5c30' : C.azul);
+          const division = h.datos?.division === 'M' ? 'Masculino' : h.datos?.division === 'F' ? 'Femenino' : '';
+          const hora = h.datos?.hora || '';
+
           return (
-          <div key={h.id} onClick={() => onEditar(h)} style={{ border: `1.5px solid ${enviado ? '#1a7a3a' : C.azul}`, borderRadius: 10, padding: 12, background: bgTarjeta, cursor: 'pointer' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'stretch', gap: 8 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: colorTexto, fontWeight: 700, textTransform: 'uppercase' }}>
-                  {h.torneo} {h.fecha_nro && `· Fecha ${h.fecha_nro}`} {h.cat && `· Cat. ${h.cat}`}
-                </div>
-                <div style={{ fontSize: 15, color: colorTexto, fontWeight: 700, marginTop: 4, lineHeight: 1.3 }}>
-                  <div>{h.local} {h.res_local ?? '-'}</div>
-                  <div>vs {h.visitante} {h.res_visitante ?? '-'}</div>
-                </div>
-                <div style={{ fontSize: 11, color: colorTexto, fontWeight: 700, marginTop: 4 }}>
-                  {h.dia}
-                </div>
-                <div style={{ fontSize: 11, color: '#5a6b8c', marginTop: 2 }}>
-                  {enviado
-                    ? `enviado ${h.fechaEnvioNube ? new Date(h.fechaEnvioNube).toLocaleString('es-AR') : ''}`
-                    : `guardado ${new Date(h.timestamp).toLocaleString('es-AR')}`}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch', flexShrink: 0, width: 110 }}>
-                <button onClick={e => enviarWSP(e, h)} disabled={enviandoId === h.id}
-                  style={{ flex: 1, minHeight: 52, background: enviandoId === h.id ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 8px', fontSize: 12, fontWeight: 700, cursor: enviandoId === h.id ? 'wait' : 'pointer', textAlign: 'center' }}>
-                  {enviandoId === h.id ? '⏳' : '📎'} Enviar Form x WSP
-                </button>
-                {h.enviadoNube ? (
-                  <div style={{ flex: 1, minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#1a5c30' }}>
-                    ☁️ Enviado a planilla
+            <div key={h.id} style={{ border: `1.5px solid ${borde}`, borderRadius: 10, padding: 12, background: bg }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'stretch', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: colorTexto, fontWeight: 700, textTransform: 'uppercase' }}>
+                    {h.torneo}{division && ` - ${division}`}
                   </div>
-                ) : (
-                  <button onClick={e => subirANube(e, h)} disabled={subiendoId === h.id}
-                    style={{ flex: 1, minHeight: 52, background: subiendoId === h.id ? '#e0a0a0' : C.rojo, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 8px', fontSize: 12, fontWeight: 700, cursor: subiendoId === h.id ? 'wait' : 'pointer', textAlign: 'center' }}>
-                    {subiendoId === h.id ? '⏳ Subiendo...' : '☁️ No enviado — Subir'}
+                  <div style={{ fontSize: 11, color: colorTexto, fontWeight: 700, textTransform: 'uppercase' }}>
+                    {h.fecha_nro && `Fecha ${h.fecha_nro}`}{h.cat && ` - Categoría ${h.cat}`}
+                  </div>
+                  <div style={{ fontSize: 17, color: colorTexto, fontWeight: 700, marginTop: 6, lineHeight: 1.3 }}>
+                    <div>{h.local || '(sin local)'} {h.res_local ?? '-'}</div>
+                    <div>vs {h.visitante || '(sin visitante)'} {h.res_visitante ?? '-'}</div>
+                  </div>
+                  <div style={{ fontSize: 16, color: colorTexto, fontWeight: 700, marginTop: 6 }}>
+                    {h.dia || '(sin fecha)'}{hora && ` - ${hora} hs`}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: enCurso ? C.amarilloTexto : (enviado ? '#1a5c30' : C.rojo), textTransform: enviado ? 'uppercase' : 'none' }}>
+                    {enCurso
+                      ? `en curso · guardado ${new Date(h.timestamp).toLocaleString('es-AR')}`
+                      : enviado
+                        ? `ENVIADO ${h.fechaEnvioNube ? new Date(h.fechaEnvioNube).toLocaleString('es-AR') : ''}`
+                        : `guardado ${new Date(h.timestamp).toLocaleString('es-AR')}`}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', flexShrink: 0, width: 100 }}>
+                  <button onClick={() => onEditar(h)}
+                    style={{ flex: 1, minHeight: 44, background: '#fadd2e', color: '#5a4a00', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    ✏️ EDITAR
                   </button>
-                )}
+                  {!enCurso && (
+                    <>
+                      <button onClick={e => enviarWSP(e, h)} disabled={enviandoId === h.id}
+                        style={{ flex: 1, minHeight: 44, background: enviandoId === h.id ? '#8fa3c9' : '#0d1f4e', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontWeight: 700, cursor: enviandoId === h.id ? 'wait' : 'pointer' }}>
+                        {enviandoId === h.id ? '⏳' : '📎'} Enviar Form x WSP
+                      </button>
+                      {enviado ? (
+                        <div style={{ flex: 1, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', background: C.verde, color: '#fff', borderRadius: 6, fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>
+                          ☁️ Enviado
+                        </div>
+                      ) : (
+                        <button onClick={e => subirANube(e, h)} disabled={subiendoId === h.id}
+                          style={{ flex: 1, minHeight: 44, background: subiendoId === h.id ? '#e0a0a0' : C.rojo, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontWeight: 700, cursor: subiendoId === h.id ? 'wait' : 'pointer' }}>
+                          {subiendoId === h.id ? '⏳' : '☁️ No enviado — Subir'}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
+              {enCurso && (
+                <div style={{ background: '#c96a1c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 5, textTransform: 'uppercase', display: 'inline-block', marginTop: 8 }}>
+                  En curso
+                </div>
+              )}
             </div>
-            <div style={{ fontSize: 11, color: colorTexto, fontWeight: 700, marginTop: 6 }}>✏️ Tocar para editar</div>
-          </div>
           );
         })}
       </div>

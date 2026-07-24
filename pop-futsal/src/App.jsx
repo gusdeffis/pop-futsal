@@ -10,7 +10,7 @@ import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
 import { generarActaTexto } from './utils/acta';
 import {
-  useAutoSave, cargarGuardado, guardarInmediato, limpiarGuardado,
+  useAutoSave, cargarGuardado, guardarInmediato, limpiarPuntero,
   obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube,
   guardarLogin, cargarLogin, borrarLogin, generarId,
 } from './useAutoSave';
@@ -24,27 +24,20 @@ export default function App() {
   const [guardado, setGuardado] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [oficialLogueado, setOficialLogueado] = useState(loginInicial);
-  const [editandoDesdeHistorial, setEditandoDesdeHistorial] = useState(false);
   const listas = useListas();
 
   useEffect(() => {
     setGuardado(cargarGuardado());
   }, [vista]);
 
+  // Guarda al instante en cada cambio: actualiza la entrada de este partido
+  // en el Historial (estado "en curso") y mueve el marcapáginas a él. Así
+  // cualquier partido, apenas se crea, ya vive en el Historial — tocar otro
+  // por error nunca lo puede pisar ni hacerlo desaparecer.
   useAutoSave(datos, pantalla, vista === 'partido');
 
-  // Si se está editando un partido que ya estaba en el Historial (no uno
-  // nuevo), cada cambio también se refleja ahí en vivo — así, si el usuario
-  // sale sin volver a tocar "Finalizar Partido", la edición no se pierde.
-  useEffect(() => {
-    if (vista === 'partido' && editandoDesdeHistorial && datos._id) {
-      const actaTexto = generarActaTexto(datos) + (datos.acta_extra ? ' ' + datos.acta_extra : '');
-      guardarEnHistorial(datos, actaTexto);
-    }
-  }, [datos, vista, editandoDesdeHistorial]);
-
   // Guardado reforzado: si el usuario sale de la app (cambia a otra app,
-  // apaga la pantalla, cierra la pestaña) sin esperar el debounce normal,
+  // apaga la pantalla, cierra la pestaña) sin esperar el próximo cambio,
   // esto guarda al instante para no perder los últimos cambios.
   useEffect(() => {
     const handler = () => {
@@ -76,16 +69,8 @@ export default function App() {
   };
 
   const nuevoPartido = () => {
-    // Si ya hay un partido sin terminar, confirmar antes de borrarlo —
-    // para no perder datos por tocar este botón por error.
-    if (cargarGuardado()) {
-      const ok = window.confirm('Ya tenés un partido sin terminar. Si empezás uno nuevo, se va a borrar. ¿Querés continuar igual?');
-      if (!ok) return;
-    }
-    limpiarGuardado();
     setDatos({ ...ESTADO_INICIAL, _id: generarId() });
     setPantalla(1);
-    setEditandoDesdeHistorial(false);
     setVista('partido');
   };
 
@@ -94,7 +79,6 @@ export default function App() {
     if (g) {
       setDatos(g.datos);
       setPantalla(g.pantalla || 1);
-      setEditandoDesdeHistorial(!!obtenerHistorial().find(h => h.id === g.datos._id));
       setVista('partido');
     }
   };
@@ -104,24 +88,22 @@ export default function App() {
     setVista('historial');
   };
 
-  // Se llama al tocar "Finalizar Partido" en el Acta: pasa el partido al
-  // historial y libera el partido "en curso" (Continuar Partido queda vacío
-  // hasta que se arranque uno nuevo).
+  // Se llama al tocar "Finalizar Partido" en el Acta: lo marca como
+  // finalizado en el Historial y lo manda a la planilla compartida.
   const finalizarPartido = () => {
     const actaTexto = generarActaTexto(datos) + (datos.acta_extra ? ' ' + datos.acta_extra : '');
-    const id = guardarEnHistorial(datos, actaTexto);
+    const id = guardarEnHistorial(datos, actaTexto, { estado: 'finalizado' });
     enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado).then(ok => marcarEnviadoNube(id, ok));
-    limpiarGuardado();
+    limpiarPuntero();
     setGuardado(null);
     setVista('inicio');
   };
 
-  // Se llama al tocar un partido del historial: lo vuelve a cargar como
-  // partido activo, empezando por la pantalla de Datos, para editarlo.
+  // Se llama al tocar un partido del historial (en curso o finalizado): lo
+  // vuelve a cargar como partido activo, empezando por la pantalla de Datos.
   const editarDesdeHistorial = (entrada) => {
     setDatos({ ...entrada.datos, _id: entrada.datos._id || entrada.id });
     setPantalla(1);
-    setEditandoDesdeHistorial(true);
     setVista('partido');
   };
 

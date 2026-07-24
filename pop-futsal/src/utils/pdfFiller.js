@@ -27,7 +27,7 @@ const CAMPOS_CHOICE = {
   torneo: 'torneo', fecha_nro: 'fecha_nro', cat: 'cat',
   local: 'local', visitante: 'visitante', estadio: 'estadio',
   arbitro: 'arbitro', oficial_afa: 'oficial_afa',
-  motivo_inicio: 'dropdown_88qaws', motivo_et: 'dropdown_89ddav',
+  motivo_inicio_pdf: 'dropdown_88qaws', motivo_et_pdf: 'dropdown_89ddav',
 };
 
 // Checkboxes simples: datos[clave] booleano -> campo PDF

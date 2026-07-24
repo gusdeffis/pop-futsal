@@ -1,10 +1,32 @@
-import { Header, SeccionHeader, CheckRojo, CheckRojoChico, LVRojo, Textarea, BtnNext, BtnBack } from './UI';
+import { useState } from 'react';
+import { Header, SeccionHeader, CheckRojo, CheckRojoChico, LVRojo, Textarea, PanelCompletarObs, BtnNext, BtnBack } from './UI';
 
 const BORDO = '#7a1030';
 const ROSA = '#fbdbe1';
 
+const TODOS_LOS_ITEMS = [
+  ['tablero_fallas', 'Tablero con fallas'], ['sin_balon', 'Sin balón de back-up'],
+  ['medico_obs', 'Sin Médico'], ['policia', 'Sin Policía'],
+  ['arcos_obs', 'Arcos/Redes'], ['ilum_obs', 'Iluminación'],
+  ['goteras', 'Goteras'], ['humedad', 'Humedad'], ['tribunas', 'Tribunas'],
+  ['invasion', 'Invasión de Campo'], ['incidentes', 'Incidentes'],
+  ['agresiones', 'Agresiones'], ['gresca', 'Gresca generalizada'],
+  ['publico_l', 'Público Local'], ['publico_v', 'Público Visita'],
+];
+
 export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
+  const [panelAbierto, setPanelAbierto] = useState(false);
+
+  const marcados = TODOS_LOS_ITEMS.filter(([campo]) => datos[campo]);
+
+  const handleSiguiente = () => {
+    if (marcados.length > 0 && !datos.obs_partido?.trim()) {
+      const ok = window.confirm(`Marcaste ${marcados.length} incumplimiento(s) sin agregar observación. ¿Querés detallarlos ahora, o continuar igual?\n\nOK = detallar ahora\nCancelar = continuar igual`);
+      if (ok) { setPanelAbierto(true); return; }
+    }
+    onNext();
+  };
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
@@ -81,15 +103,25 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
           <CheckRojo label="Público Visita" checked={datos.publico_v} onChange={set('publico_v')} />
         </div>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: BORDO, letterSpacing: .5, textTransform: 'uppercase' }}>
-          Observaciones
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: BORDO, letterSpacing: .5, textTransform: 'uppercase' }}>
+            Observaciones
+          </div>
+          {!panelAbierto && (
+            <button onClick={() => setPanelAbierto(true)} style={{ background: '#fff', color: BORDO, border: `1.5px solid ${BORDO}`, borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              Obs. por Inconveniente
+            </button>
+          )}
         </div>
+        {panelAbierto && (
+          <PanelCompletarObs items={marcados} datos={datos} set={set} obsField="obs_partido" colorBordo onCerrar={() => setPanelAbierto(false)} />
+        )}
         <Textarea variant="rosa" value={datos.obs_partido} onChange={set('obs_partido')} placeholder="Describí incidentes u observaciones del partido..." minHeight={100} />
 
       </div>
       <div style={{ padding: '8px 16px 24px', display: 'flex', gap: 10 }}>
         <BtnBack onClick={onBack} />
-        <BtnNext onClick={onNext}>Siguiente: Acta Final</BtnNext>
+        <BtnNext onClick={handleSiguiente}>Siguiente: Acta Final</BtnNext>
       </div>
     </div>
   );
