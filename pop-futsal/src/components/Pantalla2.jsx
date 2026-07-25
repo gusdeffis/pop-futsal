@@ -38,6 +38,8 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
 
   const demL = datos[demLKey];
   const demV = datos[demVKey];
+  const sinCargar = demL === '' && demV === '';
+  const sinDemora = !sinCargar && Number(demL) <= 1 && Number(demV) <= 1;
 
   return (
     <div>
@@ -45,18 +47,27 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         <HoraInput label={`${titulo.split(' ')[0]} Local`} value={datos[horaLKey]} onChange={set(horaLKey)} />
         <HoraInput label={`${titulo.split(' ')[0]} Visita`} value={datos[horaVKey]} onChange={set(horaVKey)} />
-        <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, justifyContent: 'center' }}>
-          <span style={{ fontSize: 10, background: '#e03030', color: '#fff', fontWeight: 700, padding: '3px 7px', borderRadius: 5, letterSpacing: .3, textTransform: 'uppercase', alignSelf: 'flex-start' }}>Demora</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e' }}>LOCAL</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: Number(demL) > 1 ? '#e03030' : '#0d1f4e' }}>{demL || '—'}</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#0d1f4e' }}>min.</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e' }}>VISITA</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: Number(demV) > 1 ? '#e03030' : '#0d1f4e' }}>{demV || '—'}</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#0d1f4e' }}>min.</span>
-          </div>
+        <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center', justifyContent: 'center' }}>
+          {sinCargar ? (
+            <span style={{ fontSize: 22, fontWeight: 700, color: '#0d1f4e' }}>—</span>
+          ) : sinDemora ? (
+            <div style={{ background: '#1a7a3a', color: '#fff', fontSize: 11, fontWeight: 700, padding: '6px 8px', borderRadius: 6, textTransform: 'uppercase', textAlign: 'center' }}>
+              Sin demora
+            </div>
+          ) : (
+            <>
+              {Number(demL) > 1 && (
+                <div style={{ background: '#e03030', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 6, textAlign: 'center' }}>
+                  LOCAL {demL} min.
+                </div>
+              )}
+              {Number(demV) > 1 && (
+                <div style={{ background: '#e03030', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 6, textAlign: 'center' }}>
+                  VISITA {demV} min.
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -95,7 +106,7 @@ function CheckVest({ label, campo, datos, set }) {
   );
 }
 
-export default function Pantalla2({ datos, setDatos, onNext, onBack }) {
+export default function Pantalla2({ datos, setDatos, onNext, onBack, onIrA }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const [panelAbierto, setPanelAbierto] = useState(false);
 
@@ -107,7 +118,7 @@ export default function Pantalla2({ datos, setDatos, onNext, onBack }) {
 
   const handleSiguiente = () => {
     if (faltantes.length > 0) {
-      const continuar = window.confirm(`Hay ${faltantes.length} instalación(es) sin marcar y sin observación. ¿Querés continuar igual, o completarlas ahora?\n\nAceptar = continuar igual\nCancelar = completar observaciones ahora`);
+      const continuar = window.confirm(`Hay ${faltantes.length} ítem(s) sin marcar y sin observación. ¿Querés continuar igual, o completarlas ahora?\n\nAceptar = continuar igual\nCancelar = completar observaciones ahora`);
       if (!continuar) { setPanelAbierto(true); return; }
     }
     onNext();
@@ -115,7 +126,7 @@ export default function Pantalla2({ datos, setDatos, onNext, onBack }) {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
-      <Header paso={2} />
+      <Header paso={2} onIrA={onIrA} />
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         <SeccionHeader>2. Control previo al partido</SeccionHeader>

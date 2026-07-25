@@ -32,5 +32,6 @@ export function generarBloqueDesvios(datos) {
 export function textoHorariosCompleto(datos) {
   const desvios = generarBloqueDesvios(datos);
   const manual = (datos.obs_horarios || '').trim();
-  return [desvios.join('\n'), manual].filter(Boolean).join('\n');
+  const bloqueDesvios = desvios.length > 0 ? `Demoras registradas:\n${desvios.join('\n')}` : '';
+  return [bloqueDesvios, manual].filter(Boolean).join('\n');
 }

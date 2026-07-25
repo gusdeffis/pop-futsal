@@ -41,7 +41,7 @@ function calcularDemoraContra(horaReferencia, horaReal) {
   return String(Math.max(0, mins));
 }
 
-export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
+export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onIrA }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
 
   // ET = Inicio 2°T - Final 1°T, se recalcula solo. Excedido = ET > 11 min,
@@ -100,7 +100,7 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas }) {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
-      <Header paso={3} />
+      <Header paso={3} onIrA={onIrA} />
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         <SeccionHeader>3. Control de horarios</SeccionHeader>

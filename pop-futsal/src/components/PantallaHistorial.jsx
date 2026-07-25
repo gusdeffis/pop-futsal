@@ -3,7 +3,7 @@ import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
 import { generarActaTexto } from '../utils/acta';
 import { enviarAPlanillaCompartida, marcarEnviadoNube } from '../useAutoSave';
 
-const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030', amarillo: '#fef6d8', amarilloBorde: '#e0b84a' };
+const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030', enCursoBg: '#fadfba', enCursoBorde: '#c96a1c' };
 
 // Convierte "DD/MM/AAAA" a fecha real para poder ordenar. Si no se puede
 // interpretar, devuelve una fecha muy vieja para que quede al final.
@@ -80,8 +80,8 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
         {ordenados.map(h => {
           const enCurso = h.estado !== 'finalizado';
           const enviado = h.enviadoNube;
-          const bg = enCurso ? C.amarillo : (enviado ? '#c8ecd4' : C.celeste);
-          const borde = enCurso ? C.amarilloBorde : (enviado ? C.verde : C.azul);
+          const bg = enCurso ? C.enCursoBg : (enviado ? '#c8ecd4' : C.celeste);
+          const borde = enCurso ? C.enCursoBorde : (enviado ? C.verde : C.azul);
           const colorTexto = enCurso ? C.rojo : (enviado ? '#1a5c30' : C.azul);
           const division = h.datos?.division === 'M' ? 'Masculino' : h.datos?.division === 'F' ? 'Femenino' : '';
           const hora = h.datos?.hora || '';
@@ -114,7 +114,7 @@ export default function PantallaHistorial({ historial, onBack, onEditar, oficial
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', justifyContent: 'flex-start', flexShrink: 0, width: 100 }}>
                   <button onClick={() => onEditar(h)}
-                    style={{ ...(enCurso ? {} : { flex: 1 }), minHeight: 44, background: '#fadd2e', color: '#5a4a00', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    style={{ ...(enCurso ? {} : { flex: 1 }), minHeight: 44, background: '#fadfba', color: '#8a5a10', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                     ✏️ EDITAR
                   </button>
                   {!enCurso && (

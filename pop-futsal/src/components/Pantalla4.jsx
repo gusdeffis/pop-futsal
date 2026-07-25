@@ -14,7 +14,7 @@ const TODOS_LOS_ITEMS = [
   ['publico_l', 'Público Local'], ['publico_v', 'Público Visita'],
 ];
 
-export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
+export default function Pantalla4({ datos, setDatos, onNext, onBack, onIrA }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const [panelAbierto, setPanelAbierto] = useState(false);
 
@@ -32,7 +32,7 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack }) {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
-      <Header paso={4} />
+      <Header paso={4} onIrA={onIrA} />
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         <SeccionHeader>4. Observaciones durante el partido</SeccionHeader>

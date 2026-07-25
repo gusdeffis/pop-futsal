@@ -10,7 +10,7 @@ const CONCL_OPCIONES = [
   { id: 'susp', label: 'Suspensión', color: '#e03030', bg: '#fff0f0', exclusivo: false },
 ];
 
-export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinalizar }) {
+export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinalizar, onIrA }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
 
   const handleFinalizar = () => {
@@ -135,7 +135,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
-      <Header paso={5} />
+      <Header paso={5} onIrA={onIrA} />
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         <SeccionHeader>5. Acta Final</SeccionHeader>

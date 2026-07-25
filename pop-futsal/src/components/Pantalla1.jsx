@@ -19,7 +19,7 @@ function fechaHoy() {
   return `${dd}/${mm}/${now.getFullYear()}`;
 }
 
-export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir }) {
+export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, onIrA }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const valido = datos.torneo && datos.local && datos.visitante && datos.arbitro;
   const handleFecha = useFechaInput(datos.dia, set('dia'));
@@ -39,13 +39,13 @@ export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir }) 
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
-      <Header paso={1} />
+      <Header paso={1} onIrA={onIrA} />
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Torneo + M/F en la misma fila */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 96px', gap: 8 }}>
           <Campo label="Torneo" required>
-            <Select value={datos.torneo} onChange={set('torneo')} options={listas.torneos} placeholder="Seleccioná el torneo" />
+            <SelectLibre value={datos.torneo} onChange={set('torneo')} options={listas.torneos} placeholder="Seleccioná el torneo" />
           </Campo>
           <Campo label="División">
             <div style={{ display: 'flex', gap: 4 }}>

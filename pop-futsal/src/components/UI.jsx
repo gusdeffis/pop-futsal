@@ -1,4 +1,4 @@
-import { useRef, useState, useLayoutEffect } from 'react';
+import { useRef, useState, useLayoutEffect, useEffect } from 'react';
 
 const C = {
   azul: '#0d1f4e',
@@ -26,7 +26,7 @@ const C = {
 // tenga que acordarse de usar mayúsculas.
 const upper = (v) => (typeof v === 'string' ? v.toUpperCase() : v);
 
-export function Header({ paso, total = 5 }) {
+export function Header({ paso, total = 5, onIrA }) {
   const pasos = ['DATOS', 'CONTROL', 'HORARIOS', 'OBS.', 'ACTA'];
   return (
     <div>
@@ -44,8 +44,8 @@ export function Header({ paso, total = 5 }) {
       </div>
       <div style={{ display: 'flex', background: C.azul, padding: '0 8px 10px' }}>
         {pasos.map((p, i) => (
-          <div key={p} style={{
-            flex: 1, textAlign: 'center', fontSize: 10, padding: '4px 2px',
+          <div key={p} onClick={() => onIrA && onIrA(i + 1)} style={{
+            flex: 1, textAlign: 'center', fontSize: 10, padding: '4px 2px', cursor: onIrA ? 'pointer' : 'default',
             borderBottom: i + 1 === paso ? `2px solid ${C.rojo}` : '2px solid transparent',
             color: i + 1 === paso ? '#fff' : i + 1 < paso ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.3)',
             fontWeight: i + 1 === paso ? 700 : 400, textTransform: 'uppercase', letterSpacing: .3,
@@ -126,37 +126,80 @@ export function Input({ value, onChange, placeholder, type = 'text', style = {},
 // lista (para amistosos con equipos/árbitros/estadios de afuera). Usa un
 // <input> con lista desplegable de sugerencias en vez de un <select> cerrado.
 export function SelectLibre({ value, onChange, options, placeholder, variant = 'celeste' }) {
-  const idRef = useRef(`dl-${Math.random().toString(36).slice(2)}`);
-  const ref = useRef(null);
+  const [abierto, setAbierto] = useState(false);
+  const contenedorRef = useRef(null);
+  const inputRef = useRef(null);
   const cursor = useRef(null);
 
   useLayoutEffect(() => {
-    if (cursor.current != null && ref.current) {
-      ref.current.setSelectionRange(cursor.current, cursor.current);
+    if (cursor.current != null && inputRef.current) {
+      inputRef.current.setSelectionRange(cursor.current, cursor.current);
       cursor.current = null;
     }
   }, [value]);
 
+  // Cierra la lista si se toca afuera del campo
+  useEffect(() => {
+    const cerrar = (e) => {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target)) setAbierto(false);
+    };
+    document.addEventListener('mousedown', cerrar);
+    document.addEventListener('touchstart', cerrar);
+    return () => {
+      document.removeEventListener('mousedown', cerrar);
+      document.removeEventListener('touchstart', cerrar);
+    };
+  }, []);
+
   const handleChange = (e) => {
     cursor.current = e.target.selectionStart;
     onChange(upper(e.target.value));
+    setAbierto(true);
   };
 
+  const elegir = (opcion) => {
+    onChange(opcion);
+    setAbierto(false);
+  };
+
+  const filtrados = value
+    ? options.filter(o => o.toUpperCase().includes(value.toUpperCase()))
+    : options;
+
   return (
-    <>
-      <input
-        ref={ref}
-        list={idRef.current}
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder}
-        autoComplete="off"
-        style={{ ...baseStyle(variant), color: value ? (variant === 'rosa' ? '#000' : C.azul) : '#5a6b8c' }}
-      />
-      <datalist id={idRef.current}>
-        {options.map(o => <option key={o} value={o} />)}
-      </datalist>
-    </>
+    <div ref={contenedorRef} style={{ position: 'relative' }}>
+      <div style={{ position: 'relative' }}>
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={handleChange}
+          onFocus={() => setAbierto(true)}
+          placeholder={placeholder}
+          autoComplete="off"
+          style={{
+            ...baseStyle(variant), color: value ? (variant === 'rosa' ? '#000' : C.azul) : '#5a6b8c',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d1f4e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
+            backgroundSize: '16px', paddingRight: 32,
+          }}
+        />
+      </div>
+      {abierto && filtrados.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+          background: '#fff', border: `1.5px solid ${C.celesteBorde}`, borderRadius: 8,
+          maxHeight: 220, overflowY: 'auto', zIndex: 20, boxShadow: '0 4px 12px rgba(0,0,0,.15)',
+        }}>
+          {filtrados.map(o => (
+            <div key={o} onClick={() => elegir(o)} style={{
+              padding: '10px 12px', fontSize: 14, fontWeight: 600, color: C.azul,
+              cursor: 'pointer', borderBottom: '1px solid #eee',
+            }}>{o}</div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -285,41 +328,46 @@ export function LVRojo({ label, checked, onChange }) {
 export function HoraInput({ value, onChange, label, variant = 'celeste' }) {
   const bg = variant === 'rosa' ? C.rosa : C.celeste;
   const border = variant === 'rosa' ? C.rosaBorde : C.celesteBorde;
-  const ref = useRef(null);
-  const cursor = useRef(null);
-
-  useLayoutEffect(() => {
-    if (cursor.current != null && ref.current) {
-      ref.current.setSelectionRange(cursor.current, cursor.current);
-      cursor.current = null;
-    }
-  }, [value]);
+  const color = variant === 'rosa' ? '#000' : C.azul;
+  const [hh, mm] = (value || '').split(':');
+  const refMM = useRef(null);
 
   const setAhora = () => {
     const now = new Date();
     onChange(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
   };
-  const handleChange = (e) => {
-    const raw = e.target.value;
-    const posCursor = e.target.selectionStart;
-    // Cuántos dígitos hay antes del cursor (sin contar los ":")
-    const digitosAntes = raw.slice(0, posCursor).replace(/[^0-9]/g, '').length;
-    let v = raw.replace(/[^0-9]/g, '').slice(0, 4);
-    if (v.length >= 3) v = v.slice(0, 2) + ':' + v.slice(2, 4);
-    // El cursor va después de esos mismos dígitos, +1 si ya pasó los ":"
-    cursor.current = digitosAntes + (digitosAntes > 2 ? 1 : 0);
-    onChange(v);
+
+  // Con 2 casilleros separados (HH y MM) no hace falta ningún manejo de
+  // cursor: cada uno es un campo simple de hasta 2 dígitos, sin reformateo
+  // que pueda "correr" el cursor — es el mismo problema que causaba que a
+  // veces quedaran los números invertidos con el campo único de antes.
+  const handleHH = (e) => {
+    const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+    onChange(`${v}:${mm || ''}`);
+    if (v.length === 2) refMM.current?.focus();
   };
+  const handleMM = (e) => {
+    const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+    onChange(`${hh || ''}:${v}`);
+  };
+
   return (
     <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: variant === 'rosa' ? '#000' : C.azul, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
-      <input
-        ref={ref}
-        type="text" value={value}
-        onChange={handleChange}
-        placeholder="--:--" maxLength={5}
-        style={{ fontSize: 26, fontWeight: 700, color: variant === 'rosa' ? '#000' : C.azul, border: 'none', background: 'transparent', width: '100%', outline: 'none', letterSpacing: 2 }}
-      />
+      <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <input
+          type="text" inputMode="numeric" value={hh || ''} onChange={handleHH}
+          placeholder="HH" maxLength={2}
+          style={{ fontSize: 26, fontWeight: 700, color, border: 'none', background: 'transparent', width: '2ch', outline: 'none', letterSpacing: 1, textAlign: 'center', padding: 0 }}
+        />
+        <span style={{ fontSize: 26, fontWeight: 700, color }}>:</span>
+        <input
+          ref={refMM}
+          type="text" inputMode="numeric" value={mm || ''} onChange={handleMM}
+          placeholder="MM" maxLength={2}
+          style={{ fontSize: 26, fontWeight: 700, color, border: 'none', background: 'transparent', width: '2ch', outline: 'none', letterSpacing: 1, textAlign: 'center', padding: 0 }}
+        />
+      </div>
       <button onClick={setAhora} style={{
         background: variant === 'rosa' ? C.bordo : C.rojo, color: '#fff', border: 'none', borderRadius: 6,
         padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
