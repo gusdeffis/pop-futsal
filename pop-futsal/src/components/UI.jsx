@@ -89,6 +89,41 @@ function baseStyle(variant) {
   };
 }
 
+// Campo de hora simple (mismo aspecto que Input), para la Hora programada
+// del partido en Pantalla 1 — sin el recuadro grande ni el botón "Ahora"
+// de HoraInput, que ahí no tienen sentido.
+export function InputHora({ value, onChange, placeholder = 'HH:MM', style = {}, variant = 'celeste' }) {
+  const ref = useRef(null);
+  const cursor = useRef(null);
+
+  useLayoutEffect(() => {
+    if (cursor.current != null && ref.current) {
+      ref.current.setSelectionRange(cursor.current, cursor.current);
+      cursor.current = null;
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    const posCursorRaw = e.target.selectionStart;
+    const digitosAntes = raw.slice(0, posCursorRaw).replace(/[^0-9]/g, '').length;
+    const digitos = raw.replace(/[^0-9]/g, '').slice(0, 4);
+    const formateado = digitos.length >= 3 ? `${digitos.slice(0, 2)}:${digitos.slice(2)}` : digitos;
+    let nuevaPos = digitosAntes + (formateado.includes(':') && digitosAntes > 2 ? 1 : 0);
+    cursor.current = Math.min(nuevaPos, formateado.length);
+    onChange(formateado);
+  };
+
+  return (
+    <input
+      ref={ref}
+      type="text" inputMode="numeric" value={value || ''} onChange={handleChange}
+      placeholder={placeholder} maxLength={5}
+      style={{ ...baseStyle(variant), ...style }}
+    />
+  );
+}
+
 export function Input({ value, onChange, placeholder, type = 'text', style = {}, onKeyUp, variant = 'celeste' }) {
   const ref = useRef(null);
   const cursor = useRef(null);
@@ -325,53 +360,55 @@ export function LVRojo({ label, checked, onChange }) {
   );
 }
 
-export function HoraInput({ value, onChange, label, variant = 'celeste' }) {
+export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoton = false }) {
   const bg = variant === 'rosa' ? C.rosa : C.celeste;
   const border = variant === 'rosa' ? C.rosaBorde : C.celesteBorde;
   const color = variant === 'rosa' ? '#000' : C.azul;
-  const [hh, mm] = (value || '').split(':');
-  const refMM = useRef(null);
+  const ref = useRef(null);
+  const cursor = useRef(null);
+
+  useLayoutEffect(() => {
+    if (cursor.current != null && ref.current) {
+      ref.current.setSelectionRange(cursor.current, cursor.current);
+      cursor.current = null;
+    }
+  }, [value]);
 
   const setAhora = () => {
     const now = new Date();
     onChange(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
   };
 
-  // Con 2 casilleros separados (HH y MM) no hace falta ningún manejo de
-  // cursor: cada uno es un campo simple de hasta 2 dígitos, sin reformateo
-  // que pueda "correr" el cursor — es el mismo problema que causaba que a
-  // veces quedaran los números invertidos con el campo único de antes.
-  const handleHH = (e) => {
-    const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
-    onChange(`${v}:${mm || ''}`);
-    if (v.length === 2) refMM.current?.focus();
-  };
-  const handleMM = (e) => {
-    const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
-    onChange(`${hh || ''}:${v}`);
+  // Campo único "HH:MM" con el ":" agregado solo. El cursor se calcula a
+  // partir de cuántos DÍGITOS había antes de él (ignorando el ":"), y se le
+  // suma 1 si esa posición ya quedó después del ":" en el resultado — así
+  // nunca se "adelanta" ni duplica un dígito, escribas donde escribas.
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    const posCursorRaw = e.target.selectionStart;
+    const digitosAntes = raw.slice(0, posCursorRaw).replace(/[^0-9]/g, '').length;
+    const digitos = raw.replace(/[^0-9]/g, '').slice(0, 4);
+    const formateado = digitos.length >= 3 ? `${digitos.slice(0, 2)}:${digitos.slice(2)}` : digitos;
+    let nuevaPos = digitosAntes + (formateado.includes(':') && digitosAntes > 2 ? 1 : 0);
+    cursor.current = Math.min(nuevaPos, formateado.length);
+    onChange(formateado);
   };
 
   return (
     <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <input
-          type="text" inputMode="numeric" value={hh || ''} onChange={handleHH}
-          placeholder="HH" maxLength={2}
-          style={{ fontSize: 26, fontWeight: 700, color, border: 'none', background: 'transparent', width: '2ch', outline: 'none', letterSpacing: 1, textAlign: 'center', padding: 0 }}
-        />
-        <span style={{ fontSize: 26, fontWeight: 700, color }}>:</span>
-        <input
-          ref={refMM}
-          type="text" inputMode="numeric" value={mm || ''} onChange={handleMM}
-          placeholder="MM" maxLength={2}
-          style={{ fontSize: 26, fontWeight: 700, color, border: 'none', background: 'transparent', width: '2ch', outline: 'none', letterSpacing: 1, textAlign: 'center', padding: 0 }}
-        />
-      </div>
-      <button onClick={setAhora} style={{
-        background: variant === 'rosa' ? C.bordo : C.rojo, color: '#fff', border: 'none', borderRadius: 6,
-        padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
-      }}>▶ Ahora</button>
+      <input
+        ref={ref}
+        type="text" inputMode="numeric" value={value || ''} onChange={handleChange}
+        placeholder="--:--" maxLength={5}
+        style={{ fontSize: 26, fontWeight: 700, color, border: 'none', background: 'transparent', width: '100%', outline: 'none', letterSpacing: 2, padding: 0 }}
+      />
+      {!sinBoton && (
+        <button onClick={setAhora} style={{
+          background: variant === 'rosa' ? C.bordo : C.rojo, color: '#fff', border: 'none', borderRadius: 6,
+          padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
+        }}>▶ Ahora</button>
+      )}
     </div>
   );
 }

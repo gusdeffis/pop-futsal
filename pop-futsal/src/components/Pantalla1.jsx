@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Header, Campo, Input, Select, SelectLibre, BtnNext, BtnSalir } from './UI';
+import { Header, Campo, Input, InputHora, Select, SelectLibre, BtnNext, BtnSalir } from './UI';
 
 // Auto-avance en campo fecha: "4" → "07" → "2026"
 function useFechaInput(value, onChange) {
@@ -29,13 +29,6 @@ export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, on
     if (!datos.dia) set('dia')(fechaHoy());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Auto-formato hora: "1830" → "18:30"
-  const handleHora = (val) => {
-    let v = val.replace(/[^0-9]/g, '');
-    if (v.length >= 3) v = v.slice(0, 2) + ':' + v.slice(2, 4);
-    set('hora')(v.slice(0, 5));
-  };
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
@@ -80,7 +73,7 @@ export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, on
             <Input value={datos.dia} onChange={handleFecha} placeholder="DD/MM/AAAA" />
           </Campo>
           <Campo label="Hora">
-            <Input value={datos.hora} onChange={handleHora} placeholder="HH:MM" />
+            <InputHora value={datos.hora} onChange={set('hora')} />
           </Campo>
         </div>
 

@@ -47,7 +47,8 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         <HoraInput label={`${titulo.split(' ')[0]} Local`} value={datos[horaLKey]} onChange={set(horaLKey)} />
         <HoraInput label={`${titulo.split(' ')[0]} Visita`} value={datos[horaVKey]} onChange={set(horaVKey)} />
-        <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Demora</div>
           {sinCargar ? (
             <span style={{ fontSize: 22, fontWeight: 700, color: '#0d1f4e' }}>—</span>
           ) : sinDemora ? (
@@ -55,18 +56,18 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
               Sin demora
             </div>
           ) : (
-            <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
               {Number(demL) > 1 && (
                 <div style={{ background: '#e03030', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 6, textAlign: 'center' }}>
-                  LOCAL {demL} min.
+                  Local {demL} min.
                 </div>
               )}
               {Number(demV) > 1 && (
                 <div style={{ background: '#e03030', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 6, textAlign: 'center' }}>
-                  VISITA {demV} min.
+                  Visita {demV} min.
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
