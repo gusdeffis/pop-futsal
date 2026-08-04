@@ -1,0 +1,154 @@
+import { useState, useEffect } from 'react';
+import Pantalla1 from './components/Pantalla1';
+import Pantalla2 from './components/Pantalla2';
+import Pantalla3 from './components/Pantalla3';
+import Pantalla4 from './components/Pantalla4';
+import Pantalla5 from './components/Pantalla5';
+import PantallaInicio from './components/PantallaInicio';
+import PantallaHistorial from './components/PantallaHistorial';
+import PantallaAdmin from './components/PantallaAdmin';
+import PantallaAdminListas from './components/PantallaAdminListas';
+import { ESTADO_INICIAL } from './data';
+import { useListas } from './useListas';
+import { generarActaTexto } from './utils/acta';
+import {
+  useAutoSave, cargarGuardado, guardarInmediato, limpiarPuntero,
+  obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube,
+  guardarLogin, cargarLogin, borrarLogin, generarId,
+} from './useAutoSave';
+
+export default function App() {
+  const loginInicial = cargarLogin();
+
+  const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial' | 'admin' | 'adminListas'
+  const [pantalla, setPantalla] = useState(1);
+  const [datos, setDatos] = useState(ESTADO_INICIAL);
+  const [guardado, setGuardado] = useState(null);
+  const [historial, setHistorial] = useState([]);
+  const [oficialLogueado, setOficialLogueado] = useState(loginInicial);
+  const listas = useListas();
+
+  useEffect(() => {
+    setGuardado(cargarGuardado());
+  }, [vista]);
+
+  // Guarda al instante en cada cambio: actualiza la entrada de este partido
+  // en el Historial (estado "en curso") y mueve el marcapáginas a él. Así
+  // cualquier partido, apenas se crea, ya vive en el Historial — tocar otro
+  // por error nunca lo puede pisar ni hacerlo desaparecer.
+  useAutoSave(datos, pantalla, vista === 'partido');
+
+  // Guardado reforzado: si el usuario sale de la app (cambia a otra app,
+  // apaga la pantalla, cierra la pestaña) sin esperar el próximo cambio,
+  // esto guarda al instante para no perder los últimos cambios.
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === 'hidden' && vista === 'partido') {
+        guardarInmediato(datos, pantalla);
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    window.addEventListener('pagehide', handler);
+    return () => {
+      document.removeEventListener('visibilitychange', handler);
+      window.removeEventListener('pagehide', handler);
+    };
+  }, [datos, pantalla, vista]);
+
+  const handleLogin = (nombre) => {
+    guardarLogin(nombre);
+    setOficialLogueado(nombre);
+  };
+
+  const handleLogout = () => {
+    borrarLogin();
+    setOficialLogueado(null);
+  };
+
+  const irAInicio = () => {
+    setGuardado(cargarGuardado());
+    setVista('inicio');
+  };
+
+  const nuevoPartido = () => {
+    setDatos({ ...ESTADO_INICIAL, _id: generarId() });
+    setPantalla(1);
+    setVista('partido');
+  };
+
+  const continuarPartido = () => {
+    const g = cargarGuardado();
+    if (g) {
+      setDatos(g.datos);
+      setPantalla(g.pantalla || 1);
+      setVista('partido');
+    }
+  };
+
+  const irAHistorial = () => {
+    setHistorial(obtenerHistorial());
+    setVista('historial');
+  };
+
+  const esAdmin = !!oficialLogueado && listas.perfiles?.[(oficialLogueado || '').toUpperCase()] === 'ADMINISTRADOR';
+  const irAAdmin = () => setVista('admin');
+
+  // Se llama al tocar "Finalizar Partido" en el Acta: lo marca como
+  // finalizado en el Historial y lo manda a la planilla compartida.
+  const finalizarPartido = () => {
+    const actaTexto = generarActaTexto(datos) + (datos.acta_extra ? ' ' + datos.acta_extra : '');
+    const id = guardarEnHistorial(datos, actaTexto, { estado: 'finalizado' });
+    enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado).then(ok => marcarEnviadoNube(id, ok));
+    limpiarPuntero();
+    setGuardado(null);
+    setVista('inicio');
+  };
+
+  // Se llama al tocar un partido del historial (en curso o finalizado): lo
+  // vuelve a cargar como partido activo, empezando por la pantalla de Datos.
+  const editarDesdeHistorial = (entrada) => {
+    setDatos({ ...entrada.datos, _id: entrada.datos._id || entrada.id });
+    setPantalla(1);
+    setVista('partido');
+  };
+
+  if (vista === 'inicio') {
+    return (
+      <PantallaInicio
+        guardado={guardado}
+        onNuevo={nuevoPartido}
+        onContinuar={continuarPartido}
+        onHistorial={irAHistorial}
+        oficiales={listas.oficiales}
+        pines={listas.pines}
+        oficialLogueado={oficialLogueado}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        esAdmin={esAdmin}
+        onAdmin={irAAdmin}
+      />
+    );
+  }
+
+  if (vista === 'admin') {
+    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} />;
+  }
+
+  if (vista === 'adminListas') {
+    return <PantallaAdminListas onBack={() => setVista('admin')} />;
+  }
+
+  if (vista === 'historial') {
+    return <PantallaHistorial historial={historial} onBack={irAInicio} onEditar={editarDesdeHistorial} oficialLogueado={oficialLogueado} onRecargar={() => setHistorial(obtenerHistorial())} />;
+  }
+
+  return (
+    <div>
+      {pantalla === 1 && <Pantalla1 datos={datos} setDatos={setDatos} listas={listas} onSalir={irAInicio} onIrA={setPantalla} onNext={() => { setPantalla(2); window.scrollTo(0,0); }} />}
+      {pantalla === 2 && <Pantalla2 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(3); window.scrollTo(0,0); }} onBack={() => { setPantalla(1); window.scrollTo(0,0); }} />}
+      {pantalla === 3 && <Pantalla3 datos={datos} setDatos={setDatos} listas={listas} onIrA={setPantalla} onNext={() => { setPantalla(4); window.scrollTo(0,0); }} onBack={() => { setPantalla(2); window.scrollTo(0,0); }} />}
+      {pantalla === 4 && <Pantalla4 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(5); window.scrollTo(0,0); }} onBack={() => { setPantalla(3); window.scrollTo(0,0); }} />}
+      {pantalla === 5 && <Pantalla5 datos={datos} setDatos={setDatos} onIrA={setPantalla} onBack={() => { setPantalla(4); window.scrollTo(0,0); }} onInicio={irAInicio} onFinalizar={finalizarPartido} />}
+    </div>
+  );
+}
