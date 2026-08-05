@@ -13,6 +13,35 @@ function coincideClub(p, club) {
   return (p['Local'] || '').toUpperCase().includes(c) || (p['Visitante'] || '').toUpperCase().includes(c);
 }
 
+// La planilla compartida devuelve Fecha/Hora como Date de Google Sheets
+// serializado a ISO (ej: "2026-07-11T03:00:00.000Z"). Estas funciones lo
+// convierten al formato legible DD/MM/AAAA y HH:MM, usando horas UTC porque
+// así fueron serializadas (evita corrimientos de huso horario).
+function esISO(v) {
+  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(v);
+}
+function formatearDia(v) {
+  if (!v) return '';
+  if (!esISO(v)) return v;
+  const d = new Date(v);
+  return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
+}
+function formatearHora(v) {
+  if (!v) return '';
+  if (!esISO(v)) return v;
+  const d = new Date(v);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+}
+
+// Clave normalizada del día (ignora cualquier hora que venga pegada en la
+// misma celda), para que el filtro y el desplegable agrupen por fecha
+// calendario y no por el instante exacto.
+function claveDia(v) {
+  if (!esISO(v)) return v || '';
+  const d = new Date(v);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
 export default function PantallaAdmin({ onBack, onEditarListas }) {
   const [partidos, setPartidos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -29,18 +58,29 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
 
   useEffect(() => { cargar(); }, []);
 
-  const opciones = useMemo(() => ({
-    torneos: [...new Set(partidos.map(p => p['Torneo']).filter(Boolean))].sort(),
-    fechas: [...new Set(partidos.map(p => p['Fecha N°']).filter(Boolean))].sort(),
-    oficiales: [...new Set(partidos.map(p => p['Oficial AFA']).filter(Boolean))].sort(),
-    dias: [...new Set(partidos.map(p => p['Día']).filter(Boolean))].sort(),
-  }), [partidos]);
+  const opciones = useMemo(() => {
+    // Un valor representativo por día calendario, aunque haya partidos con
+    // horas distintas pegadas en la misma celda de "Día".
+    const diasVistos = new Map();
+    partidos.forEach(p => {
+      const v = p['Día'];
+      if (!v) return;
+      const clave = claveDia(v);
+      if (!diasVistos.has(clave)) diasVistos.set(clave, v);
+    });
+    return {
+      torneos: [...new Set(partidos.map(p => p['Torneo']).filter(Boolean))].sort(),
+      fechas: [...new Set(partidos.map(p => p['Fecha N°']).filter(Boolean))].sort(),
+      oficiales: [...new Set(partidos.map(p => p['Oficial AFA']).filter(Boolean))].sort(),
+      dias: [...diasVistos.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v),
+    };
+  }, [partidos]);
 
   const filtrados = useMemo(() => partidos.filter(p =>
     (!filtros.torneo || p['Torneo'] === filtros.torneo) &&
     (!filtros.fecha_nro || String(p['Fecha N°']) === filtros.fecha_nro) &&
     (!filtros.oficial || p['Oficial AFA'] === filtros.oficial) &&
-    (!filtros.dia || p['Día'] === filtros.dia) &&
+    (!filtros.dia || claveDia(p['Día']) === claveDia(filtros.dia)) &&
     coincideClub(p, filtros.club)
   ), [partidos, filtros]);
 
@@ -80,7 +120,7 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
           </select>
           <select style={selectStyle} value={filtros.dia} onChange={setFiltro('dia')}>
             <option value="">Toda Fecha</option>
-            {opciones.dias.map(v => <option key={v} value={v}>{v}</option>)}
+            {opciones.dias.map(v => <option key={v} value={v}>{formatearDia(v)}</option>)}
           </select>
         </div>
         <input
@@ -108,13 +148,20 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
         {!cargando && filtrados.map((p, i) => (
           <div key={i} style={{ border: `1.5px solid ${C.azul}`, borderRadius: 10, padding: 12, background: C.celeste }}>
             <div style={{ fontSize: 11, color: C.azul, fontWeight: 700, textTransform: 'uppercase' }}>
-              {p['Torneo']} {p['Fecha N°'] && `- Fecha ${p['Fecha N°']}`}
+              {p['Torneo']}
             </div>
-            <div style={{ fontSize: 15, color: C.azul, fontWeight: 700, marginTop: 4 }}>
-              {p['Local'] || '(sin local)'} {p['Res. Local'] ?? '-'} vs {p['Visitante'] || '(sin visitante)'} {p['Res. Visitante'] ?? '-'}
+            <div style={{ fontSize: 11, color: C.azul, fontWeight: 700, textTransform: 'uppercase' }}>
+              {p['Fecha N°'] && `Fecha ${p['Fecha N°']}`}
             </div>
-            <div style={{ fontSize: 12, color: C.azul, marginTop: 4 }}>
-              {p['Día']}{p['Hora'] && ` - ${p['Hora']} hs`} · Oficial: {p['Oficial AFA'] || '—'}
+            <div style={{ fontSize: 17, color: C.azul, fontWeight: 700, marginTop: 6, lineHeight: 1.3 }}>
+              <div>{p['Local'] || '(sin local)'} {p['Res. Local'] ?? '-'}</div>
+              <div>vs {p['Visitante'] || '(sin visitante)'} {p['Res. Visitante'] ?? '-'}</div>
+            </div>
+            <div style={{ fontSize: 16, color: C.azul, fontWeight: 700, marginTop: 6 }}>
+              {formatearDia(p['Día']) || '(sin fecha)'}{p['Hora'] && ` - ${formatearHora(p['Hora'])} hs`}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: C.azul }}>
+              Oficial: {p['Oficial AFA'] || '—'}
             </div>
           </div>
         ))}

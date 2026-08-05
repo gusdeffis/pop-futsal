@@ -361,8 +361,8 @@ export function LVRojo({ label, checked, onChange }) {
 }
 
 export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoton = false }) {
-  const bg = variant === 'rosa' ? C.rosa : C.celeste;
-  const border = variant === 'rosa' ? C.rosaBorde : C.celesteBorde;
+  const bg = variant === 'rosa' ? C.rosa : variant === 'naranja' ? C.naranjaClaro : C.celeste;
+  const border = variant === 'rosa' ? C.rosaBorde : variant === 'naranja' ? C.naranja : C.celesteBorde;
   const color = variant === 'rosa' ? '#000' : C.azul;
   const ref = useRef(null);
   const cursor = useRef(null);

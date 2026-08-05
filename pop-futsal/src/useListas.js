@@ -67,6 +67,20 @@ function parseMapaCSV(texto) {
   }
   return mapa;
 }
+// Hoja "Clubes": columna A = nombre, columna B = Categoria (A/B/C/D, opcional).
+// Devuelve { NOMBRE: 'A'|'B'|'C'|'D'|'' }.
+function parseClubesCategoriaCSV(texto) {
+  const lineas = texto.split(/\r?\n/);
+  const mapa = {};
+  for (let i = 1; i < lineas.length; i++) {
+    const cols = lineas[i].split(',');
+    const nombre = (cols[0] ?? '').trim().replace(/^"|"$/g, '').trim();
+    const categoria = (cols[1] ?? '').trim().replace(/^"|"$/g, '').trim();
+    if (nombre) mapa[nombre.toUpperCase()] = categoria.toUpperCase();
+  }
+  return mapa;
+}
+
 function cargarCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -103,6 +117,7 @@ export function useListas() {
     }
     iniciales.pines = cacheInicial.pines || OFICIAL_PINS;
     iniciales.perfiles = cacheInicial.perfiles || {};
+    iniciales.clubesCategoria = cacheInicial.clubesCategoria || {};
     iniciales.motivosInicioMapa = cacheInicial.motivosInicioMapa
       || Object.fromEntries(DEFAULT_MOTIVOS_INICIO.filter(Boolean).map(m => [m.toUpperCase(), m.toUpperCase()]));
     iniciales.motivosETMapa = cacheInicial.motivosETMapa
@@ -149,6 +164,24 @@ export function useListas() {
               nuevasListas.perfiles = perfiles;
               cache.pines = pines;
               cache.perfiles = perfiles;
+              huboActualizacion = true;
+            }
+          }
+        } catch {
+          // sin conexión o error: se mantiene el respaldo/caché existente
+        }
+      }
+
+      // Columna B de la hoja Clubes: categoría (A/B/C/D) de cada club, para
+      // filtrar el listado según el torneo elegido.
+      if (SHEET_URLS.clubes) {
+        try {
+          const res = await fetch(SHEET_URLS.clubes, { cache: 'no-store' });
+          if (res.ok) {
+            const mapa = parseClubesCategoriaCSV(await res.text());
+            if (Object.keys(mapa).length > 0) {
+              nuevasListas.clubesCategoria = mapa;
+              cache.clubesCategoria = mapa;
               huboActualizacion = true;
             }
           }

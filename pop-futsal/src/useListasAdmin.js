@@ -2,7 +2,7 @@ import { APPS_SCRIPT_DATOS_URL } from './data';
 
 export const HOJAS_EDITABLES = [
   { clave: 'Torneos', titulo: 'Torneos', columnas: ['Nombre'] },
-  { clave: 'Clubes', titulo: 'Clubes', columnas: ['Nombre'] },
+  { clave: 'Clubes', titulo: 'Clubes', columnas: ['Nombre', 'Categoria'] },
   { clave: 'Estadios', titulo: 'Estadios', columnas: ['Nombre'] },
   { clave: 'Arbitros', titulo: 'Árbitros', columnas: ['Nombre'] },
   { clave: 'Oficiales', titulo: 'Oficiales AFA', columnas: ['Nombre', 'PIN', 'Perfil'] },

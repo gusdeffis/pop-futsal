@@ -114,8 +114,10 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
 
         {/* Ingreso al campo */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <HoraInput label="Formación Local" value={datos.ingreso_local || ''} onChange={v => setDatos(d => ({ ...d, ingreso_local: v }))} />
-          <HoraInput label="Formación Visita" value={datos.ingreso_visita || ''} onChange={v => setDatos(d => ({ ...d, ingreso_visita: v }))} />
+          <HoraInput label="Formación Local" value={datos.ingreso_local || ''} onChange={v => setDatos(d => ({ ...d, ingreso_local: v }))}
+            variant={Number(datos.ingreso_local_dem) > 0 ? 'naranja' : 'celeste'} />
+          <HoraInput label="Formación Visita" value={datos.ingreso_visita || ''} onChange={v => setDatos(d => ({ ...d, ingreso_visita: v }))}
+            variant={Number(datos.ingreso_visita_dem) > 0 ? 'naranja' : 'celeste'} />
           <HoraInput label="Ingreso al Campo" value={datos.ingreso} onChange={set('ingreso')} />
         </div>
 
@@ -156,12 +158,12 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           <HoraInput label="Inicio Real" value={datos.hora_real} onChange={set('hora_real')} />
           <div style={{
-            background: datos.desvio_inicio === '' ? '#c6dbf5' : (Number(datos.desvio_inicio) <= 1 ? '#d7f0dd' : '#fadfba'),
-            border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12,
+            background: datos.desvio_inicio === '' ? '#c6dbf5' : (Number(datos.desvio_inicio) <= 1 ? '#d7f0dd' : '#fadada'),
+            border: `1.5px solid ${datos.desvio_inicio !== '' && Number(datos.desvio_inicio) > 1 ? '#e03030' : '#0d1f4e'}`, borderRadius: 10, padding: 12,
             display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center' }}>Desvío Inicio Partido</div>
-            <span style={{ fontSize: 20, fontWeight: 700, color: '#0d1f4e' }}>
+            <span style={{ fontSize: 20, fontWeight: 700, color: datos.desvio_inicio !== '' && Number(datos.desvio_inicio) > 1 ? '#e03030' : '#0d1f4e' }}>
               {datos.desvio_inicio === '' ? '—' : (Number(datos.desvio_inicio) <= 1 ? 'A horario' : `${datos.desvio_inicio} min.`)}
             </span>
           </div>
@@ -189,7 +191,11 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
 
         {/* Fila 3: Entretiempo | Final del Partido | Duración */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            background: datos.excedido ? '#fadada' : '#c6dbf5',
+            border: `1.5px solid ${datos.excedido ? '#e03030' : '#0d1f4e'}`, borderRadius: 10, padding: 12,
+            display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center',
+          }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Entretiempo</div>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
