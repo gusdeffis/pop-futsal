@@ -5,7 +5,7 @@ export const HOJAS_EDITABLES = [
   { clave: 'Clubes', titulo: 'Clubes', columnas: ['Nombre', 'Categoria'] },
   { clave: 'Estadios', titulo: 'Estadios', columnas: ['Nombre'] },
   { clave: 'Arbitros', titulo: 'Árbitros', columnas: ['Nombre'] },
-  { clave: 'Oficiales', titulo: 'Oficiales AFA', columnas: ['Nombre', 'PIN', 'Perfil'] },
+  { clave: 'Oficiales', titulo: 'Oficiales AFA', columnas: ['Oficial', 'PIN', 'Perfil', 'Informes'], anchos: [2, 0.8, 1.2, 0.9] },
   { clave: 'Categorias', titulo: 'Categorías', columnas: ['Nombre'] },
   { clave: 'Motivos_Inicio', titulo: 'Motivos de Inicio', columnas: ['Texto en la app', 'Valor PDF'] },
   { clave: 'Motivos_ET', titulo: 'Motivos de ET', columnas: ['Texto en la app', 'Valor PDF'] },

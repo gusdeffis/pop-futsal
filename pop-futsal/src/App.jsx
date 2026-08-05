@@ -8,6 +8,7 @@ import PantallaInicio from './components/PantallaInicio';
 import PantallaHistorial from './components/PantallaHistorial';
 import PantallaAdmin from './components/PantallaAdmin';
 import PantallaAdminListas from './components/PantallaAdminListas';
+import PantallaInformes from './components/PantallaInformes';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
 import { generarActaTexto } from './utils/acta';
@@ -91,6 +92,7 @@ export default function App() {
   };
 
   const esAdmin = !!oficialLogueado && listas.perfiles?.[(oficialLogueado || '').toUpperCase()] === 'ADMINISTRADOR';
+  const veInformes = esAdmin || (!!oficialLogueado && !!listas.veInformes?.[(oficialLogueado || '').toUpperCase()]);
   const irAAdmin = () => setVista('admin');
 
   // Se llama al tocar "Finalizar Partido" en el Acta: lo marca como
@@ -126,16 +128,22 @@ export default function App() {
         onLogout={handleLogout}
         esAdmin={esAdmin}
         onAdmin={irAAdmin}
+        veInformes={veInformes}
+        onInformes={() => setVista('informes')}
       />
     );
   }
 
   if (vista === 'admin') {
-    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} />;
+    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} onInformes={() => setVista('informes')} />;
   }
 
   if (vista === 'adminListas') {
     return <PantallaAdminListas onBack={() => setVista('admin')} />;
+  }
+
+  if (vista === 'informes') {
+    return <PantallaInformes onBack={irAInicio} listas={listas} />;
   }
 
   if (vista === 'historial') {

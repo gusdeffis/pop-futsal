@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { obtenerTodosLosPartidos } from '../useAutoSave';
+import { esISO, formatearDia, formatearHora, claveDia, valorFecha } from '../utils/fechasSheet';
 
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030' };
 
@@ -13,36 +14,7 @@ function coincideClub(p, club) {
   return (p['Local'] || '').toUpperCase().includes(c) || (p['Visitante'] || '').toUpperCase().includes(c);
 }
 
-// La planilla compartida devuelve Fecha/Hora como Date de Google Sheets
-// serializado a ISO (ej: "2026-07-11T03:00:00.000Z"). Estas funciones lo
-// convierten al formato legible DD/MM/AAAA y HH:MM, usando horas UTC porque
-// así fueron serializadas (evita corrimientos de huso horario).
-function esISO(v) {
-  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(v);
-}
-function formatearDia(v) {
-  if (!v) return '';
-  if (!esISO(v)) return v;
-  const d = new Date(v);
-  return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
-}
-function formatearHora(v) {
-  if (!v) return '';
-  if (!esISO(v)) return v;
-  const d = new Date(v);
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
-}
-
-// Clave normalizada del día (ignora cualquier hora que venga pegada en la
-// misma celda), para que el filtro y el desplegable agrupen por fecha
-// calendario y no por el instante exacto.
-function claveDia(v) {
-  if (!esISO(v)) return v || '';
-  const d = new Date(v);
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-}
-
-export default function PantallaAdmin({ onBack, onEditarListas }) {
+export default function PantallaAdmin({ onBack, onEditarListas, onInformes }) {
   const [partidos, setPartidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
@@ -82,7 +54,7 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
     (!filtros.oficial || p['Oficial AFA'] === filtros.oficial) &&
     (!filtros.dia || claveDia(p['Día']) === claveDia(filtros.dia)) &&
     coincideClub(p, filtros.club)
-  ), [partidos, filtros]);
+  ).sort((a, b) => valorFecha(b['Día']) - valorFecha(a['Día'])), [partidos, filtros]);
 
   const setFiltro = (campo) => (e) => setFiltros(f => ({ ...f, [campo]: e.target.value }));
 
@@ -99,7 +71,10 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
           <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>Panel Administrador</div>
           <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 11 }}>{filtrados.length} de {partidos.length} partido{partidos.length !== 1 ? 's' : ''}</div>
         </div>
-        <button onClick={onEditarListas} style={{ marginLeft: 'auto', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase' }}>
+        <button onClick={onInformes} style={{ marginLeft: 'auto', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase' }}>
+          📊 Informes
+        </button>
+        <button onClick={onEditarListas} style={{ background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase' }}>
           🛠️ Editar Listas
         </button>
       </div>

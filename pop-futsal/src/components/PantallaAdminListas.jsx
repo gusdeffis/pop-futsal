@@ -81,6 +81,18 @@ export default function PantallaAdminListas({ onBack }) {
 
         {!cargando && !error && (
           <>
+            {config.columnas.length > 1 && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                {config.columnas.map((titulo, j) => (
+                  <div key={j} style={{
+                    flex: config.anchos?.[j] ?? 1, minWidth: 0, fontSize: 11, fontWeight: 700, color: C.azul,
+                    textTransform: 'uppercase', letterSpacing: .3, padding: '0 2px',
+                    whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.2,
+                  }}>{titulo}</div>
+                ))}
+                <div style={{ width: 32, flexShrink: 0 }} />
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {filasEdit.map((fila, i) => (
                 <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -88,10 +100,10 @@ export default function PantallaAdminListas({ onBack }) {
                     <input
                       key={j} value={fila[j] || ''} onChange={e => cambiarCelda(i, j, e.target.value)}
                       placeholder={config.columnas[j]}
-                      style={{ flex: 1, height: 38, border: `1.5px solid ${C.azul}`, borderRadius: 6, padding: '0 8px', fontSize: 13, color: C.azul, textTransform: 'uppercase' }}
+                      style={{ flex: config.anchos?.[j] ?? 1, minWidth: 0, height: 38, border: `1.5px solid ${C.azul}`, borderRadius: 6, padding: '0 8px', fontSize: 13, color: C.azul, textTransform: 'uppercase' }}
                     />
                   ))}
-                  <button onClick={() => borrarFila(i)} style={{ background: C.rojo, color: '#fff', border: 'none', borderRadius: 6, width: 32, height: 32, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                  <button onClick={() => borrarFila(i)} style={{ background: C.rojo, color: '#fff', border: 'none', borderRadius: 6, width: 32, height: 32, flexShrink: 0, fontWeight: 700, cursor: 'pointer' }}>✕</button>
                 </div>
               ))}
             </div>
