@@ -54,6 +54,13 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datos.final_1t, datos.inicio_2t]);
 
+  // Desvío de Inicio de Partido: Hora establecida vs Hora Real de inicio.
+  useEffect(() => {
+    const calculado = calcularDemoraContra(datos.hora, datos.hora_real);
+    if (calculado !== datos.desvio_inicio) set('desvio_inicio')(calculado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datos.hora, datos.hora_real]);
+
   // Demora de Formación (ingreso al campo antes de arrancar): se espera 5
   // minutos antes de la Hora establecida del partido (no la hora real).
   useEffect(() => {
@@ -145,29 +152,23 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
           </div>
         )}
 
-        {/* Hora real de inicio + Primer tiempo + Entretiempo calculado */}
+        {/* Fila 1: Inicio Real | Desvío Inicio Partido | Final 1° T */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           <HoraInput label="Inicio Real" value={datos.hora_real} onChange={set('hora_real')} />
-          <HoraInput label="Final 1° T" value={datos.final_1t} onChange={set('final_1t')} />
-          <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Entretiempo</div>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-              borderRadius: 8, padding: '4px 12px',
-              background: datos.et_min === '' ? 'transparent' : (Number(datos.et_min) <= 11 ? '#1a7a3a' : '#e03030'),
-            }}>
-              <span style={{ fontSize: 22, fontWeight: 700, color: datos.et_min === '' ? '#0d1f4e' : '#fff' }}>{datos.et_min || '—'}</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: datos.et_min === '' ? '#0d1f4e' : '#fff' }}>min.</span>
-            </div>
-            {datos.excedido && (
-              <div style={{ background: '#e03030', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, textTransform: 'uppercase', letterSpacing: .3 }}>
-                Excedido
-              </div>
-            )}
+          <div style={{
+            background: datos.desvio_inicio === '' ? '#c6dbf5' : (Number(datos.desvio_inicio) <= 1 ? '#d7f0dd' : '#fadfba'),
+            border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12,
+            display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center' }}>Desvío Inicio Partido</div>
+            <span style={{ fontSize: 20, fontWeight: 700, color: '#0d1f4e' }}>
+              {datos.desvio_inicio === '' ? '—' : (Number(datos.desvio_inicio) <= 1 ? 'A horario' : `${datos.desvio_inicio} min.`)}
+            </span>
           </div>
+          <HoraInput label="Final 1° T" value={datos.final_1t} onChange={set('final_1t')} />
         </div>
 
-        {/* Regreso de cada equipo para el 2do tiempo + Inicio 2°T */}
+        {/* Fila 2: Regreso Local | Regreso Visita | Inicio 2° T */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           <HoraInput label="Regreso Local" value={datos.regreso_local} onChange={set('regreso_local')} />
           <HoraInput label="Regreso Visita" value={datos.regreso_visita} onChange={set('regreso_visita')} />
@@ -186,13 +187,29 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
           </div>
         )}
 
+        {/* Fila 3: Entretiempo | Final del Partido | Duración */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Entretiempo</div>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              borderRadius: 8, padding: '4px 12px',
+              background: datos.et_min === '' ? 'transparent' : (Number(datos.et_min) <= 11 ? '#1a7a3a' : '#e03030'),
+            }}>
+              <span style={{ fontSize: 22, fontWeight: 700, color: datos.et_min === '' ? '#0d1f4e' : '#fff' }}>{datos.et_min || '—'}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: datos.et_min === '' ? '#0d1f4e' : '#fff' }}>min.</span>
+            </div>
+            {datos.excedido && (
+              <div style={{ background: '#e03030', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, textTransform: 'uppercase', letterSpacing: .3 }}>
+                Excedido
+              </div>
+            )}
+          </div>
           <HoraInput label="Final del partido" value={datos.final_partido} onChange={set('final_partido')} />
           <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Duración</div>
             <span style={{ fontSize: 20, fontWeight: 700, color: '#0d1f4e' }}>{datos.duracion_partido || '—'}</span>
           </div>
-          <div />
         </div>
 
         <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Observaciones de horarios</div>

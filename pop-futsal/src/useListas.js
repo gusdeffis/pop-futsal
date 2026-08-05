@@ -33,17 +33,24 @@ function parseCSVColumnaA(texto) {
   return valores;
 }
 
-// Hoja "PINs": dos columnas (Nombre | PIN). Devuelve un objeto { NOMBRE: pin }.
+// Hoja "Oficiales": tres columnas (Nombre | PIN | Perfil). Devuelve
+// { pines: {NOMBRE: pin}, perfiles: {NOMBRE: 'ADMINISTRADOR'|'OFICIAL'} }.
+// La columna Perfil es opcional: si está vacía, se toma como 'OFICIAL'.
 function parsePinesCSV(texto) {
   const lineas = texto.split(/\r?\n/);
   const pines = {};
+  const perfiles = {};
   for (let i = 1; i < lineas.length; i++) {
     const cols = lineas[i].split(',');
     const nombre = (cols[0] ?? '').trim().replace(/^"|"$/g, '').trim();
     const pin = (cols[1] ?? '').trim().replace(/^"|"$/g, '').trim();
-    if (nombre && pin) pines[nombre.toUpperCase()] = pin;
+    const perfil = (cols[2] ?? '').trim().replace(/^"|"$/g, '').trim().toUpperCase();
+    if (nombre && pin) {
+      pines[nombre.toUpperCase()] = pin;
+      perfiles[nombre.toUpperCase()] = perfil === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'OFICIAL';
+    }
   }
-  return pines;
+  return { pines, perfiles };
 }
 
 // Hoja de 2 columnas genérica: columna A = texto que se ve en la app,
@@ -95,6 +102,7 @@ export function useListas() {
       iniciales[clave] = blanco && base[0] !== '' ? ['', ...base] : base;
     }
     iniciales.pines = cacheInicial.pines || OFICIAL_PINS;
+    iniciales.perfiles = cacheInicial.perfiles || {};
     iniciales.motivosInicioMapa = cacheInicial.motivosInicioMapa
       || Object.fromEntries(DEFAULT_MOTIVOS_INICIO.filter(Boolean).map(m => [m.toUpperCase(), m.toUpperCase()]));
     iniciales.motivosETMapa = cacheInicial.motivosETMapa
@@ -128,16 +136,19 @@ export function useListas() {
         }
       }));
 
-      // PINs: se leen de la columna B de la MISMA hoja "Oficiales" (columna A
-      // = nombre, columna B = PIN), no hace falta una pestaña aparte.
+      // PINs y Perfiles: se leen de las columnas B y C de la MISMA hoja
+      // "Oficiales" (A = nombre, B = PIN, C = Perfil), no hace falta una
+      // pestaña aparte.
       if (SHEET_URLS.oficiales) {
         try {
           const res = await fetch(SHEET_URLS.oficiales, { cache: 'no-store' });
           if (res.ok) {
-            const pines = parsePinesCSV(await res.text());
+            const { pines, perfiles } = parsePinesCSV(await res.text());
             if (Object.keys(pines).length > 0) {
               nuevasListas.pines = pines;
+              nuevasListas.perfiles = perfiles;
               cache.pines = pines;
+              cache.perfiles = perfiles;
               huboActualizacion = true;
             }
           }

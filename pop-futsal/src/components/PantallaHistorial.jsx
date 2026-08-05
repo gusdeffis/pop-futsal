@@ -16,9 +16,22 @@ function parseDia(dia) {
   return new Date(a, m - 1, d);
 }
 
-export default function PantallaHistorial({ historial, onBack, onEditar, oficialLogueado, onRecargar }) {
+// Compara nombres de oficial ignorando mayúsculas/minúsculas y espacios
+// sobrantes, para que el filtro no falle por diferencias de tipeo menores.
+function mismoOficial(a, b) {
+  return (a || '').trim().toUpperCase() === (b || '').trim().toUpperCase();
+}
+
+export default function PantallaHistorial({ historial: historialCompleto, onBack, onEditar, oficialLogueado, onRecargar }) {
   const [enviandoId, setEnviandoId] = useState(null);
   const [subiendoId, setSubiendoId] = useState(null);
+
+  // Cada Oficial ve solo los partidos donde figura como Oficial AFA. Si por
+  // algún motivo no hay oficialLogueado (no debería pasar, login obligatorio),
+  // se muestra todo para no ocultar datos sin querer.
+  const historial = oficialLogueado
+    ? historialCompleto.filter(h => mismoOficial(h.datos?.oficial_afa, oficialLogueado))
+    : historialCompleto;
 
   const enviarWSP = async (e, h) => {
     e.stopPropagation();

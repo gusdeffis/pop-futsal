@@ -136,6 +136,21 @@ export function guardarInmediato(datos, pantalla) {
   guardarActivo(datos, pantalla);
 }
 
+// --- Perfil Administrador: trae TODOS los partidos de la planilla
+// compartida (no solo los guardados en este celular). Usa el mismo Apps
+// Script de siempre, ahora con doGet agregado.
+
+export async function obtenerTodosLosPartidos() {
+  if (!APPS_SCRIPT_PARTIDOS_URL) return { ok: false, partidos: [] };
+  try {
+    const res = await fetch(APPS_SCRIPT_PARTIDOS_URL, { cache: 'no-store' });
+    const json = await res.json();
+    return { ok: !!json.ok, partidos: json.partidos || [] };
+  } catch {
+    return { ok: false, partidos: [] };
+  }
+}
+
 // --- Envío a la planilla compartida ---
 
 export async function enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado) {

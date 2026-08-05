@@ -47,25 +47,29 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         <HoraInput label={`${titulo.split(' ')[0]} Local`} value={datos[horaLKey]} onChange={set(horaLKey)} />
         <HoraInput label={`${titulo.split(' ')[0]} Visita`} value={datos[horaVKey]} onChange={set(horaVKey)} />
-        <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{
+          background: sinCargar ? '#c6dbf5' : (sinDemora ? '#d7f0dd' : '#fadfba'),
+          border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 10,
+          display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center',
+        }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Demora</div>
           {sinCargar ? (
             <span style={{ fontSize: 22, fontWeight: 700, color: '#0d1f4e' }}>—</span>
           ) : sinDemora ? (
-            <div style={{ background: '#1a7a3a', color: '#fff', fontSize: 11, fontWeight: 700, padding: '6px 8px', borderRadius: 6, textTransform: 'uppercase', textAlign: 'center' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1a5c30', textTransform: 'uppercase', textAlign: 'center' }}>
               Sin demora
-            </div>
+            </span>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
               {Number(demL) > 1 && (
-                <div style={{ background: '#e03030', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 6, textAlign: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#8a5a10', textAlign: 'center' }}>
                   Local {demL} min.
-                </div>
+                </span>
               )}
               {Number(demV) > 1 && (
-                <div style={{ background: '#e03030', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 6, textAlign: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#8a5a10', textAlign: 'center' }}>
                   Visita {demV} min.
-                </div>
+                </span>
               )}
             </div>
           )}

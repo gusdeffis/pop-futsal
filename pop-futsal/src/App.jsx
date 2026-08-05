@@ -6,6 +6,8 @@ import Pantalla4 from './components/Pantalla4';
 import Pantalla5 from './components/Pantalla5';
 import PantallaInicio from './components/PantallaInicio';
 import PantallaHistorial from './components/PantallaHistorial';
+import PantallaAdmin from './components/PantallaAdmin';
+import PantallaAdminListas from './components/PantallaAdminListas';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
 import { generarActaTexto } from './utils/acta';
@@ -18,7 +20,7 @@ import {
 export default function App() {
   const loginInicial = cargarLogin();
 
-  const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial'
+  const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial' | 'admin' | 'adminListas'
   const [pantalla, setPantalla] = useState(1);
   const [datos, setDatos] = useState(ESTADO_INICIAL);
   const [guardado, setGuardado] = useState(null);
@@ -88,6 +90,9 @@ export default function App() {
     setVista('historial');
   };
 
+  const esAdmin = !!oficialLogueado && listas.perfiles?.[(oficialLogueado || '').toUpperCase()] === 'ADMINISTRADOR';
+  const irAAdmin = () => setVista('admin');
+
   // Se llama al tocar "Finalizar Partido" en el Acta: lo marca como
   // finalizado en el Historial y lo manda a la planilla compartida.
   const finalizarPartido = () => {
@@ -119,8 +124,18 @@ export default function App() {
         oficialLogueado={oficialLogueado}
         onLogin={handleLogin}
         onLogout={handleLogout}
+        esAdmin={esAdmin}
+        onAdmin={irAAdmin}
       />
     );
+  }
+
+  if (vista === 'admin') {
+    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} />;
+  }
+
+  if (vista === 'adminListas') {
+    return <PantallaAdminListas onBack={() => setVista('admin')} />;
   }
 
   if (vista === 'historial') {

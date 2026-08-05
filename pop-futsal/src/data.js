@@ -129,11 +129,12 @@ export const OFICIAL_PINS = {
 
 // Versión de la app: se muestra en la pantalla de inicio, debajo del botón
 // Ingresar. Subir este número cuando le pases una versión nueva a Gustavo.
-export const APP_VERSION = 'v29';
+export const APP_VERSION = 'v30';
 
 // Apps Script que guarda cada partido finalizado en la planilla compartida
 // "POPA-2026-Partidos" (además del historial local del dispositivo).
 export const APPS_SCRIPT_PARTIDOS_URL = 'https://script.google.com/macros/s/AKfycbyPMIuZqX8tUtCEPOFbPu6PniTG5qYjEUr9D6Fmnv3bx8B4-nFUuMhwvaKzrczoW1LctQ/exec';
+export const APPS_SCRIPT_DATOS_URL = 'https://script.google.com/macros/s/AKfycbxyFuLsaxHhe4e-AARg-N93vMjbg77FWMC0jou5VtadKxI49701l8R2RFA_sKdKdfmnSg/exec';
 
 export const ESTADO_INICIAL = {
   // Identificador interno fijo del partido — no cambia aunque se editen
@@ -162,7 +163,7 @@ export const ESTADO_INICIAL = {
   // Sección 3 - Horarios
   ingreso: '', protocolo: false, comenzo_si: null,
   motivo_inicio: '', motivo_inicio_pdf: '', hora_real: '',
-  final_1t: '', inicio_2t: '', et_min: '', excedido: false,
+  final_1t: '', inicio_2t: '', et_min: '', excedido: false, desvio_inicio: '',
   motivo_et: '', motivo_et_pdf: '', final_partido: '', duracion_partido: '',
   obs_horarios: '',
 

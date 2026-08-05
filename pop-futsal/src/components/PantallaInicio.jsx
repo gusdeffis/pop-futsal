@@ -10,7 +10,7 @@ function validarPin(pines, nombre, pin) {
   return entrada && entrada[1] === pin;
 }
 
-export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHistorial, oficiales, pines, oficialLogueado, onLogin, onLogout }) {
+export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHistorial, oficiales, pines, oficialLogueado, onLogin, onLogout, esAdmin, onAdmin }) {
   const [nombre, setNombre] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -101,6 +101,16 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
             }}>
               🗂️ Historial de Partidos
             </button>
+
+            {esAdmin && (
+              <button onClick={onAdmin} style={{
+                minHeight: 64, background: '#fadfba', color: '#8a5a10', border: `1.5px solid #8a5a10`, borderRadius: 10,
+                fontSize: 16, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                🛠️ Panel Administrador
+              </button>
+            )}
 
             <div onClick={onLogout} style={{ textAlign: 'center', color: C.rojo, fontWeight: 700, fontSize: 16, cursor: 'pointer', textDecoration: 'underline', textTransform: 'uppercase', letterSpacing: .3, marginTop: 4 }}>
               Salir
