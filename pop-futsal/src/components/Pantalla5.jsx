@@ -244,7 +244,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         )}
         {onInicio && (
           <button onClick={onInicio}
-            style={{ width: '100%', height: 44, background: '#fff', color: '#0d1f4e', border: '1.5px solid #0d1f4e', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ width: '100%', height: 44, background: '#fadfba', color: '#8a5a10', border: '1.5px solid #c96a1c', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             🏠 Volver a la pantalla de inicio
           </button>
         )}

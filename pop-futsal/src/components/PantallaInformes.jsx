@@ -26,6 +26,17 @@ function CeldaBarra({ valor, texto, max, color }) {
   );
 }
 
+// Encabezado de 2 líneas (ej: "Con" / "Demora") — deja las columnas más
+// angostas sin cortar el título.
+function Th2({ top, bottom, bg, color, rowSpan }) {
+  return (
+    <th rowSpan={rowSpan} style={{ ...th, background: bg, color, lineHeight: 1.25 }}>
+      <div>{top}</div>
+      <div>{bottom}</div>
+    </th>
+  );
+}
+
 // Celda que se resalta con un color sólido cuando el valor es mayor a 0
 // (Incidentes, Obs. Instalaciones, Controles Previos).
 function CeldaResaltada({ valor, colorFondo, colorTexto }) {
@@ -37,7 +48,8 @@ function CeldaResaltada({ valor, colorFondo, colorTexto }) {
   );
 }
 
-function Fila({ f, esTotal, maxPorcentaje, maxMinProm, maxEtProm }) {
+// Tabla 1: Demora en Inicio de Partidos + Entretiempos
+function Fila1({ f, esTotal, maxPorcentaje, maxMinProm }) {
   const bg = esTotal ? C.celeste : '#fff';
   const peso = esTotal ? 700 : 400;
   return (
@@ -46,10 +58,21 @@ function Fila({ f, esTotal, maxPorcentaje, maxMinProm, maxEtProm }) {
       <td style={{ ...td, color: C.azul }}>{f.partidos}</td>
       <td style={{ ...td, color: C.rojo, fontWeight: 700 }}>{f.demoraInicio.partidosConDemora}</td>
       <CeldaBarra valor={f.demoraInicio.porcentaje} texto={`${f.demoraInicio.porcentaje}%`} max={maxPorcentaje} color={C.peach} />
-      <td style={{ ...td, color: C.rojo, fontWeight: 700 }}>{f.demoraInicio.minutosTotales}</td>
       <CeldaBarra valor={f.demoraInicio.minutosPromedio} texto={f.demoraInicio.minutosPromedio} max={maxMinProm} color={C.peach} />
       <td style={{ ...td, color: C.azul, fontWeight: 700 }}>{f.entretiempos.cantidadExcedidos}</td>
       <td style={{ ...td, color: C.azul, fontWeight: 700, background: f.entretiempos.promedioMin >= 3 ? C.celeste : 'transparent' }}>{f.entretiempos.promedioMin}</td>
+    </tr>
+  );
+}
+
+// Tabla 2: Incidentes, Obs. Instalaciones, Controles Previos
+function Fila2({ f, esTotal }) {
+  const bg = esTotal ? C.celeste : '#fff';
+  const peso = esTotal ? 700 : 400;
+  return (
+    <tr style={{ background: bg, fontWeight: peso }}>
+      <td style={{ ...td, textAlign: 'left', textTransform: 'uppercase', fontWeight: 700, color: C.azul }}>{f.club}</td>
+      <td style={{ ...td, color: C.azul }}>{f.partidos}</td>
       <CeldaResaltada valor={f.incidentes} colorFondo={C.rojo} colorTexto="#fff" />
       <CeldaResaltada valor={f.obsInstalaciones} colorFondo={C.naranja} colorTexto="#fff" />
       <CeldaResaltada valor={f.controlesPrevios.planillaFueraTermino} colorFondo={C.amarillo} colorTexto={C.amarilloTexto} />
@@ -58,7 +81,7 @@ function Fila({ f, esTotal, maxPorcentaje, maxMinProm, maxEtProm }) {
   );
 }
 
-export default function PantallaInformes({ onBack, listas }) {
+export default function PantallaInformes({ onBack, listas, onInformeClub }) {
   const [partidos, setPartidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
@@ -89,7 +112,6 @@ export default function PantallaInformes({ onBack, listas }) {
   });
   const maxPorcentaje = 100;
   const maxMinProm = Math.max(1, ...porClub.map(f => f.demoraInicio.minutosPromedio));
-  const maxEtProm = Math.max(1, ...porClub.map(f => f.entretiempos.promedioMin));
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
@@ -103,6 +125,14 @@ export default function PantallaInformes({ onBack, listas }) {
           ↻ Actualizar
         </button>
       </div>
+
+      {onInformeClub && (
+        <div style={{ padding: '10px 12px 0' }}>
+          <button onClick={onInformeClub} style={{ width: '100%', background: '#fff', color: C.azul, border: `1.5px solid ${C.azul}`, borderRadius: 8, padding: '10px', fontWeight: 700, fontSize: 12, cursor: 'pointer', textTransform: 'uppercase' }}>
+            📎 Informe PDF por Club (para WhatsApp / Correo)
+          </button>
+        </div>
+      )}
 
       {cargando && <div style={{ textAlign: 'center', color: '#999', fontSize: 14, padding: '40px 0' }}>Cargando...</div>}
       {!cargando && error && (
@@ -156,35 +186,56 @@ export default function PantallaInformes({ onBack, listas }) {
       )}
 
       {!cargando && !error && porClub.length > 0 && (
-        <div style={{ overflowX: 'auto', padding: '8px 0' }}>
-          <table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>
-            <thead>
-              <tr>
-                <th rowSpan={2} style={{ ...th, textAlign: 'left', background: C.gris, color: '#fff' }}>Club</th>
-                <th rowSpan={2} style={{ ...th, background: C.gris, color: '#fff' }}>Partidos</th>
-                <th colSpan={4} style={{ ...th, background: C.peach, color: C.azul }}>Demora en Inicio de Partidos</th>
-                <th colSpan={2} style={{ ...th, background: C.azul, color: '#fff' }}>Entretiempos</th>
-                <th rowSpan={2} style={{ ...th, background: C.rojo, color: '#fff' }}>Incidentes</th>
-                <th rowSpan={2} style={{ ...th, background: C.bordo, color: '#fff' }}>Obs. Instalaciones</th>
-                <th colSpan={2} style={{ ...th, background: C.amarillo, color: C.amarilloTexto }}>Controles Previos</th>
-              </tr>
-              <tr>
-                <th style={{ ...th, background: C.peach, color: C.azul }}>Partidos c/Demora</th>
-                <th style={{ ...th, background: C.peach, color: C.azul }}>%</th>
-                <th style={{ ...th, background: C.peach, color: C.azul }}>Min. Totales</th>
-                <th style={{ ...th, background: C.peach, color: C.azul }}>Min. Prom.</th>
-                <th style={{ ...th, background: C.azul, color: '#fff' }}>Excedidos</th>
-                <th style={{ ...th, background: C.azul, color: '#fff' }}>Prom. Min.</th>
-                <th style={{ ...th, background: C.amarillo, color: C.amarilloTexto }}>Planilla Fuera Término</th>
-                <th style={{ ...th, background: C.amarillo, color: C.amarilloTexto }}>Camiseta S/Apellido</th>
-              </tr>
-            </thead>
-            <tbody>
-              {porClub.map(f => <Fila key={f.club} f={f} maxPorcentaje={maxPorcentaje} maxMinProm={maxMinProm} maxEtProm={maxEtProm} />)}
-              <Fila f={total} esTotal maxPorcentaje={maxPorcentaje} maxMinProm={maxMinProm} maxEtProm={maxEtProm} />
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div style={{ padding: '10px 12px 0', fontSize: 12, fontWeight: 700, color: C.azul, textTransform: 'uppercase' }}>
+            Demora en inicio y entretiempos
+          </div>
+          <div style={{ overflowX: 'auto', padding: '6px 0 12px' }}>
+            <table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>
+              <thead>
+                <tr>
+                  <th rowSpan={2} style={{ ...th, textAlign: 'left', background: C.gris, color: '#fff' }}>Club</th>
+                  <th rowSpan={2} style={{ ...th, background: C.gris, color: '#fff' }}>PJ</th>
+                  <th colSpan={3} style={{ ...th, background: C.peach, color: C.azul }}>Demora en Inicio de Partidos</th>
+                  <th colSpan={2} style={{ ...th, background: C.azul, color: '#fff' }}>Entretiempos</th>
+                </tr>
+                <tr>
+                  <Th2 top="Con" bottom="Demora" bg={C.peach} color={C.azul} />
+                  <th style={{ ...th, background: C.peach, color: C.azul }}>%</th>
+                  <Th2 top="Min" bottom="Prom" bg={C.peach} color={C.azul} />
+                  <Th2 top="Cant" bottom="Exced" bg={C.azul} color="#fff" />
+                  <Th2 top="Min" bottom="Prom" bg={C.azul} color="#fff" />
+                </tr>
+              </thead>
+              <tbody>
+                {porClub.map(f => <Fila1 key={f.club} f={f} maxPorcentaje={maxPorcentaje} maxMinProm={maxMinProm} />)}
+                <Fila1 f={total} esTotal maxPorcentaje={maxPorcentaje} maxMinProm={maxMinProm} />
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ padding: '10px 12px 0', fontSize: 12, fontWeight: 700, color: C.azul, textTransform: 'uppercase' }}>
+            Incidentes, instalaciones y controles previos
+          </div>
+          <div style={{ overflowX: 'auto', padding: '6px 0 12px' }}>
+            <table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ ...th, textAlign: 'left', background: C.gris, color: '#fff' }}>Club</th>
+                  <th style={{ ...th, background: C.gris, color: '#fff' }}>PJ</th>
+                  <th style={{ ...th, background: C.rojo, color: '#fff' }}>Incidentes</th>
+                  <Th2 top="Obs." bottom="Instalaciones" bg={C.bordo} color="#fff" />
+                  <Th2 top="Planilla" bottom="Fuera de Término" bg={C.amarillo} color={C.amarilloTexto} />
+                  <Th2 top="Camiseta" bottom="Sin Apellido" bg={C.amarillo} color={C.amarilloTexto} />
+                </tr>
+              </thead>
+              <tbody>
+                {porClub.map(f => <Fila2 key={f.club} f={f} />)}
+                <Fila2 f={total} esTotal />
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

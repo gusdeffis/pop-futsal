@@ -14,7 +14,16 @@ function coincideClub(p, club) {
   return (p['Local'] || '').toUpperCase().includes(c) || (p['Visitante'] || '').toUpperCase().includes(c);
 }
 
-export default function PantallaAdmin({ onBack, onEditarListas, onInformes }) {
+// Si el nombre del club en realidad quedó guardado como fecha (Sheets lo
+// malinterpretó, como pasó antes con "17 DE AGOSTO"), avisa en vez de
+// mostrar la fecha cruda como si fuera un nombre de club.
+function nombreClub(v, sinDato) {
+  if (!v) return sinDato;
+  if (esISO(v)) return '(nombre inválido en la planilla)';
+  return v;
+}
+
+export default function PantallaAdmin({ onBack, onEditarListas }) {
   const [partidos, setPartidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
@@ -71,10 +80,7 @@ export default function PantallaAdmin({ onBack, onEditarListas, onInformes }) {
           <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>Panel Administrador</div>
           <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 11 }}>{filtrados.length} de {partidos.length} partido{partidos.length !== 1 ? 's' : ''}</div>
         </div>
-        <button onClick={onInformes} style={{ marginLeft: 'auto', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase' }}>
-          📊 Informes
-        </button>
-        <button onClick={onEditarListas} style={{ background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase' }}>
+        <button onClick={onEditarListas} style={{ marginLeft: 'auto', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase' }}>
           🛠️ Editar Listas
         </button>
       </div>
@@ -129,8 +135,8 @@ export default function PantallaAdmin({ onBack, onEditarListas, onInformes }) {
               {p['Fecha N°'] && `Fecha ${p['Fecha N°']}`}
             </div>
             <div style={{ fontSize: 17, color: C.azul, fontWeight: 700, marginTop: 6, lineHeight: 1.3 }}>
-              <div>{p['Local'] || '(sin local)'} {p['Res. Local'] ?? '-'}</div>
-              <div>vs {p['Visitante'] || '(sin visitante)'} {p['Res. Visitante'] ?? '-'}</div>
+              <div>{nombreClub(p['Local'], '(sin local)')} {p['Res. Local'] ?? '-'}</div>
+              <div>vs {nombreClub(p['Visitante'], '(sin visitante)')} {p['Res. Visitante'] ?? '-'}</div>
             </div>
             <div style={{ fontSize: 16, color: C.azul, fontWeight: 700, marginTop: 6 }}>
               {formatearDia(p['Día']) || '(sin fecha)'}{p['Hora'] && ` - ${formatearHora(p['Hora'])} hs`}

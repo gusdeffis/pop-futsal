@@ -38,7 +38,7 @@ function esSi(v) {
 
 // Desvío del comienzo real contra la hora pactada. Si falta alguno de los
 // dos datos, se toma como 0 (no penaliza al club por falta de carga).
-function demoraInicioMin(p) {
+export function demoraInicioMin(p) {
   const hora = minutosDesdeMedianoche(p['Hora']);
   const real = minutosDesdeMedianoche(p['Hora Inicio Real']);
   if (hora === null || real === null) return 0;
@@ -80,7 +80,7 @@ function formatear(club, acc) {
       partidosConDemora: acc.demoraInicioConDemora,
       porcentaje: acc.partidos > 0 ? Math.round((acc.demoraInicioConDemora / acc.partidos) * 100) : 0,
       minutosTotales: acc.demoraInicioMinTotales,
-      minutosPromedio: acc.partidos > 0 ? Math.round(acc.demoraInicioMinTotales / acc.partidos) : 0,
+      minutosPromedio: acc.demoraInicioConDemora > 0 ? Math.round(acc.demoraInicioMinTotales / acc.demoraInicioConDemora) : 0,
     },
     entretiempos: {
       cantidadExcedidos: acc.etExcedidos,
@@ -137,7 +137,7 @@ export function calcularIndicadoresPorClub(partidos, opciones = {}) {
   (partidos || []).forEach(p => {
     [['Local', 'L'], ['Visitante', 'V']].forEach(([campoClub, rol]) => {
       const club = p[campoClub];
-      if (!club) return;
+      if (!club || esISO(club)) return; // nombre vacío o corrompido (Sheets lo guardó como fecha)
       if (categoriaClub && (clubesCategoria?.[club] || '') !== categoriaClub) return;
       const acc = obtener(club);
       acc.partidos += 1;

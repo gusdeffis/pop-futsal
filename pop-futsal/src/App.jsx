@@ -9,6 +9,7 @@ import PantallaHistorial from './components/PantallaHistorial';
 import PantallaAdmin from './components/PantallaAdmin';
 import PantallaAdminListas from './components/PantallaAdminListas';
 import PantallaInformes from './components/PantallaInformes';
+import PantallaInformeClub from './components/PantallaInformeClub';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
 import { generarActaTexto } from './utils/acta';
@@ -135,7 +136,7 @@ export default function App() {
   }
 
   if (vista === 'admin') {
-    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} onInformes={() => setVista('informes')} />;
+    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} />;
   }
 
   if (vista === 'adminListas') {
@@ -143,7 +144,11 @@ export default function App() {
   }
 
   if (vista === 'informes') {
-    return <PantallaInformes onBack={irAInicio} listas={listas} />;
+    return <PantallaInformes onBack={irAInicio} listas={listas} onInformeClub={() => setVista('informeClub')} />;
+  }
+
+  if (vista === 'informeClub') {
+    return <PantallaInformeClub onBack={() => setVista('informes')} />;
   }
 
   if (vista === 'historial') {
