@@ -260,13 +260,14 @@ export function Select({ value, onChange, options, placeholder, variant = 'celes
 
 // Checkbox azul - para items normales (instalaciones, etc.)
 // Sin marcar: fondo celeste, casillero blanco. Marcado: fondo azul, casillero celeste.
-export function CheckAzul({ label, checked, onChange, minHeight }) {
+export function CheckAzul({ label, checked, onChange, minHeight, padding = '12px 10px', sinMayuscula }) {
+  const lineas = Array.isArray(label) ? label : [label];
   return (
     <div onClick={() => onChange(!checked)} style={{
       display: 'flex', alignItems: 'center', gap: 10, minWidth: 0,
       background: checked ? C.azul : C.celeste,
       border: `1.5px solid ${C.azul}`,
-      borderRadius: 8, padding: '12px 10px', cursor: 'pointer',
+      borderRadius: 8, padding, cursor: 'pointer',
       userSelect: 'none', transition: 'all .15s', minHeight,
     }}>
       <div style={{
@@ -277,8 +278,8 @@ export function CheckAzul({ label, checked, onChange, minHeight }) {
       }}>
         {checked && <span style={{ color: C.azul, fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
       </div>
-      <span style={{ fontSize: 13, color: checked ? '#fff' : C.azul, lineHeight: 1.2, fontWeight: 600, textTransform: 'uppercase', minWidth: 0, wordBreak: 'break-word' }}>
-        {label}
+      <span style={{ fontSize: 13, color: checked ? '#fff' : C.azul, lineHeight: 1.2, fontWeight: 600, textTransform: sinMayuscula ? 'none' : 'uppercase', minWidth: 0, wordBreak: 'break-word' }}>
+        {lineas.length > 1 ? lineas.map((linea, i) => <div key={i}>{linea}</div>) : lineas[0]}
       </span>
     </div>
   );
@@ -502,7 +503,7 @@ export function PanelCompletarObs({ items, datos, set, obsField, colorBordo, onC
         return (
           <div key={campo} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div onClick={() => set(campo)(!checked)} style={{
-              display: 'flex', alignItems: 'center', gap: 10, minHeight: 56, minWidth: 0,
+              display: 'flex', alignItems: 'center', gap: 10, minHeight: 40, minWidth: 0,
               background: checked ? bordo : bg, border: `1.5px solid ${bordo}`, borderRadius: 8,
               padding: '10px 12px', cursor: 'pointer', userSelect: 'none',
             }}>
@@ -558,8 +559,8 @@ export function BtnBack({ onClick }) {
 export function BtnSalir({ onClick }) {
   return (
     <button onClick={onClick} title="Salir" style={{
-      height: 50, width: 50, background: '#f2811d', color: '#fff',
-      border: `2px solid ${C.naranja}`, borderRadius: 8, padding: 0, lineHeight: 1,
+      height: 50, width: 50, background: '#fadfba', color: '#8a5a10',
+      border: '2px solid #c96a1c', borderRadius: 8, padding: 0, lineHeight: 1,
       fontSize: 20, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}>🚪</button>
   );

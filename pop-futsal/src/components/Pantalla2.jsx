@@ -53,7 +53,7 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
           display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center',
         }}>
           {!sinDemora && (
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Demora</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Demora</div>
           )}
           {sinCargar ? (
             <span style={{ fontSize: 22, fontWeight: 700, color: '#0d1f4e' }}>—</span>
@@ -64,13 +64,13 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
               {Number(demL) > 1 && (
-                <span style={{ fontSize: 16, fontWeight: 800, color: '#000', textAlign: 'center' }}>
-                  Local {demL} min.
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#000', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  Local {demL}m
                 </span>
               )}
               {Number(demV) > 1 && (
-                <span style={{ fontSize: 16, fontWeight: 800, color: '#000', textAlign: 'center' }}>
-                  Visita {demV} min.
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#000', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  Visita {demV}m
                 </span>
               )}
             </div>
@@ -83,21 +83,28 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
 
 // Filas de Instalaciones y Seguridad, en el mismo orden de siempre — solo
 // cambia dónde se corta cada línea (2 o 3 por fila) para que el texto entre
-// bien, sin achicar la letra ni usar puntos suspensivos.
+// bien, sin achicar la letra ni usar puntos suspensivos. Los ítems con
+// `lineas` fuerzan el corte exacto pedido (en vez de dejar que el navegador
+// decida dónde cortar); los que tienen `sinMayuscula` se muestran con
+// mayúscula inicial nomás (no todo en mayúscula), porque en mayúscula
+// completa no entraban bien en una sola palabra por línea.
 const FILAS_INSTALACIONES = [
-  { cols: 2, items: [['buen_estado', 'Campo en buen estado'], ['altura', 'Altura min. 5 mts']] },
+  { cols: 2, items: [['buen_estado', 'Campo en buen estado'], ['altura', 'Altura min. 5 mts', { lineas: ['Altura min', '5 mts'] }]] },
   { cols: 2, items: [['pared_prot', 'Pared con Protecciones'], ['ilum', 'Iluminación']] },
   { cols: 2, items: [['redes_per', 'Redes Perimetrales'], ['meta_anclada', 'Meta Sin Anclar']] },
-  { cols: 3, items: [['tablero', 'Tablero'], ['mesa_crono', 'Mesa Crono'], ['limpieza', 'Limpieza']] },
+  { cols: 3, items: [['tablero', 'Tablero', { sinMayuscula: true }], ['mesa_crono', 'Mesa Crono'], ['limpieza', 'Limpieza', { sinMayuscula: true }]] },
   { cols: 3, items: [['vest_l', 'Vest. Local'], ['vest_v', 'Vest. Visita'], ['vest_arb', 'Vest. Árb.']] },
-  { cols: 3, items: [['banios', 'Baños Públicos'], ['del_veedor_l', 'Veedor Local'], ['del_veedor_v', 'Veedor Visita']] },
+  { cols: 3, items: [['banios', 'Baños Públicos', { sinMayuscula: true, lineas: ['Baños', 'Públicos'] }], ['del_veedor_l', 'Veedor Local'], ['del_veedor_v', 'Veedor Visita']] },
   { cols: 2, items: [['seguridad', 'Seguridad / Policía'], ['balon_nuevo', 'Balón Nuevo']] },
   { cols: 2, items: [['medico', 'Médico'], ['camiseta', 'Camiseta c/Apellido']] },
 ];
 
 // Altura fija de los botones de esta pantalla únicamente (no afecta a
-// CheckAzul en otras pantallas, como el de Protocolo de Inicio en Pantalla3).
-const ALTO_BOTON_INSTALACIONES = 56;
+// CheckAzul en otras pantallas, como el de Protocolo de Inicio en Pantalla3)
+// y padding vertical reducido, para que no sobre tanto espacio arriba/abajo
+// del texto (antes quedaba desproporcionado con textos de 1 sola línea).
+const ALTO_BOTON_INSTALACIONES = 42;
+const PADDING_BOTON_INSTALACIONES = '5px 10px';
 
 // Todos los ítems de instalaciones/servicios de esta pantalla, para armar el
 // texto de observaciones a partir de lo que falta marcar — un solo campo
@@ -144,8 +151,11 @@ export default function Pantalla2({ datos, setDatos, onNext, onBack, onIrA }) {
 
         {FILAS_INSTALACIONES.map((fila, i) => (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: `repeat(${fila.cols}, 1fr)`, gap: 8 }}>
-            {fila.items.map(([campo, label]) => (
-              <CheckAzul key={campo} label={label} checked={datos[campo]} onChange={set(campo)} minHeight={ALTO_BOTON_INSTALACIONES} />
+            {fila.items.map(([campo, label, opts = {}]) => (
+              <CheckAzul
+                key={campo} label={opts.lineas || label} checked={datos[campo]} onChange={set(campo)}
+                minHeight={ALTO_BOTON_INSTALACIONES} padding={PADDING_BOTON_INSTALACIONES} sinMayuscula={opts.sinMayuscula}
+              />
             ))}
           </div>
         ))}

@@ -35,18 +35,40 @@ export default function PantallaInformeClub({ onBack }) {
   const generarYCompartir = async () => {
     if (!club) return;
     setGenerando(true);
+
+    let bytes, nombreSugerido;
     try {
       const informe = armarInformeClub(club, partidos);
-      const { bytes, nombreSugerido } = await generarPDFInformeClub(informe, { fecha: new Date() });
-      const archivo = new File([bytes], nombreSugerido, { type: 'application/pdf' });
-      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      ({ bytes, nombreSugerido } = await generarPDFInformeClub(informe, { fecha: new Date() }));
+    } catch (err) {
+      console.error('Error generando el PDF del informe:', err);
+      alert(`No se pudo armar el PDF del informe.\n\nDetalle técnico: ${err?.message || err}`);
+      setGenerando(false);
+      return;
+    }
+
+    try {
+      const archivo = typeof File !== 'undefined' ? new File([bytes], nombreSugerido, { type: 'application/pdf' }) : null;
+      const puedeCompartirArchivo = archivo && navigator.canShare && navigator.canShare({ files: [archivo] });
+      if (puedeCompartirArchivo) {
         await navigator.share({ files: [archivo], title: `Informe ${club}`, text: `Informe de ${club}` });
       } else {
         descargarPDF(bytes, nombreSugerido);
         alert('Tu celular no permite adjuntar el PDF directo desde acá. Se descargó el archivo: adjuntalo manualmente en WhatsApp o Correo.');
       }
     } catch (err) {
-      if (err?.name !== 'AbortError') alert('No se pudo generar el informe.');
+      if (err?.name === 'AbortError') {
+        // El usuario cerró el cuadro de compartir sin elegir nada — no es un error.
+      } else {
+        console.error('Error compartiendo el PDF:', err);
+        // El PDF sí se armó bien; si compartir falla, al menos ofrecemos la descarga directa.
+        try {
+          descargarPDF(bytes, nombreSugerido);
+          alert(`No se pudo abrir el cuadro de compartir (${err?.message || err}). Se descargó el archivo igual: adjuntalo manualmente en WhatsApp o Correo.`);
+        } catch (err2) {
+          alert(`No se pudo compartir ni descargar el informe.\n\nDetalle técnico: ${err?.message || err}`);
+        }
+      }
     } finally {
       setGenerando(false);
     }

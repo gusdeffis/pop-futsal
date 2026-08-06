@@ -99,10 +99,11 @@ function formatear(club, acc) {
 // planilla: 1a/3a/4a/etc.), rango de fechas de calendario (Día) y rango de
 // Fecha N°. Cada filtro es opcional — si no se pasa, no filtra por ese campo.
 export function filtrarPartidos(partidos, filtros = {}) {
-  const { torneo, division, fechaDesde, fechaHasta, fechaNroDesde, fechaNroHasta } = filtros;
+  const { torneo, division, generoMF, fechaDesde, fechaHasta, fechaNroDesde, fechaNroHasta } = filtros;
   return (partidos || []).filter(p => {
     if (torneo && p['Torneo'] !== torneo) return false;
     if (division && p['Categoría'] !== division) return false;
+    if (generoMF && p['División'] !== generoMF) return false;
     if (fechaDesde || fechaHasta) {
       const clave = claveDia(p['Día']);
       if (fechaDesde && clave < fechaDesde) return false;

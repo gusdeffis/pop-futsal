@@ -76,8 +76,11 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         alert('Tu celular no permite adjuntar el PDF directo desde acá. Se descargó el archivo: adjuntalo manualmente en WhatsApp.');
       }
     } catch (e) {
-      if (e?.name !== 'AbortError') {
-        setErrorPDF('No se pudo enviar el formulario. Probá con "GENERAR PDF" y adjuntalo a mano.');
+      if (e?.name === 'AbortError') {
+        // El usuario cerró el cuadro de compartir sin elegir nada — no es un error.
+      } else {
+        console.error('Error enviando el formulario por WhatsApp:', e);
+        setErrorPDF(`No se pudo enviar el formulario (${e?.message || e}). Probá con "GENERAR PDF" y adjuntalo a mano.`);
       }
     } finally {
       setEnviandoWSP(false);
@@ -190,7 +193,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         <Divider />
 
         {/* Acta automática */}
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase', textAlign: 'left' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase', textAlign: 'center' }}>
           Acta Final
         </div>
         <div style={{ background: '#e8edf8', border: '2px solid #0d1f4e', borderRadius: 10, padding: 16 }}>

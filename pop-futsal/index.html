@@ -4,13 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#0d1f4e" />
+    <meta name="color-scheme" content="light only" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Planilla Oficial de Partido Futsal" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>POP - Planilla Oficial de Partido Futsal</title>
+    <style>
+      /* Fuerza modo claro siempre, sin importar el modo oscuro del sistema
+         (algunos Samsung con "oscurecer todas las apps" auto-invertían
+         los colores de la app al no declarar esto explícitamente). */
+      :root { color-scheme: light only; }
+      html { forced-color-adjust: none; }
+    </style>
   </head>
-  <body style="margin:0; padding:0; background:#f0f2f5;">
+  <body style="margin:0; padding:0; background:#f0f2f5; color-scheme: light only;">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

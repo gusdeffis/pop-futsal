@@ -5,6 +5,8 @@ import {
   esSi, tuvoIncidente, tuvoObsInstalaciones, planillaFueraDeTermino,
 } from '../utils/indicadoresClub';
 import { formatearDia } from '../utils/fechasSheet';
+import { generarPDFTableros } from '../utils/informesTablerosPdf';
+import { descargarPDF } from '../utils/pdfFiller';
 
 const C = {
   azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030',
@@ -12,7 +14,7 @@ const C = {
   peach: '#f2c9ae', amarillo: '#f5e050', amarilloTexto: '#5c4a00',
 };
 
-const FILTROS_VACIOS = { torneo: '', division: '', categoriaClub: '', fechaDesde: '', fechaHasta: '', fechaNroDesde: '', fechaNroHasta: '' };
+const FILTROS_VACIOS = { torneo: '', division: '', categoriaClub: '', generoMF: '', fechaDesde: '', fechaHasta: '', fechaNroDesde: '', fechaNroHasta: '' };
 
 const th = { padding: '6px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', textAlign: 'center', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(255,255,255,.25)', cursor: 'pointer', userSelect: 'none' };
 const td = { padding: '6px 8px', fontSize: 12, textAlign: 'center', whiteSpace: 'nowrap' };
@@ -22,10 +24,10 @@ const selectFiltro = { ...inputFiltro, fontSize: 12, textTransform: 'uppercase' 
 // Anchos parejos por tabla — la tabla 1 tiene 5 columnas de datos, la tabla 2
 // tiene 4, con anchos distintos para que el total (240px) quede igual en
 // las dos y se vean prolijas una debajo de la otra.
-const ANCHO_CLUB = 90;
-const ANCHO_PJ = 36;
-const ANCHO_DATO_1 = 48; // x5 = 240
-const ANCHO_DATO_2 = 60; // x4 = 240
+const ANCHO_CLUB = 70;
+const ANCHO_PJ = 30;
+const ANCHO_DATO_1 = 40; // x5 = 200
+const ANCHO_DATO_2 = 50; // x4 = 200
 const DIVISOR = { borderLeft: '1px solid #d5d5d5' };
 
 function flecha(sortState, campo) {
@@ -184,7 +186,7 @@ function Fila1({ f, esTotal, maxPorcentaje, maxMinProm, onVerDetalle }) {
   const clickEt = click('etExcedido', f.entretiempos.cantidadExcedidos);
   return (
     <tr style={{ background: bg, fontWeight: peso }}>
-      <td style={{ ...td, textAlign: 'left', textTransform: 'uppercase', fontWeight: 700, color: C.azul, width: ANCHO_CLUB }}>{f.club}</td>
+      <td style={{ ...td, textAlign: 'center', textTransform: 'uppercase', fontWeight: 700, color: C.azul, width: ANCHO_CLUB }}>{f.club}</td>
       <td style={{ ...td, color: C.azul, width: ANCHO_PJ }}>{f.partidos}</td>
       <td onClick={clickDemora} style={{ ...td, ...DIVISOR, color: C.rojo, fontWeight: 700, width: ANCHO_DATO_1, cursor: clickDemora ? 'pointer' : 'default', textDecoration: clickDemora ? 'underline' : 'none' }}>{f.demoraInicio.partidosConDemora}</td>
       <CeldaBarra valor={f.demoraInicio.porcentaje} texto={`${f.demoraInicio.porcentaje}%`} max={maxPorcentaje} color={C.peach} onClick={clickDemora} width={ANCHO_DATO_1} />
@@ -202,7 +204,7 @@ function Fila2({ f, esTotal, onVerDetalle }) {
   const click = (tipo) => (esTotal ? undefined : () => onVerDetalle(f.club, tipo));
   return (
     <tr style={{ background: bg, fontWeight: peso }}>
-      <td style={{ ...td, textAlign: 'left', textTransform: 'uppercase', fontWeight: 700, color: C.azul, width: ANCHO_CLUB }}>{f.club}</td>
+      <td style={{ ...td, textAlign: 'center', textTransform: 'uppercase', fontWeight: 700, color: C.azul, width: ANCHO_CLUB }}>{f.club}</td>
       <td style={{ ...td, color: C.azul, width: ANCHO_PJ }}>{f.partidos}</td>
       <CeldaResaltada valor={f.incidentes} colorFondo={C.rojo} colorTexto="#fff" onClick={click('incidentes')} width={ANCHO_DATO_2} divisor />
       <CeldaResaltada valor={f.obsInstalaciones} colorFondo={C.bordo} colorTexto="#fff" onClick={click('instalaciones')} width={ANCHO_DATO_2} />
@@ -221,6 +223,7 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
   const [sort1, setSort1] = useState({ campo: null, dir: 'asc' });
   const [sort2, setSort2] = useState({ campo: null, dir: 'asc' });
   const [detalle, setDetalle] = useState(null);
+  const [exportando, setExportando] = useState(false);
 
   const cargar = async () => {
     setCargando(true);
@@ -262,6 +265,43 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
   const filas2 = aplicarOrden(porClub, sort2, GETTERS_2);
   const onVerDetalle = (club, tipo) => verDetalle(setDetalle, club, tipo, partidosFiltrados);
 
+  const exportarTablerosPdf = async () => {
+    setExportando(true);
+    let bytes, nombreSugerido;
+    try {
+      ({ bytes, nombreSugerido } = await generarPDFTableros(porClub, total, { fecha: new Date() }));
+    } catch (err) {
+      console.error('Error generando el PDF de los tableros:', err);
+      alert(`No se pudo armar el PDF de los tableros.\n\nDetalle técnico: ${err?.message || err}`);
+      setExportando(false);
+      return;
+    }
+    try {
+      const archivo = typeof File !== 'undefined' ? new File([bytes], nombreSugerido, { type: 'application/pdf' }) : null;
+      const puedeCompartirArchivo = archivo && navigator.canShare && navigator.canShare({ files: [archivo] });
+      if (puedeCompartirArchivo) {
+        await navigator.share({ files: [archivo], title: 'Tableros de Informes', text: 'Tableros de Informes — AFA Futsal' });
+      } else {
+        descargarPDF(bytes, nombreSugerido);
+        alert('Tu celular no permite adjuntar el PDF directo desde acá. Se descargó el archivo: adjuntalo manualmente en WhatsApp o Correo.');
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        // El usuario cerró el cuadro de compartir sin elegir nada — no es un error.
+      } else {
+        console.error('Error compartiendo el PDF de los tableros:', err);
+        try {
+          descargarPDF(bytes, nombreSugerido);
+          alert(`No se pudo abrir el cuadro de compartir (${err?.message || err}). Se descargó el archivo igual: adjuntalo manualmente en WhatsApp o Correo.`);
+        } catch (err2) {
+          alert(`No se pudo compartir ni descargar el PDF.\n\nDetalle técnico: ${err?.message || err}`);
+        }
+      }
+    } finally {
+      setExportando(false);
+    }
+  };
+
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
       <ModalDetalle detalle={detalle} onCerrar={() => setDetalle(null)} />
@@ -271,19 +311,35 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
           <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>Informes por Club</div>
           <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 11 }}>Se actualiza solo con cada partido subido</div>
         </div>
-        <button onClick={cargar} style={{ marginLeft: 'auto', background: C.celeste, border: 'none', color: C.azul, fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase' }}>
+        <button onClick={exportarTablerosPdf} disabled={exportando} style={{ marginLeft: 'auto', background: C.celeste, border: 'none', color: C.azul, fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: exportando ? 'wait' : 'pointer', textTransform: 'uppercase' }}>
+          {exportando ? '⏳ Generando...' : '📎 Exportar PDF'}
+        </button>
+        <button onClick={cargar} style={{ background: C.celeste, border: 'none', color: C.azul, fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase' }}>
           ↻ Actualizar
         </button>
       </div>
 
       {!cargando && !error && partidos.length > 0 && (
-        <div style={{ padding: '12px 12px 0' }}>
+        <div style={{ padding: '12px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <button onClick={() => setMostrarFiltros(m => !m)} style={{
             background: '#fff', color: C.azul, border: `1.5px solid ${C.azul}`, borderRadius: 8,
             padding: '10px 18px', fontWeight: 700, fontSize: 12, cursor: 'pointer', textTransform: 'uppercase',
           }}>
             ☰ Filtros{hayFiltrosActivos ? ' •' : ''}
           </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {['M', 'F'].map(g => (
+              <button
+                key={g}
+                onClick={() => setFiltros(f => ({ ...f, generoMF: f.generoMF === g ? '' : g }))}
+                style={{
+                  width: 40, height: 40, borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  background: filtros.generoMF === g ? C.azul : '#fff', color: filtros.generoMF === g ? '#fff' : C.azul,
+                  border: `1.5px solid ${C.azul}`,
+                }}
+              >{g}</button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -347,10 +403,10 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
             <table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>
               <thead>
                 <tr>
-                  <th rowSpan={2} onClick={() => toggleSort(setSort1, 'club')} style={{ ...th, textAlign: 'left', background: C.gris, color: '#fff', width: ANCHO_CLUB }}>Club{flecha(sort1, 'club')}</th>
+                  <th rowSpan={2} onClick={() => toggleSort(setSort1, 'club')} style={{ ...th, textAlign: 'center', background: C.gris, color: '#fff', width: ANCHO_CLUB }}>Club{flecha(sort1, 'club')}</th>
                   <th rowSpan={2} onClick={() => toggleSort(setSort1, 'partidos')} style={{ ...th, background: C.gris, color: '#fff', width: ANCHO_PJ }}>PJ{flecha(sort1, 'partidos')}</th>
-                  <th colSpan={3} style={{ ...th, ...DIVISOR, background: C.peach, color: C.azul, cursor: 'default' }}>Demora en Inicio de Partidos</th>
-                  <th colSpan={2} style={{ ...th, background: C.azul, color: '#fff', cursor: 'default' }}>Entretiempos</th>
+                  <th colSpan={3} style={{ ...th, ...DIVISOR, background: C.peach, color: C.azul, cursor: 'default' }}>Demora, Inicio Partido</th>
+                  <th colSpan={2} style={{ ...th, background: C.azul, color: '#fff', cursor: 'default' }}>E. Tiempos</th>
                 </tr>
                 <tr>
                   <Th2 top="Con" bottom="Demora" bg={C.peach} color={C.azul} onClick={() => toggleSort(setSort1, 'partidosConDemora')} flechaTexto={flecha(sort1, 'partidosConDemora')} width={ANCHO_DATO_1} divisor />
@@ -374,12 +430,12 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
             <table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleSort(setSort2, 'club')} style={{ ...th, textAlign: 'left', background: C.gris, color: '#fff', width: ANCHO_CLUB }}>Club{flecha(sort2, 'club')}</th>
+                  <th onClick={() => toggleSort(setSort2, 'club')} style={{ ...th, textAlign: 'center', background: C.gris, color: '#fff', width: ANCHO_CLUB }}>Club{flecha(sort2, 'club')}</th>
                   <th onClick={() => toggleSort(setSort2, 'partidos')} style={{ ...th, background: C.gris, color: '#fff', width: ANCHO_PJ }}>PJ{flecha(sort2, 'partidos')}</th>
-                  <th onClick={() => toggleSort(setSort2, 'incidentes')} style={{ ...th, ...DIVISOR, background: C.rojo, color: '#fff', width: ANCHO_DATO_2 }}>Incidentes{flecha(sort2, 'incidentes')}</th>
-                  <Th2 top="Obs. de" bottom="Instalación" bg={C.bordo} color="#fff" onClick={() => toggleSort(setSort2, 'obsInstalaciones')} flechaTexto={flecha(sort2, 'obsInstalaciones')} width={ANCHO_DATO_2} />
-                  <Th2 top="Planilla Fuera" bottom="de Término" bg={C.amarillo} color={C.amarilloTexto} onClick={() => toggleSort(setSort2, 'planillaFueraTermino')} flechaTexto={flecha(sort2, 'planillaFueraTermino')} width={ANCHO_DATO_2} />
-                  <Th2 top="Camiseta" bottom="Sin Apellido" bg={C.amarillo} color={C.amarilloTexto} onClick={() => toggleSort(setSort2, 'camisetaSinApellido')} flechaTexto={flecha(sort2, 'camisetaSinApellido')} width={ANCHO_DATO_2} />
+                  <th onClick={() => toggleSort(setSort2, 'incidentes')} style={{ ...th, ...DIVISOR, background: C.rojo, color: '#fff', width: ANCHO_DATO_2 }}>INC{flecha(sort2, 'incidentes')}</th>
+                  <Th2 top="Obs." bottom="Instal." bg={C.bordo} color="#fff" onClick={() => toggleSort(setSort2, 'obsInstalaciones')} flechaTexto={flecha(sort2, 'obsInstalaciones')} width={ANCHO_DATO_2} />
+                  <Th2 top="Planilla" bottom="F. Término" bg={C.amarillo} color={C.amarilloTexto} onClick={() => toggleSort(setSort2, 'planillaFueraTermino')} flechaTexto={flecha(sort2, 'planillaFueraTermino')} width={ANCHO_DATO_2} />
+                  <Th2 top="Camiseta" bottom="S/Apellido" bg={C.amarillo} color={C.amarilloTexto} onClick={() => toggleSort(setSort2, 'camisetaSinApellido')} flechaTexto={flecha(sort2, 'camisetaSinApellido')} width={ANCHO_DATO_2} />
                 </tr>
               </thead>
               <tbody>
