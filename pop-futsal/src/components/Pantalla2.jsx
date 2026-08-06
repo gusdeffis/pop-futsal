@@ -53,7 +53,7 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
           display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center',
         }}>
           {!sinDemora && (
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Demora</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Demora</div>
           )}
           {sinCargar ? (
             <span style={{ fontSize: 22, fontWeight: 700, color: '#0d1f4e' }}>—</span>
@@ -81,24 +81,31 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
   );
 }
 
-const FILA_1 = [['buen_estado', 'Campo en buen estado'], ['altura', 'Altura min. 5 mts'], ['pared_prot', 'Pared con Protecciones']];
-const FILA_2 = [['ilum', 'Iluminación'], ['redes_per', 'Redes Perimetrales'], ['meta_anclada', 'Meta Sin Anclar']];
-const FILA_3 = [['tablero', 'Tablero'], ['mesa_crono', 'Mesa Crono'], ['limpieza', 'Limpieza']];
-const FILA_4 = [['vest_l', 'Vest. Local'], ['vest_v', 'Vest. Visita'], ['vest_arb', 'Vest. Árb.']];
-const FILA_5 = [['banios', 'Baños Públicos'], ['del_veedor_l', 'Del. Veedor Local'], ['del_veedor_v', 'Del. Veedor Visita']];
-const FILA_6 = [['seguridad', 'Seguridad / Policía'], ['balon_nuevo', 'Balón Nuevo']];
-const FILA_7 = [['medico', 'Médico'], ['camiseta', 'Camiseta c/Apellido']];
+// Filas de Instalaciones y Seguridad, en el mismo orden de siempre — solo
+// cambia dónde se corta cada línea (2 o 3 por fila) para que el texto entre
+// bien, sin achicar la letra ni usar puntos suspensivos.
+const FILAS_INSTALACIONES = [
+  { cols: 2, items: [['buen_estado', 'Campo en buen estado'], ['altura', 'Altura min. 5 mts']] },
+  { cols: 2, items: [['pared_prot', 'Pared con Protecciones'], ['ilum', 'Iluminación']] },
+  { cols: 2, items: [['redes_per', 'Redes Perimetrales'], ['meta_anclada', 'Meta Sin Anclar']] },
+  { cols: 3, items: [['tablero', 'Tablero'], ['mesa_crono', 'Mesa Crono'], ['limpieza', 'Limpieza']] },
+  { cols: 3, items: [['vest_l', 'Vest. Local'], ['vest_v', 'Vest. Visita'], ['vest_arb', 'Vest. Árb.']] },
+  { cols: 3, items: [['banios', 'Baños Públicos'], ['del_veedor_l', 'Veedor Local'], ['del_veedor_v', 'Veedor Visita']] },
+  { cols: 2, items: [['seguridad', 'Seguridad / Policía'], ['balon_nuevo', 'Balón Nuevo']] },
+  { cols: 2, items: [['medico', 'Médico'], ['camiseta', 'Camiseta c/Apellido']] },
+];
+
+// Altura fija de los botones de esta pantalla únicamente (no afecta a
+// CheckAzul en otras pantallas, como el de Protocolo de Inicio en Pantalla3).
+const ALTO_BOTON_INSTALACIONES = 56;
 
 // Todos los ítems de instalaciones/servicios de esta pantalla, para armar el
-// texto de observaciones a partir de lo que falta marcar.
-const TODOS_LOS_ITEMS = [
-  ...FILA_1, ...FILA_2, ...FILA_3,
-  ['vest_l', 'Vestuario Local'], ['vest_v', 'Vestuario Visita'], ['vest_arb', 'Vestuario Árbitro'],
-  ['banios', 'Baños Públicos'], ['limpieza', 'Limpieza'],
-  ['del_veedor_l', 'Del. Veedor Local'], ['del_veedor_v', 'Del. Veedor Visita'],
-  ['camiseta', 'Camiseta c/Apellido'], ['balon_nuevo', 'Balón Nuevo'],
-  ['seguridad', 'Seguridad / Policía'], ['medico', 'Médico'],
-];
+// texto de observaciones a partir de lo que falta marcar — un solo campo
+// por ítem, con nombre completo para Vestuarios (en la grilla van
+// abreviados, pero en el texto de observaciones conviene el nombre entero).
+const LABELS_COMPLETOS = { vest_l: 'Vestuario Local', vest_v: 'Vestuario Visita', vest_arb: 'Vestuario Árbitro' };
+const TODOS_LOS_ITEMS = FILAS_INSTALACIONES.flatMap(f => f.items)
+  .map(([campo, label]) => [campo, LABELS_COMPLETOS[campo] || label]);
 
 export default function Pantalla2({ datos, setDatos, onNext, onBack, onIrA }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
@@ -135,32 +142,23 @@ export default function Pantalla2({ datos, setDatos, onNext, onBack, onIrA }) {
           Marcar si está en condiciones
         </div>
 
-        {/* Filas de a 3 */}
-        {[FILA_1, FILA_2, FILA_3, FILA_4, FILA_5].map((fila, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            {fila.map(([campo, label]) => (
-              <CheckAzul key={campo} label={label} checked={datos[campo]} onChange={set(campo)} />
+        {FILAS_INSTALACIONES.map((fila, i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: `repeat(${fila.cols}, 1fr)`, gap: 8 }}>
+            {fila.items.map(([campo, label]) => (
+              <CheckAzul key={campo} label={label} checked={datos[campo]} onChange={set(campo)} minHeight={ALTO_BOTON_INSTALACIONES} />
             ))}
           </div>
         ))}
 
-        {/* Filas de a 2 */}
-        {[FILA_6, FILA_7].map((fila, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {fila.map(([campo, label]) => (
-              <CheckAzul key={campo} label={label} checked={datos[campo]} onChange={set(campo)} />
-            ))}
-          </div>
-        ))}
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Observaciones</div>
-          {!panelAbierto && (
-            <button onClick={() => setPanelAbierto(true)} style={{ background: '#fff', color: '#0d1f4e', border: '1.5px solid #0d1f4e', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Observación por Control
-            </button>
-          )}
-        </div>
+        {!panelAbierto && (
+          <button onClick={() => setPanelAbierto(true)} style={{
+            background: '#0d1f4e', color: '#fff', border: 'none', borderRadius: 6,
+            padding: '7px 12px', fontSize: 11, fontWeight: 700, letterSpacing: .5,
+            textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left', width: '100%',
+          }}>
+            Observación por Control
+          </button>
+        )}
         {panelAbierto && (
           <PanelCompletarObs items={faltantes} datos={datos} set={set} obsField="obs_previo" onCerrar={() => setPanelAbierto(false)} />
         )}

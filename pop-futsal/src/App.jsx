@@ -140,7 +140,7 @@ export default function App() {
   }
 
   if (vista === 'adminListas') {
-    return <PantallaAdminListas onBack={() => setVista('admin')} />;
+    return <PantallaAdminListas onBack={() => setVista('admin')} oficialLogueado={oficialLogueado} />;
   }
 
   if (vista === 'informes') {

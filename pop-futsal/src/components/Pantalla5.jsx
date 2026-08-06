@@ -1,4 +1,4 @@
-import { Header, SeccionHeader, Campo, Input, Textarea, Divider, BtnBack } from './UI';
+import { Header, SeccionHeader, Textarea, Divider, BtnBack } from './UI';
 import { generarActaTexto } from '../utils/acta';
 import { useState } from 'react';
 import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
@@ -190,7 +190,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         <Divider />
 
         {/* Acta automática */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase', textAlign: 'left' }}>
           Acta Final
         </div>
         <div style={{ background: '#e8edf8', border: '2px solid #0d1f4e', borderRadius: 10, padding: 16 }}>
@@ -244,7 +244,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         )}
         {onInicio && (
           <button onClick={onInicio}
-            style={{ width: '100%', height: 44, background: '#fadfba', color: '#8a5a10', border: '1.5px solid #c96a1c', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ width: '100%', height: 52, background: '#fadfba', color: '#8a5a10', border: '1.5px solid #c96a1c', borderRadius: 8, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer' }}>
             🏠 Volver a la pantalla de inicio
           </button>
         )}

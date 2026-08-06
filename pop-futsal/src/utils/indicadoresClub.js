@@ -9,7 +9,7 @@ import { esISO, claveDia } from './fechasSheet';
 // de Looker Studio. Por eso el total de "Partidos" es el doble de la
 // cantidad real de partidos cargados (cada uno cuenta para sus dos clubes).
 
-const UMBRAL_DEMORA_MIN = 1; // > 1 minuto ya cuenta como demora (mismo criterio que el resto de la app)
+export const UMBRAL_DEMORA_MIN = 1; // > 1 minuto ya cuenta como demora (mismo criterio que el resto de la app)
 const ET_LIMITE_MIN = 11; // mismo límite que usa Pantalla3 para "excedido"
 
 const COLUMNAS_OBS_INSTALACIONES = ['Tablero con Fallas', 'Iluminación Obs.', 'Humedad', 'Goteras', 'Arcos/Redes', 'Tribunas'];
@@ -32,7 +32,7 @@ function minutosDesdeMedianoche(v) {
   return null;
 }
 
-function esSi(v) {
+export function esSi(v) {
   return String(v || '').trim().toUpperCase() === 'SI';
 }
 
@@ -45,18 +45,18 @@ export function demoraInicioMin(p) {
   return Math.max(0, real - hora);
 }
 
-function tuvoIncidente(p) {
+export function tuvoIncidente(p) {
   return esSi(p['Incidentes']) || esSi(p['Agresiones']) || esSi(p['Gresca Generalizada']);
 }
 
-function tuvoObsInstalaciones(p) {
+export function tuvoObsInstalaciones(p) {
   return COLUMNAS_OBS_INSTALACIONES.some(col => esSi(p[col]));
 }
 
 // "Planilla Fuera de Término" para el rol de un club en un partido puntual:
 // si llegó con demora (>1 min) en Planillas y Credenciales O en Formación
 // Inicial, cuenta 1 — aunque le haya pasado en las dos, sigue siendo 1.
-function planillaFueraDeTermino(p, rol) {
+export function planillaFueraDeTermino(p, rol) {
   const planillas = Number(p[`Demora Planillas ${rol}`]) || 0;
   const formacion = Number(p[`Demora Form. Inicial ${rol}`]) || 0;
   return planillas > UMBRAL_DEMORA_MIN || formacion > UMBRAL_DEMORA_MIN;
@@ -154,7 +154,7 @@ export function calcularIndicadoresPorClub(partidos, opciones = {}) {
       }
 
       if (tuvoIncidente(p)) acc.incidentes += 1;
-      if (tuvoObsInstalaciones(p)) acc.obsInstalaciones += 1;
+      if (tuvoObsInstalaciones(p) && rol === 'L') acc.obsInstalaciones += 1;
 
       if (planillaFueraDeTermino(p, rol)) acc.planillaFueraTermino += 1;
       if (!esSi(p['Camiseta c/Apellido OK'])) acc.camisetaSinApellido += 1;

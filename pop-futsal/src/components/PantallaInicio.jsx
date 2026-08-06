@@ -128,6 +128,7 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
           </>
         )}
 
+        <div style={{ textAlign: 'center', color: '#b8c0d0', fontSize: 10, marginTop: 12 }}>© Gustavo Deffis</div>
       </div>
     </div>
   );

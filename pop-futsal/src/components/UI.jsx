@@ -260,14 +260,14 @@ export function Select({ value, onChange, options, placeholder, variant = 'celes
 
 // Checkbox azul - para items normales (instalaciones, etc.)
 // Sin marcar: fondo celeste, casillero blanco. Marcado: fondo azul, casillero celeste.
-export function CheckAzul({ label, checked, onChange }) {
+export function CheckAzul({ label, checked, onChange, minHeight }) {
   return (
     <div onClick={() => onChange(!checked)} style={{
-      display: 'flex', alignItems: 'center', gap: 10,
+      display: 'flex', alignItems: 'center', gap: 10, minWidth: 0,
       background: checked ? C.azul : C.celeste,
       border: `1.5px solid ${C.azul}`,
       borderRadius: 8, padding: '12px 10px', cursor: 'pointer',
-      userSelect: 'none', transition: 'all .15s',
+      userSelect: 'none', transition: 'all .15s', minHeight,
     }}>
       <div style={{
         width: 22, height: 22, borderRadius: 4, flexShrink: 0,
@@ -277,7 +277,7 @@ export function CheckAzul({ label, checked, onChange }) {
       }}>
         {checked && <span style={{ color: C.azul, fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
       </div>
-      <span style={{ fontSize: 13, color: checked ? '#fff' : C.azul, lineHeight: 1.2, fontWeight: 600, textTransform: 'uppercase' }}>
+      <span style={{ fontSize: 13, color: checked ? '#fff' : C.azul, lineHeight: 1.2, fontWeight: 600, textTransform: 'uppercase', minWidth: 0, wordBreak: 'break-word' }}>
         {label}
       </span>
     </div>
@@ -476,6 +476,7 @@ export function BtnNext({ onClick, children, disabled }) {
 // agrega al campo de observaciones.
 export function PanelCompletarObs({ items, datos, set, obsField, colorBordo, onCerrar }) {
   const [textos, setTextos] = useState({});
+  const [campoEnFoco, setCampoEnFoco] = useState(null);
   const bordo = colorBordo ? '#7a1030' : '#0d1f4e';
   const bg = colorBordo ? '#fbdbe1' : '#c6dbf5';
 
@@ -491,27 +492,42 @@ export function PanelCompletarObs({ items, datos, set, obsField, colorBordo, onC
   };
 
   return (
-    <div style={{ background: '#f8f9fc', border: `1.5px solid ${bordo}`, borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ background: '#f8f9fc', border: `1.5px solid ${bordo}`, borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 12 }}>
       {items.length === 0 && (
         <div style={{ fontSize: 12, color: '#666', textAlign: 'center' }}>No hay ítems para completar.</div>
       )}
       {items.map(([campo, label]) => {
         const checked = !!datos[campo];
+        const expandido = campoEnFoco === campo;
         return (
-          <div key={campo} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div key={campo} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div onClick={() => set(campo)(!checked)} style={{
-              width: 24, height: 24, borderRadius: 4, flexShrink: 0, cursor: 'pointer',
-              background: checked ? bordo : '#fff', border: `2px solid ${bordo}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              display: 'flex', alignItems: 'center', gap: 10, minHeight: 56, minWidth: 0,
+              background: checked ? bordo : bg, border: `1.5px solid ${bordo}`, borderRadius: 8,
+              padding: '10px 12px', cursor: 'pointer', userSelect: 'none',
             }}>
-              {checked && <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>✓</span>}
+              <div style={{
+                width: 22, height: 22, borderRadius: 4, flexShrink: 0,
+                background: checked ? bg : '#fff', border: `2px solid ${checked ? bg : bordo}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {checked && <span style={{ color: bordo, fontSize: 14, fontWeight: 700 }}>✓</span>}
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: checked ? '#fff' : bordo, textTransform: 'uppercase', minWidth: 0, wordBreak: 'break-word' }}>
+                {label}
+              </span>
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: bordo, width: 92, flexShrink: 0, lineHeight: 1.1 }}>{label}</span>
-            <input
+            <textarea
               value={textos[campo] || ''}
               onChange={e => setTextos(t => ({ ...t, [campo]: e.target.value.toUpperCase() }))}
+              onFocus={() => setCampoEnFoco(campo)}
+              onBlur={() => setCampoEnFoco(c => (c === campo ? null : c))}
               placeholder="Observación..."
-              style={{ flex: 1, height: 34, border: `1.5px solid ${bordo}`, borderRadius: 6, padding: '0 8px', fontSize: 12, fontWeight: 600, color: '#0d1f4e', background: bg, outline: 'none' }}
+              style={{
+                width: '100%', minHeight: expandido ? 96 : 40, border: `1.5px solid ${bordo}`, borderRadius: 8, padding: '10px 12px',
+                fontSize: 15, fontWeight: 700, color: '#0d1f4e', background: bg, outline: 'none',
+                resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'min-height .15s',
+              }}
             />
           </div>
         );
@@ -529,9 +545,13 @@ export function BtnBack({ onClick }) {
     <button onClick={onClick} style={{
       height: 50, width: 50, background: C.celeste, color: C.azul,
       border: `2px solid ${C.celesteBorde}`, borderRadius: 8,
-      fontSize: 22, fontWeight: 900, cursor: 'pointer', padding: 0, lineHeight: 1,
+      cursor: 'pointer', padding: 0, lineHeight: 1,
       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    }}>←</button>
+    }}>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={C.azul} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 12H5M11 6l-6 6 6 6" />
+      </svg>
+    </button>
   );
 }
 

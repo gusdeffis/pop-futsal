@@ -105,16 +105,15 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack, onIrA }) {
           <CheckRojo label="Público Visita" checked={datos.publico_v} onChange={set('publico_v')} />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: BORDO, letterSpacing: .5, textTransform: 'uppercase' }}>
-            Observaciones
-          </div>
-          {!panelAbierto && (
-            <button onClick={() => setPanelAbierto(true)} style={{ background: '#fff', color: BORDO, border: `1.5px solid ${BORDO}`, borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Obs. por Inconveniente
-            </button>
-          )}
-        </div>
+        {!panelAbierto && (
+          <button onClick={() => setPanelAbierto(true)} style={{
+            background: BORDO, color: '#fff', border: 'none', borderRadius: 6,
+            padding: '7px 12px', fontSize: 11, fontWeight: 700, letterSpacing: .5,
+            textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left', width: '100%',
+          }}>
+            Obs. por Inconveniente
+          </button>
+        )}
         {panelAbierto && (
           <PanelCompletarObs items={marcados} datos={datos} set={set} obsField="obs_partido" colorBordo onCerrar={() => setPanelAbierto(false)} />
         )}

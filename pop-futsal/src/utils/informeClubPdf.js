@@ -135,15 +135,23 @@ export async function generarPDFInformeClub(informe, opciones = {}) {
 
   seccion('Durante el partido');
   tabla(
-    [{ titulo: 'Fecha', ancho: 40, campo: 'fecha' }, { titulo: 'Observación', ancho: 250, campo: 'observacion' }, { titulo: 'Aclaración', ancho: 225, campo: 'aclaracion' }],
+    [{ titulo: 'Fecha', ancho: 60, campo: 'fecha' }, { titulo: 'Observación', ancho: 455, campo: 'observacion' }],
     informe.durantePartido,
   );
 
   seccion('Incidentes');
   tabla(
-    [{ titulo: 'Fecha', ancho: 40, campo: 'fecha' }, { titulo: 'Observación', ancho: 250, campo: 'observacion' }, { titulo: 'Aclaración', ancho: 225, campo: 'aclaracion' }],
+    [{ titulo: 'Fecha', ancho: 60, campo: 'fecha' }, { titulo: 'Observación', ancho: 455, campo: 'observacion' }],
     informe.incidentes,
   );
+
+  // Crédito sutil del creador de la app, en cada página.
+  const fontFooter = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  pdfDoc.getPages().forEach(pagina => {
+    const texto = '© Gustavo Deffis — POP Futsal AFA';
+    const ancho = fontFooter.widthOfTextAtSize(texto, 7);
+    pagina.drawText(texto, { x: (ANCHO_PAGINA - ancho) / 2, y: 14, size: 7, font: fontFooter, color: rgb(0.65, 0.65, 0.65) });
+  });
 
   const bytes = await pdfDoc.save();
   return { bytes, nombreSugerido: nombreArchivoInforme(informe.club) };
