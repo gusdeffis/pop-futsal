@@ -42,5 +42,5 @@ export function generarActaTexto(datos) {
   if (horarios) partes.push(`Horarios: ${horarios}`);
   if (datos.obs_partido?.trim()) partes.push(datos.obs_partido.trim());
 
-  return partes.join(' ');
+  return partes.join('\n');
 }

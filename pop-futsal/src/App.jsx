@@ -13,6 +13,7 @@ import PantallaInformeClub from './components/PantallaInformeClub';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
 import { generarActaTexto } from './utils/acta';
+import { sheetRowToDatos } from './utils/sheetRowToDatos';
 import {
   useAutoSave, cargarGuardado, guardarInmediato, limpiarPuntero,
   obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube,
@@ -115,6 +116,24 @@ export default function App() {
     setVista('partido');
   };
 
+  // Se llama al tocar "Editar" en el Panel Administrador: reconstruye el
+  // objeto datos a partir de la fila de la planilla compartida (no del
+  // historial local) y lo carga como partido activo. Algunos campos que la
+  // planilla no guarda (Regreso Local/Visita, Duración, Desvío Inicio) van
+  // a quedar en blanco y se recalculan solos al tocar los horarios de
+  // nuevo — por eso se avisa antes de entrar.
+  const editarDesdePlanilla = (p) => {
+    const confirmar = window.confirm(
+      'Vas a editar un partido ya cargado en la planilla compartida.\n\n' +
+      'Algunos datos que la planilla no guarda (Regreso Local/Visita, Duración, Desvío Inicio) van a quedar vacíos hasta que los vuelvas a tocar en la pantalla de Horarios.\n\n' +
+      '¿Continuar?'
+    );
+    if (!confirmar) return;
+    setDatos(sheetRowToDatos(p));
+    setPantalla(1);
+    setVista('partido');
+  };
+
   if (vista === 'inicio') {
     return (
       <PantallaInicio
@@ -136,7 +155,7 @@ export default function App() {
   }
 
   if (vista === 'admin') {
-    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} />;
+    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} onEditar={editarDesdePlanilla} />;
   }
 
   if (vista === 'adminListas') {

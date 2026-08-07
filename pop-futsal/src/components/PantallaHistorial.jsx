@@ -5,6 +5,17 @@ import { enviarAPlanillaCompartida, marcarEnviadoNube } from '../useAutoSave';
 
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030', enCursoBg: '#fadfba', enCursoBorde: '#c96a1c' };
 
+// Mismas 4 opciones de conclusión que en Pantalla5 (Acta Final).
+const CONCL_LABELS = { normal: 'Partido Normal', obs: 'Con Observaciones', tdd: 'Informe al TDD', susp: 'Suspensión' };
+
+// Fecha/hora sin segundos (antes confundía ver ss en "guardado"/"enviado").
+function formatearFechaHora(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('es-AR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
 // Convierte "DD/MM/AAAA" a fecha real para poder ordenar. Si no se puede
 // interpretar, devuelve una fecha muy vieja para que quede al final.
 function parseDia(dia) {
@@ -55,7 +66,7 @@ export default function PantallaHistorial({ historial: historialCompleto, onBack
   const subirANube = async (e, h, reenvio = false) => {
     e.stopPropagation();
     if (reenvio) {
-      const fecha = h.fechaEnvioNube ? new Date(h.fechaEnvioNube).toLocaleString('es-AR') : 'antes';
+      const fecha = h.fechaEnvioNube ? formatearFechaHora(h.fechaEnvioNube) : 'antes';
       const ok = window.confirm(`Este partido ya fue enviado el ${fecha}. ¿Querés reenviarlo? Se va a actualizar el dato anterior en la planilla.`);
       if (!ok) return;
     }
@@ -118,11 +129,16 @@ export default function PantallaHistorial({ historial: historialCompleto, onBack
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: enCurso ? C.rojo : (enviado ? '#1a5c30' : C.rojo), textTransform: enviado ? 'uppercase' : 'none' }}>
                     {enCurso
-                      ? `en curso · guardado ${new Date(h.timestamp).toLocaleString('es-AR')}`
+                      ? `en curso · guardado ${formatearFechaHora(h.timestamp)}`
                       : enviado
-                        ? `ENVIADO ${h.fechaEnvioNube ? new Date(h.fechaEnvioNube).toLocaleString('es-AR') : ''}`
-                        : `guardado ${new Date(h.timestamp).toLocaleString('es-AR')}`}
+                        ? `ENVIADO ${formatearFechaHora(h.fechaEnvioNube)}`
+                        : `guardado ${formatearFechaHora(h.timestamp)}`}
                   </div>
+                  {h.conclusiones?.length > 0 && (
+                    <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2, color: colorTexto, textTransform: 'uppercase' }}>
+                      {h.conclusiones.map(c => CONCL_LABELS[c]).filter(Boolean).join(' / ')}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', justifyContent: 'flex-start', flexShrink: 0, width: 100 }}>

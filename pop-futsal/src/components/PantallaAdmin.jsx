@@ -1,10 +1,27 @@
 import { useState, useEffect, useMemo } from 'react';
 import { obtenerTodosLosPartidos } from '../useAutoSave';
 import { esISO, formatearDia, formatearHora, claveDia, valorFecha } from '../utils/fechasSheet';
+import { sheetRowToDatos } from '../utils/sheetRowToDatos';
+import { generarActaTexto } from '../utils/acta';
+import { armarTextoWhatsApp } from '../utils/whatsappTexto';
+import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
 
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030' };
 
-const FILTROS_VACIOS = { torneo: '', fecha_nro: '', oficial: '', dia: '', club: '' };
+// Mismas 4 opciones de conclusión que en Pantalla5/Historial, ahora leídas
+// de las columnas de la planilla compartida (booleanas SI/vacío).
+const CONCL_COLUMNAS = [
+  ['Partido Normal', 'Partido Normal'],
+  ['Con Observaciones', 'Con Observaciones'],
+  ['Informe al TDD', 'Informe al TDD'],
+  ['Suspensión', 'Suspensión'],
+];
+
+function conclusionesDe(p) {
+  return CONCL_COLUMNAS.filter(([col]) => String(p[col] || '').trim().toUpperCase() === 'SI').map(([, label]) => label);
+}
+
+const FILTROS_VACIOS = { generoMF: '', torneo: '', fecha_nro: '', oficial: '', dia: '', club: '', conclusion: '' };
 
 // Un partido "toca" un club si aparece como Local o como Visitante — así el
 // filtro de Club encuentra el partido sin importar el rol.
@@ -23,11 +40,12 @@ function nombreClub(v, sinDato) {
   return v;
 }
 
-export default function PantallaAdmin({ onBack, onEditarListas }) {
+export default function PantallaAdmin({ onBack, onEditarListas, onEditar }) {
   const [partidos, setPartidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
   const [filtros, setFiltros] = useState(FILTROS_VACIOS);
+  const [enviandoIdx, setEnviandoIdx] = useState(null);
 
   const cargar = async () => {
     setCargando(true);
@@ -38,6 +56,34 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
   };
 
   useEffect(() => { cargar(); }, []);
+
+  const enviarWSP = async (e, p, idx) => {
+    e.stopPropagation();
+    setEnviandoIdx(idx);
+    try {
+      const datos = sheetRowToDatos(p);
+      const { bytes, nombreSugerido } = await generarPDFOficial(datos);
+      const archivo = new File([bytes], nombreSugerido, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], title: 'Planilla POP Futsal', text: `${datos.local} vs ${datos.visitante} — ${datos.torneo}` });
+      } else {
+        descargarPDF(bytes, nombreSugerido);
+        alert('Tu celular no permite adjuntar el PDF directo desde acá. Se descargó el archivo: adjuntalo manualmente en WhatsApp.');
+      }
+    } catch (err) {
+      if (err?.name !== 'AbortError') alert(`No se pudo generar el PDF de este partido.\n\nDetalle técnico: ${err?.message || err}`);
+    } finally {
+      setEnviandoIdx(null);
+    }
+  };
+
+  const compartirDatos = (e, p) => {
+    e.stopPropagation();
+    const datos = sheetRowToDatos(p);
+    const actaTexto = p['Acta Final'] || generarActaTexto(datos);
+    const texto = armarTextoWhatsApp(datos, actaTexto);
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`);
+  };
 
   const opciones = useMemo(() => {
     // Un valor representativo por día calendario, aunque haya partidos con
@@ -58,10 +104,12 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
   }, [partidos]);
 
   const filtrados = useMemo(() => partidos.filter(p =>
+    (!filtros.generoMF || p['División'] === filtros.generoMF) &&
     (!filtros.torneo || p['Torneo'] === filtros.torneo) &&
     (!filtros.fecha_nro || String(p['Fecha N°']) === filtros.fecha_nro) &&
     (!filtros.oficial || p['Oficial AFA'] === filtros.oficial) &&
     (!filtros.dia || claveDia(p['Día']) === claveDia(filtros.dia)) &&
+    (!filtros.conclusion || conclusionesDe(p).includes(filtros.conclusion)) &&
     coincideClub(p, filtros.club)
   ).sort((a, b) => valorFecha(b['Día']) - valorFecha(a['Día'])), [partidos, filtros]);
 
@@ -86,6 +134,19 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
       </div>
 
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['M', 'F'].map(g => (
+            <button
+              key={g}
+              onClick={() => setFiltros(f => ({ ...f, generoMF: f.generoMF === g ? '' : g }))}
+              style={{
+                width: 40, height: 40, borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                background: filtros.generoMF === g ? C.azul : '#fff', color: filtros.generoMF === g ? '#fff' : C.azul,
+                border: `1.5px solid ${C.azul}`,
+              }}
+            >{g}</button>
+          ))}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <select style={selectStyle} value={filtros.torneo} onChange={setFiltro('torneo')}>
             <option value="">Todos los Torneos</option>
@@ -103,13 +164,17 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
             <option value="">Toda Fecha</option>
             {opciones.dias.map(v => <option key={v} value={v}>{formatearDia(v)}</option>)}
           </select>
+          <select style={{ ...selectStyle, gridColumn: '1 / -1' }} value={filtros.conclusion} onChange={setFiltro('conclusion')}>
+            <option value="">Toda Conclusión</option>
+            {CONCL_COLUMNAS.map(([, label]) => <option key={label} value={label}>{label}</option>)}
+          </select>
         </div>
         <input
           type="text" placeholder="Filtrar por Club (Local o Visitante)"
           value={filtros.club} onChange={setFiltro('club')}
           style={{ ...selectStyle, gridColumn: '1 / -1', textTransform: 'uppercase' }}
         />
-        {(filtros.torneo || filtros.fecha_nro || filtros.oficial || filtros.dia || filtros.club) && (
+        {(filtros.generoMF || filtros.torneo || filtros.fecha_nro || filtros.oficial || filtros.dia || filtros.club || filtros.conclusion) && (
           <button onClick={() => setFiltros(FILTROS_VACIOS)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: C.rojo, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
             ✕ Limpiar filtros
           </button>
@@ -143,6 +208,27 @@ export default function PantallaAdmin({ onBack, onEditarListas }) {
             </div>
             <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: C.azul }}>
               Oficial: {p['Oficial AFA'] || '—'}
+            </div>
+            {conclusionesDe(p).length > 0 && (
+              <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2, color: C.azul, textTransform: 'uppercase' }}>
+                {conclusionesDe(p).join(' / ')}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              {onEditar && (
+                <button onClick={e => { e.stopPropagation(); onEditar(p); }}
+                  style={{ flex: 1, minHeight: 40, background: '#fadfba', color: '#8a5a10', border: '1.5px solid #c96a1c', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                  ✏️ Editar
+                </button>
+              )}
+              <button onClick={e => enviarWSP(e, p, i)} disabled={enviandoIdx === i}
+                style={{ flex: 1, minHeight: 40, background: enviandoIdx === i ? '#8fa3c9' : C.azul, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontWeight: 700, cursor: enviandoIdx === i ? 'wait' : 'pointer' }}>
+                {enviandoIdx === i ? '⏳' : '📎'} Enviar WSP
+              </button>
+              <button onClick={e => compartirDatos(e, p)}
+                style={{ flex: 1, minHeight: 40, background: C.verde, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 6px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                💬 Compartir
+              </button>
             </div>
           </div>
         ))}

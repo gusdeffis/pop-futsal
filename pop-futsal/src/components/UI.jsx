@@ -114,10 +114,17 @@ export function InputHora({ value, onChange, placeholder = 'HH:MM', style = {}, 
     onChange(formateado);
   };
 
+  // Si al salir del campo solo se cargó la hora (1 o 2 dígitos, sin los
+  // ":MM"), completa los minutos en "00" para que quede "HH:00" — antes
+  // quedaba a medio escribir y no disparaba ningún cálculo dependiente.
+  const handleBlur = () => {
+    if (value && /^\d{1,2}$/.test(value)) onChange(`${value.padStart(2, '0')}:00`);
+  };
+
   return (
     <input
       ref={ref}
-      type="text" inputMode="numeric" value={value || ''} onChange={handleChange}
+      type="text" inputMode="numeric" value={value || ''} onChange={handleChange} onBlur={handleBlur}
       placeholder={placeholder} maxLength={5}
       style={{ ...baseStyle(variant), ...style }}
     />
@@ -162,6 +169,12 @@ export function Input({ value, onChange, placeholder, type = 'text', style = {},
 // <input> con lista desplegable de sugerencias en vez de un <select> cerrado.
 export function SelectLibre({ value, onChange, options, placeholder, variant = 'celeste' }) {
   const [abierto, setAbierto] = useState(false);
+  // Al volver a tocar un campo que ya tiene un valor cargado, se muestra la
+  // lista COMPLETA (para reelegir otra opción), no filtrada por el texto ya
+  // escrito — si no, filtrar por el valor actual solía dejar como única
+  // opción visible la que ya estaba seleccionada. El filtrado por texto
+  // vuelve a activarse en cuanto la persona empieza a escribir de nuevo.
+  const [filtrando, setFiltrando] = useState(false);
   const contenedorRef = useRef(null);
   const inputRef = useRef(null);
   const cursor = useRef(null);
@@ -176,7 +189,7 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
   // Cierra la lista si se toca afuera del campo
   useEffect(() => {
     const cerrar = (e) => {
-      if (contenedorRef.current && !contenedorRef.current.contains(e.target)) setAbierto(false);
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target)) { setAbierto(false); setFiltrando(false); }
     };
     document.addEventListener('mousedown', cerrar);
     document.addEventListener('touchstart', cerrar);
@@ -189,15 +202,17 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
   const handleChange = (e) => {
     cursor.current = e.target.selectionStart;
     onChange(upper(e.target.value));
+    setFiltrando(true);
     setAbierto(true);
   };
 
   const elegir = (opcion) => {
     onChange(opcion);
     setAbierto(false);
+    setFiltrando(false);
   };
 
-  const filtrados = value
+  const filtrados = value && filtrando
     ? options.filter(o => o.toUpperCase().includes(value.toUpperCase()))
     : options;
 
@@ -208,7 +223,7 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
           ref={inputRef}
           value={value}
           onChange={handleChange}
-          onFocus={() => setAbierto(true)}
+          onFocus={() => { setFiltrando(false); setAbierto(true); }}
           placeholder={placeholder}
           autoComplete="off"
           style={{
@@ -361,10 +376,11 @@ export function LVRojo({ label, checked, onChange }) {
   );
 }
 
-export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoton = false }) {
+export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoton = false, minHeight }) {
   const bg = variant === 'rosa' ? C.rosa : variant === 'naranja' ? C.naranjaClaro : C.celeste;
   const border = variant === 'rosa' ? C.rosaBorde : variant === 'naranja' ? C.naranja : C.celesteBorde;
   const color = variant === 'rosa' ? '#000' : C.azul;
+  const lineasLabel = Array.isArray(label) ? label : [label];
   const ref = useRef(null);
   const cursor = useRef(null);
 
@@ -395,12 +411,22 @@ export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoto
     onChange(formateado);
   };
 
+  // Mismo autocompletado que InputHora: si solo se cargó la hora (sin los
+  // ":MM"), al salir del campo se completa en "00" — antes quedaba a medio
+  // escribir y ningún cálculo dependiente (demoras, entretiempo, etc.)
+  // se disparaba.
+  const handleBlur = () => {
+    if (value && /^\d{1,2}$/.test(value)) onChange(`${value.padStart(2, '0')}:00`);
+  };
+
   return (
-    <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
+    <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, minHeight, justifyContent: minHeight ? 'center' : undefined, boxSizing: 'border-box' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: .5, lineHeight: 1.2 }}>
+        {lineasLabel.map((l, i) => <div key={i}>{l}</div>)}
+      </div>
       <input
         ref={ref}
-        type="text" inputMode="numeric" value={value || ''} onChange={handleChange}
+        type="text" inputMode="numeric" value={value || ''} onChange={handleChange} onBlur={handleBlur}
         placeholder="--:--" maxLength={5}
         style={{ fontSize: 26, fontWeight: 700, color, border: 'none', background: 'transparent', width: '100%', outline: 'none', letterSpacing: 2, padding: 0 }}
       />

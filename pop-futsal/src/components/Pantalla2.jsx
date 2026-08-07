@@ -89,14 +89,14 @@ function BloqueControlHorario({ titulo, horaLKey, horaVKey, demLKey, demVKey, ok
 // mayúscula inicial nomás (no todo en mayúscula), porque en mayúscula
 // completa no entraban bien en una sola palabra por línea.
 const FILAS_INSTALACIONES = [
-  { cols: 2, items: [['buen_estado', 'Campo en buen estado'], ['altura', 'Altura min. 5 mts', { lineas: ['Altura min', '5 mts'] }]] },
+  { cols: 2, items: [['buen_estado', 'Campo en buen estado', { lineas: ['Campo en', 'Buen Estado'] }], ['altura', 'Altura min. 5 mts', { lineas: ['Altura min', '5 mts'] }]] },
   { cols: 2, items: [['pared_prot', 'Pared con Protecciones'], ['ilum', 'Iluminación']] },
   { cols: 2, items: [['redes_per', 'Redes Perimetrales'], ['meta_anclada', 'Meta Sin Anclar']] },
   { cols: 3, items: [['tablero', 'Tablero', { sinMayuscula: true }], ['mesa_crono', 'Mesa Crono'], ['limpieza', 'Limpieza', { sinMayuscula: true }]] },
   { cols: 3, items: [['vest_l', 'Vest. Local'], ['vest_v', 'Vest. Visita'], ['vest_arb', 'Vest. Árb.']] },
   { cols: 3, items: [['banios', 'Baños Públicos', { sinMayuscula: true, lineas: ['Baños', 'Públicos'] }], ['del_veedor_l', 'Veedor Local'], ['del_veedor_v', 'Veedor Visita']] },
   { cols: 2, items: [['seguridad', 'Seguridad / Policía'], ['balon_nuevo', 'Balón Nuevo']] },
-  { cols: 2, items: [['medico', 'Médico'], ['camiseta', 'Camiseta c/Apellido']] },
+  { cols: 2, items: [['medico', 'Médico'], ['camiseta', 'Camiseta c/Apellido', { lineas: ['Camisetas', 'con Apellidos'] }]] },
 ];
 
 // Altura fija de los botones de esta pantalla únicamente (no afecta a

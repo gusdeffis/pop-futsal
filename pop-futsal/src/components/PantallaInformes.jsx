@@ -186,7 +186,7 @@ function Fila1({ f, esTotal, maxPorcentaje, maxMinProm, onVerDetalle }) {
   const clickEt = click('etExcedido', f.entretiempos.cantidadExcedidos);
   return (
     <tr style={{ background: bg, fontWeight: peso }}>
-      <td style={{ ...td, textAlign: 'center', textTransform: 'uppercase', fontWeight: 700, color: C.azul, width: ANCHO_CLUB }}>{f.club}</td>
+      <td style={{ ...td, textAlign: 'left', paddingLeft: 12, textTransform: 'uppercase', fontWeight: 700, color: C.azul, width: ANCHO_CLUB }}>{f.club}</td>
       <td style={{ ...td, color: C.azul, width: ANCHO_PJ }}>{f.partidos}</td>
       <td onClick={clickDemora} style={{ ...td, ...DIVISOR, color: C.rojo, fontWeight: 700, width: ANCHO_DATO_1, cursor: clickDemora ? 'pointer' : 'default', textDecoration: clickDemora ? 'underline' : 'none' }}>{f.demoraInicio.partidosConDemora}</td>
       <CeldaBarra valor={f.demoraInicio.porcentaje} texto={`${f.demoraInicio.porcentaje}%`} max={maxPorcentaje} color={C.peach} onClick={clickDemora} width={ANCHO_DATO_1} />
@@ -204,7 +204,7 @@ function Fila2({ f, esTotal, onVerDetalle }) {
   const click = (tipo) => (esTotal ? undefined : () => onVerDetalle(f.club, tipo));
   return (
     <tr style={{ background: bg, fontWeight: peso }}>
-      <td style={{ ...td, textAlign: 'center', textTransform: 'uppercase', fontWeight: 700, color: C.azul, width: ANCHO_CLUB }}>{f.club}</td>
+      <td style={{ ...td, textAlign: 'left', paddingLeft: 12, textTransform: 'uppercase', fontWeight: 700, color: C.azul, width: ANCHO_CLUB }}>{f.club}</td>
       <td style={{ ...td, color: C.azul, width: ANCHO_PJ }}>{f.partidos}</td>
       <CeldaResaltada valor={f.incidentes} colorFondo={C.rojo} colorTexto="#fff" onClick={click('incidentes')} width={ANCHO_DATO_2} divisor />
       <CeldaResaltada valor={f.obsInstalaciones} colorFondo={C.bordo} colorTexto="#fff" onClick={click('instalaciones')} width={ANCHO_DATO_2} />
@@ -311,11 +311,11 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
           <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>Informes por Club</div>
           <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 11 }}>Se actualiza solo con cada partido subido</div>
         </div>
-        <button onClick={exportarTablerosPdf} disabled={exportando} style={{ marginLeft: 'auto', background: C.celeste, border: 'none', color: C.azul, fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: exportando ? 'wait' : 'pointer', textTransform: 'uppercase' }}>
-          {exportando ? '⏳ Generando...' : '📎 Exportar PDF'}
-        </button>
-        <button onClick={cargar} style={{ background: C.celeste, border: 'none', color: C.azul, fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase' }}>
+        <button onClick={cargar} style={{ background: C.celeste, border: 'none', color: C.azul, fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase', marginLeft: 'auto' }}>
           ↻ Actualizar
+        </button>
+        <button onClick={exportarTablerosPdf} disabled={exportando} style={{ background: exportando ? '#8fc9a3' : C.verde, border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: exportando ? 'wait' : 'pointer', textTransform: 'uppercase' }}>
+          {exportando ? '⏳ Generando...' : '📎 Exportar PDF'}
         </button>
       </div>
 
@@ -396,8 +396,8 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
 
       {!cargando && !error && porClub.length > 0 && (
         <>
-          <div style={{ padding: '10px 12px 0', fontSize: 12, fontWeight: 700, color: C.azul, textTransform: 'uppercase' }}>
-            Tablero de Demora en Inicio y Entretiempos
+          <div style={{ padding: '10px 12px 0', fontSize: 15, fontWeight: 700, color: C.azul, textTransform: 'uppercase' }}>
+            Informe de Demora en Inicio y Entretiempos
           </div>
           <div style={{ overflowX: 'auto', padding: '6px 0 12px' }}>
             <table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>
@@ -423,8 +423,8 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
             </table>
           </div>
 
-          <div style={{ padding: '10px 12px 0', fontSize: 12, fontWeight: 700, color: C.azul, textTransform: 'uppercase' }}>
-            Tablero de Incidentes, Instalaciones y Controles Previos
+          <div style={{ padding: '10px 12px 0', fontSize: 15, fontWeight: 700, color: C.azul, textTransform: 'uppercase' }}>
+            Informe de Incidentes y Controles Previos
           </div>
           <div style={{ overflowX: 'auto', padding: '6px 0 12px' }}>
             <table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>
@@ -447,7 +447,7 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
 
           {onInformeClub && (
             <div style={{ padding: '16px 12px 24px' }}>
-              <button onClick={onInformeClub} style={{ width: '100%', background: '#fff', color: C.azul, border: `1.5px solid ${C.azul}`, borderRadius: 8, padding: '10px', fontWeight: 700, fontSize: 12, cursor: 'pointer', textTransform: 'uppercase' }}>
+              <button onClick={onInformeClub} style={{ width: '100%', background: C.azul, color: '#fff', border: `1.5px solid ${C.azul}`, borderRadius: 8, padding: '10px', fontWeight: 700, fontSize: 12, cursor: 'pointer', textTransform: 'uppercase' }}>
                 📎 Informe PDF por Club (para WhatsApp / Correo)
               </button>
             </div>

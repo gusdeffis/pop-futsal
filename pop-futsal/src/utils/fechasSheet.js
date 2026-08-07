@@ -5,6 +5,15 @@
 // Compartido entre PantallaAdmin y PantallaInformes para que ambas
 // pantallas interpreten las fechas exactamente igual.
 
+// Si Sheets malinterpretó el nombre de un club como fecha (pasó con "17 DE
+// AGOSTO"), el CSV publicado exporta un valor sin ninguna letra (una fecha
+// tipo "2026-08-17" o "8/17/2026", o un número de serie). Un nombre de club
+// real siempre tiene letras, así que esto alcanza para detectar el caso sin
+// falsos positivos.
+export function pareceFechaRota(v) {
+  return !/[a-zA-Z]/.test(v);
+}
+
 export function esISO(v) {
   return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(v);
 }

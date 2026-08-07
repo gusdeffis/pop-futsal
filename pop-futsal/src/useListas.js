@@ -5,6 +5,7 @@ import {
   DEFAULT_OFICIALES_AFA, DEFAULT_CATEGORIAS, DEFAULT_MOTIVOS_INICIO, DEFAULT_MOTIVOS_ET,
   DEFAULT_FECHAS, OFICIAL_PINS,
 } from './data';
+import { pareceFechaRota } from './utils/fechasSheet';
 
 const CACHE_KEY = 'pop_listas_cache';
 
@@ -145,7 +146,8 @@ export function useListas() {
         const url = SHEET_URLS[urlKey];
         if (!url) return; // pestaña todavía no publicada: se queda con el fallback
         try {
-          const valores = await fetchLista(url);
+          let valores = await fetchLista(url);
+          if (clave === 'clubes') valores = valores.filter(v => !pareceFechaRota(v));
           if (valores.length > 0) {
             const final = blanco ? ['', ...valores] : valores;
             nuevasListas[clave] = final;

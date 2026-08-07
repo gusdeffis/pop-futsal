@@ -14,8 +14,8 @@ export function generarBloqueDesvios(datos) {
     .filter(([, l, v]) => Number(l) > 1 || Number(v) > 1)
     .map(([label, l, v]) => {
       const partes = [];
-      if (Number(l) > 1) partes.push(`${datos.local || 'Local'} ${l} min.`);
-      if (Number(v) > 1) partes.push(`${datos.visitante || 'Visita'} ${v} min.`);
+      if (Number(l) > 1) partes.push(`${datos.local || 'Local'} demoró ${l} min.`);
+      if (Number(v) > 1) partes.push(`${datos.visitante || 'Visita'} demoró ${v} min.`);
       return `${label}: ${partes.join(' / ')}`;
     });
   if (datos.excedido && datos.motivo_et) {

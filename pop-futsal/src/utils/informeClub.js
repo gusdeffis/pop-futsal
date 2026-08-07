@@ -3,21 +3,38 @@ import { demoraInicioMin } from './indicadoresClub';
 // Ítems de la tabla de Instalaciones — columna real de la planilla y el
 // texto que se muestra en el informe. Son todos propios de la cancha del
 // Local (así lo confirma la fórmula original: filtra siempre por rol=Local).
+// El 3er valor es la etiqueta EXACTA (mayúscula) que guarda el panel
+// "Observación por Control" de Pantalla2 delante de cada observación
+// (formato "ETIQUETA: texto") — sirve para recuperar el texto específico
+// que escribió el oficial para ese ítem puntual, en vez de un genérico
+// "Sin cumplir en fecha X". Si algún día cambian las etiquetas de
+// Pantalla2, hay que actualizar esta 3ra columna para que sigan calzando.
 const ITEMS_INSTALACIONES = [
-  ['Campo Buen Estado', 'Campo de Juego'],
-  ['Iluminación OK', 'Iluminación'],
-  ['Mesa Crono OK', 'Mesa Crono'],
-  ['Tablero OK', 'Tablero'],
-  ['Redes Perimetrales OK', 'Redes Perimetrales'],
-  ['Altura OK', 'Altura'],
-  ['Pared Protecciones OK', 'Pared Sin Protección'],
-  ['Meta Anclada OK', 'Meta Anclada'],
-  ['Vestuario Local OK', 'Vestuario Local'],
-  ['Vestuario Visita OK', 'Vestuario Visitante'],
-  ['Vestuario Árbitro OK', 'Vestuario Árbitros'],
-  ['Baños OK', 'Baños Públicos'],
-  ['Limpieza OK', 'Limpieza'],
+  ['Campo Buen Estado', 'Campo de Juego', 'CAMPO EN BUEN ESTADO'],
+  ['Iluminación OK', 'Iluminación', 'ILUMINACIÓN'],
+  ['Mesa Crono OK', 'Mesa Crono', 'MESA CRONO'],
+  ['Tablero OK', 'Tablero', 'TABLERO'],
+  ['Redes Perimetrales OK', 'Redes Perimetrales', 'REDES PERIMETRALES'],
+  ['Altura OK', 'Altura', 'ALTURA MIN. 5 MTS'],
+  ['Pared Protecciones OK', 'Pared Sin Protección', 'PARED CON PROTECCIONES'],
+  ['Meta Anclada OK', 'Meta Anclada', 'META SIN ANCLAR'],
+  ['Vestuario Local OK', 'Vestuario Local', 'VESTUARIO LOCAL'],
+  ['Vestuario Visita OK', 'Vestuario Visitante', 'VESTUARIO VISITA'],
+  ['Vestuario Árbitro OK', 'Vestuario Árbitros', 'VESTUARIO ÁRBITRO'],
+  ['Baños OK', 'Baños Públicos', 'BAÑOS PÚBLICOS'],
+  ['Limpieza OK', 'Limpieza', 'LIMPIEZA'],
 ];
+
+// Busca, dentro del texto libre de "Obs. Control Previo" de un partido, la
+// línea que el panel guardó para este ítem puntual ("ETIQUETA: texto") y
+// devuelve solo el texto — o '' si el oficial no escribió nada para ese
+// ítem en particular (aunque sí lo haya destildado).
+function textoObsItem(obsControlPrevio, etiqueta) {
+  if (!obsControlPrevio) return '';
+  const linea = String(obsControlPrevio).split('\n').find(l => l.trim().toUpperCase().startsWith(`${etiqueta}:`));
+  if (!linea) return '';
+  return linea.slice(linea.indexOf(':') + 1).trim();
+}
 
 function esSi(v) {
   return String(v || '').trim().toUpperCase() === 'SI';
@@ -77,9 +94,14 @@ export function armarInformeClub(club, partidos) {
 
   const estadio = propios.find(p => p['Estadio'])?.['Estadio'] || '';
 
-  const instalaciones = ITEMS_INSTALACIONES.map(([col, label]) => {
-    const fechas = propios.filter(p => p.__rol === 'L' && !esSi(p[col])).map(p => p['Fecha N°']).filter(Boolean);
-    return { item: label, fecha: fechas.join(' '), observacion: fechas.length ? `Sin cumplir en fecha ${fechas.join(' ')}` : '' };
+  const instalaciones = ITEMS_INSTALACIONES.map(([col, label, etiqueta]) => {
+    const conProblema = propios.filter(p => p.__rol === 'L' && !esSi(p[col]));
+    const fechas = conProblema.map(p => p['Fecha N°']).filter(Boolean);
+    const detalles = conProblema.map(p => {
+      const especifico = textoObsItem(p['Obs. Control Previo'], etiqueta);
+      return especifico ? `Fecha ${p['Fecha N°']}: ${especifico}` : `Sin cumplir en fecha ${p['Fecha N°']}`;
+    });
+    return { item: label, fecha: fechas.join(' '), observacion: detalles.join(' | ') };
   });
 
   const controlHorarios = propios.map(p => {
