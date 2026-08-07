@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { obtenerTodosLosPartidos } from '../useAutoSave';
 import {
   calcularIndicadoresPorClub, filtrarPartidos, demoraInicioMin,
-  esSi, tuvoIncidente, tuvoObsInstalaciones, planillaFueraDeTermino,
+  esSi, tuvoIncidente, tuvoObsInstalaciones, planillaFueraDeTermino, normalizarClub,
 } from '../utils/indicadoresClub';
+import { textoObsItem } from '../utils/informeClub';
 import { formatearDia } from '../utils/fechasSheet';
 import { generarPDFTableros } from '../utils/informesTablerosPdf';
 import { descargarPDF } from '../utils/pdfFiller';
@@ -55,52 +56,83 @@ function toggleSort(setSortState, campo) {
 
 // Partidos donde jugó un club, con su rol en cada uno.
 function partidosDelClubConRol(club, partidos) {
+  const clubNorm = normalizarClub(club);
   return (partidos || [])
-    .filter(p => p['Local'] === club || p['Visitante'] === club)
-    .map(p => ({ p, rol: p['Local'] === club ? 'L' : 'V' }));
+    .filter(p => normalizarClub(p['Local']) === clubNorm || normalizarClub(p['Visitante']) === clubNorm)
+    .map(p => ({ p, rol: normalizarClub(p['Local']) === clubNorm ? 'L' : 'V' }));
 }
 
 function rivalDe(p, rol) {
   return rol === 'L' ? p['Visitante'] : p['Local'];
 }
 
-// Predicados de detalle: para cada tipo de celda, qué partidos "cuentan" y
-// qué texto mostrar por partido en el modal.
+// Etiqueta del ítem de Instalaciones puntual que corresponde a cada columna
+// booleana — para poder sacar del texto libre de "Obs. Control Previo" la
+// línea específica que el oficial escribió para ESE ítem (mismo mecanismo
+// que ya usa el Informe por Club).
+const ITEM_INSTALACIONES_POR_COLUMNA = {
+  'Campo Buen Estado': 'CAMPO EN BUEN ESTADO', 'Iluminación OK': 'ILUMINACIÓN', 'Mesa Crono OK': 'MESA CRONO',
+  'Tablero OK': 'TABLERO', 'Redes Perimetrales OK': 'REDES PERIMETRALES', 'Altura OK': 'ALTURA MIN. 5 MTS',
+  'Pared Protecciones OK': 'PARED CON PROTECCIONES', 'Meta Anclada OK': 'META SIN ANCLAR',
+  'Vestuario Local OK': 'VESTUARIO LOCAL', 'Vestuario Visita OK': 'VESTUARIO VISITA', 'Vestuario Árbitro OK': 'VESTUARIO ÁRBITRO',
+  'Baños OK': 'BAÑOS PÚBLICOS', 'Limpieza OK': 'LIMPIEZA',
+};
+
+// Predicados de detalle: para cada tipo de celda, qué partidos "cuentan",
+// el texto principal a mostrar por partido, y de dónde sacar el motivo u
+// observación (y con qué columnas de fecha/minutos armar el envío por WSP).
 const DETALLE_PREDICADOS = {
   demora: {
     titulo: 'Partidos con demora de inicio',
     filtro: ({ p }) => demoraInicioMin(p) > 1,
     detalle: ({ p }) => `${demoraInicioMin(p)} min. de demora`,
+    motivo: ({ p }) => [p['Motivo Demora Inicio'], p['Obs. Horarios']].filter(Boolean).join(' — '),
   },
   etExcedido: {
     titulo: 'Partidos con Entretiempo excedido',
     filtro: ({ p }) => esSi(p['ET Excedido']),
     detalle: ({ p }) => `ET: ${p['ET min.'] || '?'} min.`,
+    motivo: ({ p }) => [p['Motivo Demora ET'], p['Obs. Horarios']].filter(Boolean).join(' — '),
   },
   incidentes: {
     titulo: 'Partidos con Incidentes',
     filtro: ({ p }) => tuvoIncidente(p),
     detalle: ({ p }) => [esSi(p['Incidentes']) && 'Incidentes', esSi(p['Agresiones']) && 'Agresiones', esSi(p['Gresca Generalizada']) && 'Gresca'].filter(Boolean).join(', '),
+    motivo: ({ p }) => p['Obs. Partido'] || '',
   },
   instalaciones: {
     titulo: 'Partidos con Observación de Instalaciones',
     filtro: ({ p, rol }) => rol === 'L' && tuvoObsInstalaciones(p),
-    detalle: () => 'Cancha propia con observación',
+    detalle: ({ p }) => {
+      const items = Object.entries(ITEM_INSTALACIONES_POR_COLUMNA).filter(([col]) => !esSi(p[col])).map(([, etiqueta]) => etiqueta);
+      return items.length ? items.join(', ') : 'Instalación con observación';
+    },
+    motivo: ({ p }) => {
+      const especificos = Object.values(ITEM_INSTALACIONES_POR_COLUMNA)
+        .map(etiqueta => textoObsItem(p['Obs. Control Previo'], etiqueta))
+        .filter(Boolean);
+      return especificos.length ? especificos.join(' — ') : (p['Obs. Control Previo'] || '');
+    },
   },
   planillaFueraTermino: {
     titulo: 'Partidos con Planilla Fuera de Término',
     filtro: ({ p, rol }) => planillaFueraDeTermino(p, rol),
-    detalle: () => 'Llegada fuera de término',
+    detalle: ({ p, rol }) => {
+      const min = Math.max(Number(p[`Demora Planillas ${rol}`]) || 0, Number(p[`Demora Form. Inicial ${rol}`]) || 0);
+      return min > 0 ? `${min} min. fuera de término` : 'Llegada fuera de término';
+    },
+    motivo: ({ p }) => p['Obs. Control Previo'] || '',
   },
   camisetaSinApellido: {
     titulo: 'Partidos con Camiseta Sin Apellido',
     filtro: ({ p }) => !esSi(p['Camiseta c/Apellido OK']),
     detalle: () => 'Camiseta sin apellido',
+    motivo: ({ p }) => textoObsItem(p['Obs. Control Previo'], 'CAMISETA C/APELLIDO') || p['Obs. Control Previo'] || '',
   },
 };
 
 function verDetalle(setDetalle, club, tipo, partidosFiltrados) {
-  const { titulo, filtro, detalle } = DETALLE_PREDICADOS[tipo];
+  const { titulo, filtro, detalle, motivo } = DETALLE_PREDICADOS[tipo];
   const filas = partidosDelClubConRol(club, partidosFiltrados)
     .filter(filtro)
     .map(({ p, rol }) => ({
@@ -109,27 +141,75 @@ function verDetalle(setDetalle, club, tipo, partidosFiltrados) {
       rival: rivalDe(p, rol),
       lv: rol,
       detalle: detalle({ p, rol }),
+      motivo: motivo({ p, rol }),
+      oficial: p['Oficial AFA'] || '',
     }));
-  setDetalle({ club, titulo, filas });
+  setDetalle({ club, tipo, titulo, filas });
 }
 
-// Modal simple con la lista de partidos detrás de un número de la tabla.
-function ModalDetalle({ detalle, onCerrar }) {
+// Arma el texto para enviar por WhatsApp con todo el detalle del modal.
+function armarTextoDetalleWSP(detalle, filtrosTexto) {
+  const lineas = [
+    `📊 ${detalle.titulo}`,
+    `Club: ${detalle.club}`,
+    filtrosTexto ? `Filtros: ${filtrosTexto}` : null,
+    `Cantidad de partidos: ${detalle.filas.length}`,
+    '━━━━━━━━━━━━━━━━━━━━',
+    ...detalle.filas.flatMap(f => {
+      const linea1 = `Fecha ${f.fecha}${f.dia ? ` — ${f.dia}` : ''} — ${f.lv === 'L' ? 'vs' : '@'} ${f.rival || '(sin rival)'}`;
+      const linea2 = f.detalle;
+      const linea3 = f.motivo ? `Obs: ${f.motivo}` : null;
+      const linea4 = `Oficial: ${f.oficial || '—'}`;
+      return [linea1, linea2, linea3, linea4, ''].filter(Boolean);
+    }),
+  ].filter(Boolean);
+  return lineas.join('\n');
+}
+
+// Texto legible de los filtros activos, para el envío por WSP.
+function textoFiltrosActivos(filtros) {
+  const partes = [];
+  if (filtros.torneo) partes.push(filtros.torneo);
+  if (filtros.division) partes.push(`Div. ${filtros.division}`);
+  if (filtros.categoriaClub) partes.push(`Cat. ${filtros.categoriaClub}`);
+  if (filtros.generoMF) partes.push(filtros.generoMF === 'M' ? 'Masculino' : 'Femenino');
+  if (filtros.fechaDesde || filtros.fechaHasta) partes.push(`Fechas ${filtros.fechaDesde || '...'} a ${filtros.fechaHasta || '...'}`);
+  if (filtros.fechaNroDesde || filtros.fechaNroHasta) partes.push(`Torneo fecha ${filtros.fechaNroDesde || '...'} a ${filtros.fechaNroHasta || '...'}`);
+  return partes.join(' | ');
+}
+
+// Modal con la lista de partidos detrás de un número de la tabla — ahora con
+// el motivo/observación de cada uno, el oficial que cargó el partido, y un
+// botón para mandar todo el detalle por WhatsApp.
+function ModalDetalle({ detalle, filtros, onCerrar }) {
   if (!detalle) return null;
+  const enviarWSP = () => {
+    const texto = armarTextoDetalleWSP(detalle, textoFiltrosActivos(filtros || {}));
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`);
+  };
   return (
     <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, maxHeight: '75vh', overflowY: 'auto' }}>
-        <div style={{ background: C.azul, padding: '14px 16px', position: 'sticky', top: 0 }}>
-          <div style={{ color: '#fff', fontSize: 11, textTransform: 'uppercase', opacity: .8 }}>{detalle.club}</div>
-          <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{detalle.titulo} ({detalle.filas.length})</div>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }}>
+        <div style={{ background: C.azul, padding: '14px 16px', position: 'sticky', top: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <div>
+            <div style={{ color: '#fff', fontSize: 11, textTransform: 'uppercase', opacity: .8 }}>{detalle.club}</div>
+            <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{detalle.titulo} ({detalle.filas.length})</div>
+          </div>
+          {detalle.filas.length > 0 && (
+            <button onClick={enviarWSP} style={{ background: C.verde, border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase', flexShrink: 0 }}>
+              📎 WSP
+            </button>
+          )}
         </div>
         <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {detalle.filas.length === 0 && <div style={{ color: '#999', fontSize: 13, textAlign: 'center', padding: 12 }}>Sin partidos para mostrar.</div>}
           {detalle.filas.map((f, i) => (
-            <div key={i} style={{ border: `1px solid ${C.celeste}`, borderRadius: 8, padding: 10 }}>
+            <div key={i} style={{ border: `1px solid ${C.celeste}`, borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <div style={{ fontSize: 11, color: C.azul, fontWeight: 700 }}>Fecha {f.fecha}{f.dia && ` — ${f.dia}`}</div>
               <div style={{ fontSize: 13, color: C.azul, fontWeight: 700 }}>{f.lv === 'L' ? 'vs' : '@'} {f.rival || '(sin rival)'}</div>
               <div style={{ fontSize: 12, color: C.rojo, fontWeight: 600 }}>{f.detalle}</div>
+              {f.motivo && <div style={{ fontSize: 12, color: '#444' }}>Obs: {f.motivo}</div>}
+              <div style={{ fontSize: 11, color: '#777', fontStyle: 'italic' }}>Oficial: {f.oficial || '—'}</div>
             </div>
           ))}
         </div>
@@ -304,11 +384,11 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
-      <ModalDetalle detalle={detalle} onCerrar={() => setDetalle(null)} />
+      <ModalDetalle detalle={detalle} filtros={filtros} onCerrar={() => setDetalle(null)} />
       <div style={{ background: C.azul, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack} style={{ background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', width: 36, height: 36, borderRadius: 8, fontSize: 18, cursor: 'pointer' }}>←</button>
         <div>
-          <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>Informes por Club</div>
+          <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>Tablero e Informes</div>
           <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 11 }}>Se actualiza solo con cada partido subido</div>
         </div>
         <button onClick={cargar} style={{ background: C.celeste, border: 'none', color: C.azul, fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase', marginLeft: 'auto' }}>
@@ -397,7 +477,7 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
       {!cargando && !error && porClub.length > 0 && (
         <>
           <div style={{ padding: '10px 12px 0', fontSize: 15, fontWeight: 700, color: C.azul, textTransform: 'uppercase' }}>
-            Informe de Demora en Inicio y Entretiempos
+            Tablero de Demoras en Inicio y Entretiempos
           </div>
           <div style={{ overflowX: 'auto', padding: '6px 0 12px' }}>
             <table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>
@@ -424,7 +504,7 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
           </div>
 
           <div style={{ padding: '10px 12px 0', fontSize: 15, fontWeight: 700, color: C.azul, textTransform: 'uppercase' }}>
-            Informe de Incidentes y Controles Previos
+            Tablero de Incidentes y Controles Previos
           </div>
           <div style={{ overflowX: 'auto', padding: '6px 0 12px' }}>
             <table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>

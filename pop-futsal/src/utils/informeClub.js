@@ -1,4 +1,4 @@
-import { demoraInicioMin } from './indicadoresClub';
+import { demoraInicioMin, normalizarClub } from './indicadoresClub';
 
 // Ítems de la tabla de Instalaciones — columna real de la planilla y el
 // texto que se muestra en el informe. Son todos propios de la cancha del
@@ -29,7 +29,7 @@ const ITEMS_INSTALACIONES = [
 // línea que el panel guardó para este ítem puntual ("ETIQUETA: texto") y
 // devuelve solo el texto — o '' si el oficial no escribió nada para ese
 // ítem en particular (aunque sí lo haya destildado).
-function textoObsItem(obsControlPrevio, etiqueta) {
+export function textoObsItem(obsControlPrevio, etiqueta) {
   if (!obsControlPrevio) return '';
   const linea = String(obsControlPrevio).split('\n').find(l => l.trim().toUpperCase().startsWith(`${etiqueta}:`));
   if (!linea) return '';
@@ -41,9 +41,10 @@ function esSi(v) {
 }
 
 function partidosDelClub(club, partidos) {
+  const clubNorm = normalizarClub(club);
   return (partidos || [])
-    .filter(p => p['Local'] === club || p['Visitante'] === club)
-    .map(p => ({ ...p, __rol: p['Local'] === club ? 'L' : 'V' }))
+    .filter(p => normalizarClub(p['Local']) === clubNorm || normalizarClub(p['Visitante']) === clubNorm)
+    .map(p => ({ ...p, __rol: normalizarClub(p['Local']) === clubNorm ? 'L' : 'V' }))
     .sort((a, b) => (Number(a['Fecha N°']) || 0) - (Number(b['Fecha N°']) || 0));
 }
 

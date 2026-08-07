@@ -167,7 +167,7 @@ export default function App() {
   }
 
   if (vista === 'informeClub') {
-    return <PantallaInformeClub onBack={() => setVista('informes')} />;
+    return <PantallaInformeClub onBack={() => setVista('informes')} listas={listas} />;
   }
 
   if (vista === 'historial') {

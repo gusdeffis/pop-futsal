@@ -1,5 +1,19 @@
 import { textoHorariosCompleto } from './desviosHorarios';
 
+// Ítems de Control Previo (Pantalla2) — campo interno y texto legible para
+// el Acta. Mismo criterio que ya usa el bloque de "Campo de juego" más
+// abajo: si el oficial destildó el ítem, aparece acá aunque no haya
+// escrito ningún texto libre en el panel de Observación por Control.
+const ITEMS_CONTROL_PREVIO = [
+  ['buen_estado', 'campo de juego'], ['ilum', 'iluminación'], ['mesa_crono', 'mesa de cronometraje'],
+  ['tablero', 'tablero'], ['redes_per', 'redes perimetrales'], ['altura', 'altura de protecciones'],
+  ['pared_prot', 'pared con protecciones'], ['meta_anclada', 'meta anclada'],
+  ['vest_l', 'vestuario local'], ['vest_v', 'vestuario visitante'], ['vest_arb', 'vestuario árbitro'],
+  ['banios', 'baños públicos'], ['limpieza', 'limpieza'], ['camiseta', 'camiseta con apellido'],
+  ['balon_nuevo', 'balón nuevo'], ['del_veedor_l', 'delegado/veedor local'], ['del_veedor_v', 'delegado/veedor visita'],
+  ['seguridad', 'seguridad/policía'], ['medico', 'médico'],
+];
+
 export function generarActaTexto(datos) {
   const conclusiones = datos.conclusiones || [];
 
@@ -38,6 +52,8 @@ export function generarActaTexto(datos) {
   }
 
   if (datos.obs_previo?.trim()) partes.push(`Control previo: ${datos.obs_previo.trim()}`);
+  const controlPrevioProbs = ITEMS_CONTROL_PREVIO.filter(([campo]) => !datos[campo]).map(([, label]) => label);
+  if (controlPrevioProbs.length > 0) partes.push(`Control previo, ítems sin cumplir: ${controlPrevioProbs.join(', ')}.`);
   const horarios = textoHorariosCompleto(datos);
   if (horarios) partes.push(`Horarios: ${horarios}`);
   if (datos.obs_partido?.trim()) partes.push(datos.obs_partido.trim());

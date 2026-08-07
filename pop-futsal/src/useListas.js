@@ -62,14 +62,19 @@ export function parsePinesCSV(texto) {
 // Hoja de 2 columnas genérica: columna A = texto que se ve en la app,
 // columna B = valor exacto que hay que usar al llenar el PDF (si está vacía,
 // se usa la columna A tal cual). Devuelve { textoApp: valorPdf }.
-function parseMapaCSV(texto) {
+export function parseMapaCSV(texto) {
   const lineas = texto.split(/\r?\n/);
   const mapa = {};
   for (let i = 1; i < lineas.length; i++) {
     const cols = lineas[i].split(',');
     const a = (cols[0] ?? '').trim().replace(/^"|"$/g, '').trim();
     const b = (cols[1] ?? '').trim().replace(/^"|"$/g, '').trim();
-    if (a) mapa[a.toUpperCase()] = (b || a).toUpperCase();
+    // OJO: no tocar la mayúscula/minúscula acá. La clave tiene que calzar
+    // exacto con el texto que llega de <option value>, y el valor tiene
+    // que calzar exacto con la opción del desplegable fijo del PDF (que
+    // es sensible a mayúscula/minúscula) — antes esto se guardaba todo en
+    // MAYÚSCULA y por eso el campo de motivo nunca llegaba al PDF.
+    if (a) mapa[a] = b || a;
   }
   return mapa;
 }

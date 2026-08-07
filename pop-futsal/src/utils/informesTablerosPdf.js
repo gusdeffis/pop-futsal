@@ -4,12 +4,35 @@ const AZUL = rgb(0.05, 0.12, 0.31);
 const NEGRO = rgb(0, 0, 0);
 const GRIS_LINEA = rgb(0.6, 0.6, 0.6);
 const MARGEN = 30;
-const ANCHO_PAGINA = 841.89; // A4 horizontal — los tableros son anchos, entran mejor apaisados
+const GAP_CENTRAL = 20; // separación entre el tablero de la izquierda y el de la derecha
+const ANCHO_PAGINA = 841.89; // A4 horizontal
 const ALTO_PAGINA = 595.28;
+const ANCHO_MITAD = (ANCHO_PAGINA - MARGEN * 2 - GAP_CENTRAL) / 2;
 
 export function nombreArchivoTableros() {
   return 'Tableros_Informes.pdf';
 }
+
+// Columnas de cada tablero, ya angostadas para que las dos entren lado a
+// lado en una misma hoja apaisada (cada juego de columnas suma ~ANCHO_MITAD).
+const COLUMNAS_DEMORAS = [
+  { titulo: 'Club', ancho: 90, valor: f => f.club },
+  { titulo: 'PJ', ancho: 32, valor: f => f.partidos },
+  { titulo: 'C/Dem', ancho: 48, valor: f => f.demoraInicio.partidosConDemora },
+  { titulo: '%', ancho: 35, valor: f => `${f.demoraInicio.porcentaje}%` },
+  { titulo: 'Min.Pr', ancho: 45, valor: f => f.demoraInicio.minutosPromedio },
+  { titulo: 'C/Exc', ancho: 40, valor: f => f.entretiempos.cantidadExcedidos },
+  { titulo: 'Min.ET', ancho: 40, valor: f => f.entretiempos.promedioMin },
+];
+
+const COLUMNAS_INCIDENTES = [
+  { titulo: 'Club', ancho: 90, valor: f => f.club },
+  { titulo: 'PJ', ancho: 32, valor: f => f.partidos },
+  { titulo: 'Inc.', ancho: 45, valor: f => f.incidentes },
+  { titulo: 'Obs.Inst', ancho: 60, valor: f => f.obsInstalaciones },
+  { titulo: 'Pla.FT', ancho: 60, valor: f => f.controlesPrevios.planillaFueraTermino },
+  { titulo: 'Cam.S/A', ancho: 65, valor: f => f.controlesPrevios.camisetaSinApellido },
+];
 
 export async function generarPDFTableros(porClub, total, opciones = {}) {
   const { fecha = new Date() } = opciones;
@@ -25,92 +48,65 @@ export async function generarPDFTableros(porClub, total, opciones = {}) {
     y = ALTO_PAGINA - MARGEN;
   };
 
-  const asegurarEspacio = (alturaNecesaria) => {
-    if (y - alturaNecesaria < MARGEN) nuevaPagina();
-  };
-
-  const texto = (str, x, tamaño, negrita, color) => {
-    page.drawText(String(str ?? ''), { x, y, size: tamaño, font: negrita ? fontBold : fontRegular, color: color || NEGRO });
+  const texto = (str, x, yPos, tamaño, negrita, color) => {
+    page.drawText(String(str ?? ''), { x, y: yPos, size: tamaño, font: negrita ? fontBold : fontRegular, color: color || NEGRO });
   };
 
   const fechaTexto = fecha instanceof Date
     ? `${String(fecha.getDate()).padStart(2, '0')}/${String(fecha.getMonth() + 1).padStart(2, '0')}/${fecha.getFullYear()}`
     : String(fecha);
 
-  texto('Tablero de Informes — AFA Futsal', MARGEN, 16, true, AZUL);
-  texto(`Generado: ${fechaTexto}`, ANCHO_PAGINA - MARGEN - 120, 10, false, GRIS_LINEA);
-  y -= 30;
+  texto('Tablero de Informes — AFA Futsal', MARGEN, y, 16, true, AZUL);
+  texto(`Generado: ${fechaTexto}`, ANCHO_PAGINA - MARGEN - 120, y, 10, false, GRIS_LINEA);
+  y -= 26;
 
-  const seccion = (titulo) => {
-    asegurarEspacio(30);
-    texto(titulo, MARGEN, 13, true, AZUL);
-    y -= 20;
-  };
+  const xIzq = MARGEN;
+  const xDer = MARGEN + ANCHO_MITAD + GAP_CENTRAL;
+  const anchoIzq = COLUMNAS_DEMORAS.reduce((s, c) => s + c.ancho, 0);
+  const anchoDer = COLUMNAS_INCIDENTES.reduce((s, c) => s + c.ancho, 0);
 
-  const tabla = (columnas, filas, filaTotal) => {
-    const anchoTotal = columnas.reduce((s, c) => s + c.ancho, 0);
-    const alturaFila = 16;
+  // Títulos de cada tablero, uno a la izquierda y otro a la derecha.
+  texto('Tablero de Demora en Inicio y Entretiempos', xIzq, y, 11, true, AZUL);
+  texto('Tablero de Incidentes y Controles Previos', xDer, y, 11, true, AZUL);
+  y -= 18;
 
-    const dibujarEncabezado = () => {
-      let x = MARGEN;
-      page.drawRectangle({ x: MARGEN, y: y - 4, width: anchoTotal, height: alturaFila, color: rgb(0.9, 0.93, 0.98) });
+  const alturaFila = 16;
+
+  const dibujarEncabezados = () => {
+    [[xIzq, anchoIzq, COLUMNAS_DEMORAS], [xDer, anchoDer, COLUMNAS_INCIDENTES]].forEach(([xBase, anchoTotal, columnas]) => {
+      page.drawRectangle({ x: xBase, y: y - 4, width: anchoTotal, height: alturaFila, color: rgb(0.9, 0.93, 0.98) });
+      let x = xBase;
       columnas.forEach(c => {
-        texto(c.titulo, x + 3, 9, true, AZUL);
+        texto(c.titulo, x + 3, y, 8, true, AZUL);
         x += c.ancho;
       });
-      y -= alturaFila;
-      page.drawLine({ start: { x: MARGEN, y }, end: { x: MARGEN + anchoTotal, y }, thickness: 0.5, color: GRIS_LINEA });
-    };
-
-    asegurarEspacio(alturaFila * 2);
-    dibujarEncabezado();
-
-    const dibujarFila = (fila, esTotal) => {
-      if (y - alturaFila < MARGEN) { nuevaPagina(); dibujarEncabezado(); }
-      let x = MARGEN;
-      if (esTotal) page.drawRectangle({ x: MARGEN, y: y - alturaFila + 2, width: anchoTotal, height: alturaFila, color: rgb(0.78, 0.86, 0.96) });
-      columnas.forEach(c => {
-        const valor = c.valor(fila);
-        texto(String(valor ?? ''), x + 3, 9, esTotal, NEGRO);
-        x += c.ancho;
-      });
-      y -= alturaFila;
-      page.drawLine({ start: { x: MARGEN, y }, end: { x: MARGEN + anchoTotal, y }, thickness: 0.3, color: GRIS_LINEA });
-    };
-
-    filas.forEach(f => dibujarFila(f, false));
-    if (filaTotal) dibujarFila(filaTotal, true);
-    y -= 14;
+    });
+    y -= alturaFila;
+    page.drawLine({ start: { x: xIzq, y }, end: { x: xIzq + anchoIzq, y }, thickness: 0.5, color: GRIS_LINEA });
+    page.drawLine({ start: { x: xDer, y }, end: { x: xDer + anchoDer, y }, thickness: 0.5, color: GRIS_LINEA });
   };
 
-  // --- Tablero 1: Demora en Inicio y Entretiempos ---
-  seccion('Tablero de Demora en Inicio y Entretiempos');
-  tabla(
-    [
-      { titulo: 'Club', ancho: 110, valor: f => f.club },
-      { titulo: 'PJ', ancho: 40, valor: f => f.partidos },
-      { titulo: 'Con Demora', ancho: 70, valor: f => f.demoraInicio.partidosConDemora },
-      { titulo: '%', ancho: 50, valor: f => `${f.demoraInicio.porcentaje}%` },
-      { titulo: 'Min. Prom.', ancho: 60, valor: f => f.demoraInicio.minutosPromedio },
-      { titulo: 'Cant. Exced.', ancho: 70, valor: f => f.entretiempos.cantidadExcedidos },
-      { titulo: 'Min. Prom. ET', ancho: 70, valor: f => f.entretiempos.promedioMin },
-    ],
-    porClub, total,
-  );
+  dibujarEncabezados();
 
-  // --- Tablero 2: Incidentes, Instalaciones y Controles Previos ---
-  seccion('Tablero de Incidentes, Instalaciones y Controles Previos');
-  tabla(
-    [
-      { titulo: 'Club', ancho: 110, valor: f => f.club },
-      { titulo: 'PJ', ancho: 40, valor: f => f.partidos },
-      { titulo: 'Incidentes', ancho: 70, valor: f => f.incidentes },
-      { titulo: 'Obs. Instalación', ancho: 100, valor: f => f.obsInstalaciones },
-      { titulo: 'Planilla F. Término', ancho: 110, valor: f => f.controlesPrevios.planillaFueraTermino },
-      { titulo: 'Camiseta S/Apellido', ancho: 110, valor: f => f.controlesPrevios.camisetaSinApellido },
-    ],
-    porClub, total,
-  );
+  // Como las dos tablas comparten exactamente las mismas filas (los mismos
+  // clubes + TOTAL), se dibujan sincronizadas con un solo cursor vertical.
+  const dibujarFilaDoble = (filaIzq, filaDer, esTotal) => {
+    if (y - alturaFila < MARGEN) { nuevaPagina(); dibujarEncabezados(); }
+    [[xIzq, anchoIzq, COLUMNAS_DEMORAS, filaIzq], [xDer, anchoDer, COLUMNAS_INCIDENTES, filaDer]].forEach(([xBase, anchoTotal, columnas, fila]) => {
+      if (esTotal) page.drawRectangle({ x: xBase, y: y - alturaFila + 2, width: anchoTotal, height: alturaFila, color: rgb(0.78, 0.86, 0.96) });
+      let x = xBase;
+      columnas.forEach(c => {
+        texto(String(c.valor(fila) ?? ''), x + 3, y - alturaFila + 5, 8, esTotal, NEGRO);
+        x += c.ancho;
+      });
+    });
+    y -= alturaFila;
+    page.drawLine({ start: { x: xIzq, y }, end: { x: xIzq + anchoIzq, y }, thickness: 0.3, color: GRIS_LINEA });
+    page.drawLine({ start: { x: xDer, y }, end: { x: xDer + anchoDer, y }, thickness: 0.3, color: GRIS_LINEA });
+  };
+
+  porClub.forEach(f => dibujarFilaDoble(f, f, false));
+  if (total) dibujarFilaDoble(total, total, true);
 
   // Crédito sutil del creador de la app, en cada página.
   const fontFooter = await pdfDoc.embedFont(StandardFonts.Helvetica);

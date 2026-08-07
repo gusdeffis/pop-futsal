@@ -1,5 +1,15 @@
 import { esISO, claveDia } from './fechasSheet';
 
+// Normaliza un nombre de club para agrupar/comparar sin que importe cómo lo
+// haya tipeado cada oficial (mayúscula, minúscula, espacios de más) — evita
+// que el mismo club aparezca duplicado en Informes por una diferencia de
+// tipeo (ej. "JORGE NEWBERY" vs "Jorge Newbery" contaban como 2 clubes
+// distintos antes de este fix). El nombre mostrado siempre queda en
+// MAYÚSCULA, la misma convención que ya usa el resto de la app.
+export function normalizarClub(nombre) {
+  return String(nombre || '').trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
 // Calcula los indicadores por club (Partidos, Demora en Inicio, Entretiempos,
 // Incidentes, Observación en Instalaciones, Controles Previos) a partir de
 // los partidos que trae la planilla compartida "POP-Partidos".
@@ -137,9 +147,10 @@ export function calcularIndicadoresPorClub(partidos, opciones = {}) {
 
   (partidos || []).forEach(p => {
     [['Local', 'L'], ['Visitante', 'V']].forEach(([campoClub, rol]) => {
-      const club = p[campoClub];
-      if (!club || esISO(club)) return; // nombre vacío o corrompido (Sheets lo guardó como fecha)
-      if (categoriaClub && (clubesCategoria?.[club] || '') !== categoriaClub) return;
+      const clubOriginal = p[campoClub];
+      if (!clubOriginal || esISO(clubOriginal)) return; // nombre vacío o corrompido (Sheets lo guardó como fecha)
+      const club = normalizarClub(clubOriginal);
+      if (categoriaClub && (clubesCategoria?.[club] ?? clubesCategoria?.[clubOriginal] ?? '') !== categoriaClub) return;
       const acc = obtener(club);
       acc.partidos += 1;
 
