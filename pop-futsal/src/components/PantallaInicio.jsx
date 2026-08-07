@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { APP_VERSION } from '../data';
 
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', rojo: '#e03030' };
@@ -14,6 +14,17 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
   const [nombre, setNombre] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
+
+  // Al desloguearse (oficialLogueado pasa a vacío), borrar nombre/PIN del
+  // formulario — si no, quedaban visibles en pantalla para el próximo que
+  // agarre el celular, un problema de seguridad real.
+  useEffect(() => {
+    if (!oficialLogueado) {
+      setNombre('');
+      setPin('');
+      setError('');
+    }
+  }, [oficialLogueado]);
 
   const handleIngresar = () => {
     if (!nombre) { setError('Elegí tu nombre.'); return; }
@@ -32,10 +43,10 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: '24px 24px 0', display: 'flex', flexDirection: 'column', maxWidth: 360, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center', alignItems: 'stretch', maxWidth: 360, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
         {!oficialLogueado ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center' }}>
+          <>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.azul, textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center', marginBottom: -4 }}>
               Identificate para ingresar
             </div>
@@ -64,18 +75,14 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
               Ingresar
             </button>
             <div style={{ textAlign: 'center', color: '#000', fontSize: 13, fontWeight: 700 }}>{APP_VERSION}</div>
-          </div>
+          </>
         ) : (
           <>
-            {/* Se centra verticalmente en el espacio libre entre la barra de
-                título y el botón "Nuevo Partido" — separado del resto de los
-                botones a propósito, para que este bloque respire solo. */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 56 }}>
+            <div style={{ textAlign: 'center', marginBottom: 10 }}>
               <div style={{ fontSize: 14, color: '#5a6b8c' }}>Conectado como</div>
               <div style={{ fontSize: 19, fontWeight: 700, color: C.azul }}>{oficialLogueado}</div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
             <button onClick={onNuevo} style={{
               minHeight: 64, background: C.azul, color: '#fff', border: 'none', borderRadius: 10,
               fontSize: 16, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
@@ -129,11 +136,10 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
             <div onClick={onLogout} style={{ textAlign: 'center', color: C.rojo, fontWeight: 800, fontSize: 19, cursor: 'pointer', textDecoration: 'underline', textTransform: 'uppercase', letterSpacing: .3, marginTop: 4 }}>
               Salir
             </div>
-            </div>
           </>
         )}
 
-        <div style={{ textAlign: 'center', color: '#b8c0d0', fontSize: 10, padding: '0 0 12px' }}>© Gustavo Deffis</div>
+        <div style={{ textAlign: 'center', color: '#b8c0d0', fontSize: 10, marginTop: 12 }}>© Gustavo Deffis</div>
       </div>
     </div>
   );

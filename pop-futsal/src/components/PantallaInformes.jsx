@@ -3,6 +3,7 @@ import { obtenerTodosLosPartidos } from '../useAutoSave';
 import {
   calcularIndicadoresPorClub, filtrarPartidos, demoraInicioMin,
   esSi, tuvoIncidente, tuvoObsInstalaciones, planillaFueraDeTermino, normalizarClub,
+  COLUMNAS_OBS_INSTALACIONES,
 } from '../utils/indicadoresClub';
 import { textoObsItem } from '../utils/informeClub';
 import { formatearDia } from '../utils/fechasSheet';
@@ -67,15 +68,25 @@ function rivalDe(p, rol) {
 }
 
 // Etiqueta del ítem de Instalaciones puntual que corresponde a cada columna
-// booleana — para poder sacar del texto libre de "Obs. Control Previo" la
-// línea específica que el oficial escribió para ESE ítem (mismo mecanismo
-// que ya usa el Informe por Club).
+// booleana de CONTROL PREVIO (antes del partido, Pantalla2) — para sacar del
+// texto libre de "Obs. Control Previo" la línea específica que el oficial
+// escribió para ESE ítem (mismo mecanismo que ya usa el Informe por Club).
+// OJO: esto es DISTINTO de "Obs. Instalaciones" del tablero de Informes,
+// que sale de columnas de DURANTE EL PARTIDO (Pantalla4) — ver más abajo.
 const ITEM_INSTALACIONES_POR_COLUMNA = {
   'Campo Buen Estado': 'CAMPO EN BUEN ESTADO', 'Iluminación OK': 'ILUMINACIÓN', 'Mesa Crono OK': 'MESA CRONO',
   'Tablero OK': 'TABLERO', 'Redes Perimetrales OK': 'REDES PERIMETRALES', 'Altura OK': 'ALTURA MIN. 5 MTS',
   'Pared Protecciones OK': 'PARED CON PROTECCIONES', 'Meta Anclada OK': 'META SIN ANCLAR',
   'Vestuario Local OK': 'VESTUARIO LOCAL', 'Vestuario Visita OK': 'VESTUARIO VISITA', 'Vestuario Árbitro OK': 'VESTUARIO ÁRBITRO',
   'Baños OK': 'BAÑOS PÚBLICOS', 'Limpieza OK': 'LIMPIEZA',
+};
+
+// Etiquetas legibles de las observaciones de instalaciones DURANTE EL
+// PARTIDO (Pantalla4) — son estas columnas las que arma tuvoObsInstalaciones,
+// que es lo que realmente cuenta la columna "Obs. Instalación" del tablero.
+const LABEL_OBS_INSTALACIONES = {
+  'Tablero con Fallas': 'Tablero con Fallas', 'Iluminación Obs.': 'Iluminación', 'Humedad': 'Humedad',
+  'Goteras': 'Goteras', 'Arcos/Redes': 'Arcos/Redes', 'Tribunas': 'Tribunas',
 };
 
 // Predicados de detalle: para cada tipo de celda, qué partidos "cuentan",
@@ -104,15 +115,10 @@ const DETALLE_PREDICADOS = {
     titulo: 'Partidos con Observación de Instalaciones',
     filtro: ({ p, rol }) => rol === 'L' && tuvoObsInstalaciones(p),
     detalle: ({ p }) => {
-      const items = Object.entries(ITEM_INSTALACIONES_POR_COLUMNA).filter(([col]) => !esSi(p[col])).map(([, etiqueta]) => etiqueta);
+      const items = Object.entries(LABEL_OBS_INSTALACIONES).filter(([col]) => esSi(p[col])).map(([, etiqueta]) => etiqueta);
       return items.length ? items.join(', ') : 'Instalación con observación';
     },
-    motivo: ({ p }) => {
-      const especificos = Object.values(ITEM_INSTALACIONES_POR_COLUMNA)
-        .map(etiqueta => textoObsItem(p['Obs. Control Previo'], etiqueta))
-        .filter(Boolean);
-      return especificos.length ? especificos.join(' — ') : (p['Obs. Control Previo'] || '');
-    },
+    motivo: ({ p }) => p['Obs. Partido'] || '',
   },
   planillaFueraTermino: {
     titulo: 'Partidos con Planilla Fuera de Término',
