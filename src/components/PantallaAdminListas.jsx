@@ -3,7 +3,16 @@ import { HOJAS_EDITABLES, obtenerListasAdmin, guardarListaAdmin } from '../useLi
 
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030' };
 
-export default function PantallaAdminListas({ onBack }) {
+// Perfil protegido: nadie puede editar ni borrar esta fila de la hoja
+// Oficiales, salvo la propia persona logueada con ese nombre. Evita que
+// alguien le resetee el PIN o le cambie el Perfil al creador de la app.
+const NOMBRE_PROTEGIDO = 'GUSTAVO DEFFIS';
+
+function esFilaProtegida(hojaActiva, fila) {
+  return hojaActiva === 'Oficiales' && String(fila[0] || '').trim().toUpperCase() === NOMBRE_PROTEGIDO;
+}
+
+export default function PantallaAdminListas({ onBack, oficialLogueado }) {
   const [hojas, setHojas] = useState({});
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
@@ -34,12 +43,22 @@ export default function PantallaAdminListas({ onBack }) {
 
   const config = HOJAS_EDITABLES.find(h => h.clave === hojaActiva);
 
+  const esMiPropioPerfil = (oficialLogueado || '').trim().toUpperCase() === NOMBRE_PROTEGIDO;
+
   const cambiarCelda = (fila, col, valor) => {
-    setFilasEdit(prev => prev.map((f, i) => i === fila ? f.map((c, j) => j === col ? valor : c) : f));
+    setFilasEdit(prev => prev.map((f, i) => {
+      if (i !== fila) return f;
+      if (esFilaProtegida(hojaActiva, f) && !esMiPropioPerfil) return f; // bloqueado
+      return f.map((c, j) => j === col ? valor : c);
+    }));
   };
 
   const agregarFila = () => setFilasEdit(prev => [...prev, config.columnas.map(() => '')]);
-  const borrarFila = (i) => setFilasEdit(prev => prev.filter((_, idx) => idx !== i));
+  const borrarFila = (i) => setFilasEdit(prev => {
+    const fila = prev[i];
+    if (esFilaProtegida(hojaActiva, fila) && !esMiPropioPerfil) return prev; // bloqueado
+    return prev.filter((_, idx) => idx !== i);
+  });
 
   const guardar = async () => {
     setGuardando(true);
@@ -81,19 +100,42 @@ export default function PantallaAdminListas({ onBack }) {
 
         {!cargando && !error && (
           <>
+            {config.columnas.length > 1 && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                {config.columnas.map((titulo, j) => (
+                  <div key={j} style={{
+                    flex: config.anchos?.[j] ?? 1, minWidth: 0, fontSize: 11, fontWeight: 700, color: C.azul,
+                    textTransform: 'uppercase', letterSpacing: .3, padding: '0 2px',
+                    whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.2,
+                  }}>{titulo}</div>
+                ))}
+                <div style={{ width: 32, flexShrink: 0 }} />
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {filasEdit.map((fila, i) => (
-                <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {config.columnas.map((_, j) => (
-                    <input
-                      key={j} value={fila[j] || ''} onChange={e => cambiarCelda(i, j, e.target.value)}
-                      placeholder={config.columnas[j]}
-                      style={{ flex: 1, height: 38, border: `1.5px solid ${C.azul}`, borderRadius: 6, padding: '0 8px', fontSize: 13, color: C.azul, textTransform: 'uppercase' }}
-                    />
-                  ))}
-                  <button onClick={() => borrarFila(i)} style={{ background: C.rojo, color: '#fff', border: 'none', borderRadius: 6, width: 32, height: 32, fontWeight: 700, cursor: 'pointer' }}>✕</button>
-                </div>
-              ))}
+              {filasEdit.map((fila, i) => {
+                const protegida = esFilaProtegida(hojaActiva, fila) && !esMiPropioPerfil;
+                return (
+                  <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {config.columnas.map((_, j) => (
+                      <input
+                        key={j} value={fila[j] || ''} onChange={e => cambiarCelda(i, j, e.target.value)}
+                        placeholder={config.columnas[j]} readOnly={protegida}
+                        style={{
+                          flex: config.anchos?.[j] ?? 1, minWidth: 0, height: 38, borderRadius: 6, padding: '0 8px', fontSize: 13,
+                          textTransform: 'uppercase', border: `1.5px solid ${C.azul}`,
+                          color: protegida ? '#8fa3c9' : C.azul, background: protegida ? '#f2f4f8' : '#fff',
+                        }}
+                      />
+                    ))}
+                    {protegida ? (
+                      <span title="Solo esta persona puede editar su propio perfil" style={{ width: 32, height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🔒</span>
+                    ) : (
+                      <button onClick={() => borrarFila(i)} style={{ background: C.rojo, color: '#fff', border: 'none', borderRadius: 6, width: 32, height: 32, flexShrink: 0, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <button onClick={agregarFila} style={{ background: C.celeste, color: C.azul, border: `1.5px solid ${C.azul}`, borderRadius: 8, padding: '10px', fontWeight: 700, cursor: 'pointer' }}>

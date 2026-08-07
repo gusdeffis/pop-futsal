@@ -5,6 +5,7 @@ import {
   DEFAULT_OFICIALES_AFA, DEFAULT_CATEGORIAS, DEFAULT_MOTIVOS_INICIO, DEFAULT_MOTIVOS_ET,
   DEFAULT_FECHAS, OFICIAL_PINS,
 } from './data';
+import { pareceFechaRota } from './utils/fechasSheet';
 
 const CACHE_KEY = 'pop_listas_cache';
 
@@ -33,40 +34,64 @@ function parseCSVColumnaA(texto) {
   return valores;
 }
 
-// Hoja "Oficiales": tres columnas (Nombre | PIN | Perfil). Devuelve
-// { pines: {NOMBRE: pin}, perfiles: {NOMBRE: 'ADMINISTRADOR'|'OFICIAL'} }.
-// La columna Perfil es opcional: si está vacía, se toma como 'OFICIAL'.
-function parsePinesCSV(texto) {
+// Hoja "Oficiales": cuatro columnas (Nombre | PIN | Perfil | Informes).
+// Devuelve { pines: {NOMBRE: pin}, perfiles: {NOMBRE: 'ADMINISTRADOR'|'OFICIAL'},
+// veInformes: {NOMBRE: true|false} }. Perfil e Informes son opcionales: si
+// están vacías, se toman como 'OFICIAL' y sin acceso a Informes.
+export function parsePinesCSV(texto) {
   const lineas = texto.split(/\r?\n/);
   const pines = {};
   const perfiles = {};
+  const veInformes = {};
   for (let i = 1; i < lineas.length; i++) {
     const cols = lineas[i].split(',');
     const nombre = (cols[0] ?? '').trim().replace(/^"|"$/g, '').trim();
     const pin = (cols[1] ?? '').trim().replace(/^"|"$/g, '').trim();
     const perfil = (cols[2] ?? '').trim().replace(/^"|"$/g, '').trim().toUpperCase();
+    const informes = (cols[3] ?? '').trim().replace(/^"|"$/g, '').trim().toUpperCase();
     if (nombre && pin) {
       pines[nombre.toUpperCase()] = pin;
       perfiles[nombre.toUpperCase()] = perfil === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'OFICIAL';
+      veInformes[nombre.toUpperCase()] = informes === 'SI';
     }
   }
-  return { pines, perfiles };
+  return { pines, perfiles, veInformes };
 }
+
 
 // Hoja de 2 columnas genérica: columna A = texto que se ve en la app,
 // columna B = valor exacto que hay que usar al llenar el PDF (si está vacía,
 // se usa la columna A tal cual). Devuelve { textoApp: valorPdf }.
-function parseMapaCSV(texto) {
+export function parseMapaCSV(texto) {
   const lineas = texto.split(/\r?\n/);
   const mapa = {};
   for (let i = 1; i < lineas.length; i++) {
     const cols = lineas[i].split(',');
     const a = (cols[0] ?? '').trim().replace(/^"|"$/g, '').trim();
     const b = (cols[1] ?? '').trim().replace(/^"|"$/g, '').trim();
-    if (a) mapa[a.toUpperCase()] = (b || a).toUpperCase();
+    // OJO: no tocar la mayúscula/minúscula acá. La clave tiene que calzar
+    // exacto con el texto que llega de <option value>, y el valor tiene
+    // que calzar exacto con la opción del desplegable fijo del PDF (que
+    // es sensible a mayúscula/minúscula) — antes esto se guardaba todo en
+    // MAYÚSCULA y por eso el campo de motivo nunca llegaba al PDF.
+    if (a) mapa[a] = b || a;
   }
   return mapa;
 }
+// Hoja "Clubes": columna A = nombre, columna B = Categoria (A/B/C/D, opcional).
+// Devuelve { NOMBRE: 'A'|'B'|'C'|'D'|'' }.
+function parseClubesCategoriaCSV(texto) {
+  const lineas = texto.split(/\r?\n/);
+  const mapa = {};
+  for (let i = 1; i < lineas.length; i++) {
+    const cols = lineas[i].split(',');
+    const nombre = (cols[0] ?? '').trim().replace(/^"|"$/g, '').trim();
+    const categoria = (cols[1] ?? '').trim().replace(/^"|"$/g, '').trim();
+    if (nombre) mapa[nombre.toUpperCase()] = categoria.toUpperCase();
+  }
+  return mapa;
+}
+
 function cargarCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -103,6 +128,8 @@ export function useListas() {
     }
     iniciales.pines = cacheInicial.pines || OFICIAL_PINS;
     iniciales.perfiles = cacheInicial.perfiles || {};
+    iniciales.veInformes = cacheInicial.veInformes || {};
+    iniciales.clubesCategoria = cacheInicial.clubesCategoria || {};
     iniciales.motivosInicioMapa = cacheInicial.motivosInicioMapa
       || Object.fromEntries(DEFAULT_MOTIVOS_INICIO.filter(Boolean).map(m => [m.toUpperCase(), m.toUpperCase()]));
     iniciales.motivosETMapa = cacheInicial.motivosETMapa
@@ -124,7 +151,8 @@ export function useListas() {
         const url = SHEET_URLS[urlKey];
         if (!url) return; // pestaña todavía no publicada: se queda con el fallback
         try {
-          const valores = await fetchLista(url);
+          let valores = await fetchLista(url);
+          if (clave === 'clubes') valores = valores.filter(v => !pareceFechaRota(v));
           if (valores.length > 0) {
             const final = blanco ? ['', ...valores] : valores;
             nuevasListas[clave] = final;
@@ -136,19 +164,39 @@ export function useListas() {
         }
       }));
 
-      // PINs y Perfiles: se leen de las columnas B y C de la MISMA hoja
-      // "Oficiales" (A = nombre, B = PIN, C = Perfil), no hace falta una
-      // pestaña aparte.
+      // PINs, Perfiles e Informes: se leen de las columnas B, C y D de la
+      // MISMA hoja "Oficiales" (A = nombre, B = PIN, C = Perfil, D = Informes),
+      // no hace falta una pestaña aparte.
       if (SHEET_URLS.oficiales) {
         try {
           const res = await fetch(SHEET_URLS.oficiales, { cache: 'no-store' });
           if (res.ok) {
-            const { pines, perfiles } = parsePinesCSV(await res.text());
+            const { pines, perfiles, veInformes } = parsePinesCSV(await res.text());
             if (Object.keys(pines).length > 0) {
               nuevasListas.pines = pines;
               nuevasListas.perfiles = perfiles;
+              nuevasListas.veInformes = veInformes;
               cache.pines = pines;
               cache.perfiles = perfiles;
+              cache.veInformes = veInformes;
+              huboActualizacion = true;
+            }
+          }
+        } catch {
+          // sin conexión o error: se mantiene el respaldo/caché existente
+        }
+      }
+
+      // Columna B de la hoja Clubes: categoría (A/B/C/D) de cada club, para
+      // filtrar el listado según el torneo elegido.
+      if (SHEET_URLS.clubes) {
+        try {
+          const res = await fetch(SHEET_URLS.clubes, { cache: 'no-store' });
+          if (res.ok) {
+            const mapa = parseClubesCategoriaCSV(await res.text());
+            if (Object.keys(mapa).length > 0) {
+              nuevasListas.clubesCategoria = mapa;
+              cache.clubesCategoria = mapa;
               huboActualizacion = true;
             }
           }

@@ -114,10 +114,17 @@ export function InputHora({ value, onChange, placeholder = 'HH:MM', style = {}, 
     onChange(formateado);
   };
 
+  // Si al salir del campo solo se cargó la hora (1 o 2 dígitos, sin los
+  // ":MM"), completa los minutos en "00" para que quede "HH:00" — antes
+  // quedaba a medio escribir y no disparaba ningún cálculo dependiente.
+  const handleBlur = () => {
+    if (value && /^\d{1,2}$/.test(value)) onChange(`${value.padStart(2, '0')}:00`);
+  };
+
   return (
     <input
       ref={ref}
-      type="text" inputMode="numeric" value={value || ''} onChange={handleChange}
+      type="text" inputMode="numeric" value={value || ''} onChange={handleChange} onBlur={handleBlur}
       placeholder={placeholder} maxLength={5}
       style={{ ...baseStyle(variant), ...style }}
     />
@@ -162,6 +169,12 @@ export function Input({ value, onChange, placeholder, type = 'text', style = {},
 // <input> con lista desplegable de sugerencias en vez de un <select> cerrado.
 export function SelectLibre({ value, onChange, options, placeholder, variant = 'celeste' }) {
   const [abierto, setAbierto] = useState(false);
+  // Al volver a tocar un campo que ya tiene un valor cargado, se muestra la
+  // lista COMPLETA (para reelegir otra opción), no filtrada por el texto ya
+  // escrito — si no, filtrar por el valor actual solía dejar como única
+  // opción visible la que ya estaba seleccionada. El filtrado por texto
+  // vuelve a activarse en cuanto la persona empieza a escribir de nuevo.
+  const [filtrando, setFiltrando] = useState(false);
   const contenedorRef = useRef(null);
   const inputRef = useRef(null);
   const cursor = useRef(null);
@@ -176,7 +189,7 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
   // Cierra la lista si se toca afuera del campo
   useEffect(() => {
     const cerrar = (e) => {
-      if (contenedorRef.current && !contenedorRef.current.contains(e.target)) setAbierto(false);
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target)) { setAbierto(false); setFiltrando(false); }
     };
     document.addEventListener('mousedown', cerrar);
     document.addEventListener('touchstart', cerrar);
@@ -189,15 +202,17 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
   const handleChange = (e) => {
     cursor.current = e.target.selectionStart;
     onChange(upper(e.target.value));
+    setFiltrando(true);
     setAbierto(true);
   };
 
   const elegir = (opcion) => {
     onChange(opcion);
     setAbierto(false);
+    setFiltrando(false);
   };
 
-  const filtrados = value
+  const filtrados = value && filtrando
     ? options.filter(o => o.toUpperCase().includes(value.toUpperCase()))
     : options;
 
@@ -208,7 +223,7 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
           ref={inputRef}
           value={value}
           onChange={handleChange}
-          onFocus={() => setAbierto(true)}
+          onFocus={() => { setFiltrando(false); setAbierto(true); }}
           placeholder={placeholder}
           autoComplete="off"
           style={{
@@ -260,14 +275,15 @@ export function Select({ value, onChange, options, placeholder, variant = 'celes
 
 // Checkbox azul - para items normales (instalaciones, etc.)
 // Sin marcar: fondo celeste, casillero blanco. Marcado: fondo azul, casillero celeste.
-export function CheckAzul({ label, checked, onChange }) {
+export function CheckAzul({ label, checked, onChange, minHeight, padding = '12px 10px', sinMayuscula }) {
+  const lineas = Array.isArray(label) ? label : [label];
   return (
     <div onClick={() => onChange(!checked)} style={{
-      display: 'flex', alignItems: 'center', gap: 10,
+      display: 'flex', alignItems: 'center', gap: 10, minWidth: 0,
       background: checked ? C.azul : C.celeste,
       border: `1.5px solid ${C.azul}`,
-      borderRadius: 8, padding: '12px 10px', cursor: 'pointer',
-      userSelect: 'none', transition: 'all .15s',
+      borderRadius: 8, padding, cursor: 'pointer',
+      userSelect: 'none', transition: 'all .15s', minHeight,
     }}>
       <div style={{
         width: 22, height: 22, borderRadius: 4, flexShrink: 0,
@@ -277,8 +293,8 @@ export function CheckAzul({ label, checked, onChange }) {
       }}>
         {checked && <span style={{ color: C.azul, fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
       </div>
-      <span style={{ fontSize: 13, color: checked ? '#fff' : C.azul, lineHeight: 1.2, fontWeight: 600, textTransform: 'uppercase' }}>
-        {label}
+      <span style={{ fontSize: 13, color: checked ? '#fff' : C.azul, lineHeight: 1.2, fontWeight: 600, textTransform: sinMayuscula ? 'none' : 'uppercase', minWidth: 0, wordBreak: 'break-word' }}>
+        {lineas.length > 1 ? lineas.map((linea, i) => <div key={i}>{linea}</div>) : lineas[0]}
       </span>
     </div>
   );
@@ -360,10 +376,11 @@ export function LVRojo({ label, checked, onChange }) {
   );
 }
 
-export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoton = false }) {
-  const bg = variant === 'rosa' ? C.rosa : C.celeste;
-  const border = variant === 'rosa' ? C.rosaBorde : C.celesteBorde;
+export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoton = false, minHeight }) {
+  const bg = variant === 'rosa' ? C.rosa : variant === 'naranja' ? C.naranjaClaro : C.celeste;
+  const border = variant === 'rosa' ? C.rosaBorde : variant === 'naranja' ? C.naranja : C.celesteBorde;
   const color = variant === 'rosa' ? '#000' : C.azul;
+  const lineasLabel = Array.isArray(label) ? label : [label];
   const ref = useRef(null);
   const cursor = useRef(null);
 
@@ -394,12 +411,22 @@ export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoto
     onChange(formateado);
   };
 
+  // Mismo autocompletado que InputHora: si solo se cargó la hora (sin los
+  // ":MM"), al salir del campo se completa en "00" — antes quedaba a medio
+  // escribir y ningún cálculo dependiente (demoras, entretiempo, etc.)
+  // se disparaba.
+  const handleBlur = () => {
+    if (value && /^\d{1,2}$/.test(value)) onChange(`${value.padStart(2, '0')}:00`);
+  };
+
   return (
-    <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
+    <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, minHeight, justifyContent: minHeight ? 'center' : undefined, boxSizing: 'border-box' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: .5, lineHeight: 1.2 }}>
+        {lineasLabel.map((l, i) => <div key={i}>{l}</div>)}
+      </div>
       <input
         ref={ref}
-        type="text" inputMode="numeric" value={value || ''} onChange={handleChange}
+        type="text" inputMode="numeric" value={value || ''} onChange={handleChange} onBlur={handleBlur}
         placeholder="--:--" maxLength={5}
         style={{ fontSize: 26, fontWeight: 700, color, border: 'none', background: 'transparent', width: '100%', outline: 'none', letterSpacing: 2, padding: 0 }}
       />
@@ -476,6 +503,7 @@ export function BtnNext({ onClick, children, disabled }) {
 // agrega al campo de observaciones.
 export function PanelCompletarObs({ items, datos, set, obsField, colorBordo, onCerrar }) {
   const [textos, setTextos] = useState({});
+  const [campoEnFoco, setCampoEnFoco] = useState(null);
   const bordo = colorBordo ? '#7a1030' : '#0d1f4e';
   const bg = colorBordo ? '#fbdbe1' : '#c6dbf5';
 
@@ -491,27 +519,42 @@ export function PanelCompletarObs({ items, datos, set, obsField, colorBordo, onC
   };
 
   return (
-    <div style={{ background: '#f8f9fc', border: `1.5px solid ${bordo}`, borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ background: '#f8f9fc', border: `1.5px solid ${bordo}`, borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 12 }}>
       {items.length === 0 && (
         <div style={{ fontSize: 12, color: '#666', textAlign: 'center' }}>No hay ítems para completar.</div>
       )}
       {items.map(([campo, label]) => {
         const checked = !!datos[campo];
+        const expandido = campoEnFoco === campo;
         return (
-          <div key={campo} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div key={campo} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div onClick={() => set(campo)(!checked)} style={{
-              width: 24, height: 24, borderRadius: 4, flexShrink: 0, cursor: 'pointer',
-              background: checked ? bordo : '#fff', border: `2px solid ${bordo}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              display: 'flex', alignItems: 'center', gap: 10, minHeight: 40, minWidth: 0,
+              background: checked ? bordo : bg, border: `1.5px solid ${bordo}`, borderRadius: 8,
+              padding: '10px 12px', cursor: 'pointer', userSelect: 'none',
             }}>
-              {checked && <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>✓</span>}
+              <div style={{
+                width: 22, height: 22, borderRadius: 4, flexShrink: 0,
+                background: checked ? bg : '#fff', border: `2px solid ${checked ? bg : bordo}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {checked && <span style={{ color: bordo, fontSize: 14, fontWeight: 700 }}>✓</span>}
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: checked ? '#fff' : bordo, textTransform: 'uppercase', minWidth: 0, wordBreak: 'break-word' }}>
+                {label}
+              </span>
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: bordo, width: 92, flexShrink: 0, lineHeight: 1.1 }}>{label}</span>
-            <input
+            <textarea
               value={textos[campo] || ''}
               onChange={e => setTextos(t => ({ ...t, [campo]: e.target.value.toUpperCase() }))}
+              onFocus={() => setCampoEnFoco(campo)}
+              onBlur={() => setCampoEnFoco(c => (c === campo ? null : c))}
               placeholder="Observación..."
-              style={{ flex: 1, height: 34, border: `1.5px solid ${bordo}`, borderRadius: 6, padding: '0 8px', fontSize: 12, fontWeight: 600, color: '#0d1f4e', background: bg, outline: 'none' }}
+              style={{
+                width: '100%', minHeight: expandido ? 96 : 40, border: `1.5px solid ${bordo}`, borderRadius: 8, padding: '10px 12px',
+                fontSize: 15, fontWeight: 700, color: '#0d1f4e', background: bg, outline: 'none',
+                resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'min-height .15s',
+              }}
             />
           </div>
         );
@@ -529,17 +572,21 @@ export function BtnBack({ onClick }) {
     <button onClick={onClick} style={{
       height: 50, width: 50, background: C.celeste, color: C.azul,
       border: `2px solid ${C.celesteBorde}`, borderRadius: 8,
-      fontSize: 22, fontWeight: 900, cursor: 'pointer', padding: 0, lineHeight: 1,
+      cursor: 'pointer', padding: 0, lineHeight: 1,
       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    }}>←</button>
+    }}>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={C.azul} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 12H5M11 6l-6 6 6 6" />
+      </svg>
+    </button>
   );
 }
 
 export function BtnSalir({ onClick }) {
   return (
     <button onClick={onClick} title="Salir" style={{
-      height: 50, width: 50, background: '#f2811d', color: '#fff',
-      border: `2px solid ${C.naranja}`, borderRadius: 8, padding: 0, lineHeight: 1,
+      height: 50, width: 50, background: '#fadfba', color: '#8a5a10',
+      border: '2px solid #c96a1c', borderRadius: 8, padding: 0, lineHeight: 1,
       fontSize: 20, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}>🚪</button>
   );

@@ -1,5 +1,6 @@
-import { Header, SeccionHeader, Campo, Input, Textarea, Divider, BtnBack } from './UI';
+import { Header, SeccionHeader, Textarea, Divider, BtnBack } from './UI';
 import { generarActaTexto } from '../utils/acta';
+import { armarTextoWhatsApp } from '../utils/whatsappTexto';
 import { useState } from 'react';
 import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
 
@@ -76,60 +77,19 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         alert('Tu celular no permite adjuntar el PDF directo desde acá. Se descargó el archivo: adjuntalo manualmente en WhatsApp.');
       }
     } catch (e) {
-      if (e?.name !== 'AbortError') {
-        setErrorPDF('No se pudo enviar el formulario. Probá con "GENERAR PDF" y adjuntalo a mano.');
+      if (e?.name === 'AbortError') {
+        // El usuario cerró el cuadro de compartir sin elegir nada — no es un error.
+      } else {
+        console.error('Error enviando el formulario por WhatsApp:', e);
+        setErrorPDF(`No se pudo enviar el formulario (${e?.message || e}). Probá con "GENERAR PDF" y adjuntalo a mano.`);
       }
     } finally {
       setEnviandoWSP(false);
     }
   };
 
-  const calcularMin = (inicio, fin) => {
-    if (!inicio || !fin || !inicio.includes(':') || !fin.includes(':')) return null;
-    const [h1, m1] = inicio.split(':').map(Number);
-    const [h2, m2] = fin.split(':').map(Number);
-    if ([h1, m1, h2, m2].some(Number.isNaN)) return null;
-    let mins = (h2 * 60 + m2) - (h1 * 60 + m1);
-    if (mins < 0) mins += 24 * 60;
-    return mins;
-  };
-
-  const soloApellido = (nombreCompleto) => {
-    const partes = (nombreCompleto || '').trim().split(/\s+/);
-    return partes[partes.length - 1] || '';
-  };
-
   const handleWhatsApp = () => {
-    const resLocal = datos.res_local || '-';
-    const resVisita = datos.res_visitante || '-';
-    const concl = conclusiones.map(c => CONCL_OPCIONES.find(o => o.id === c)?.label).filter(Boolean).join(' / ');
-    const demoraIngreso = calcularMin(datos.ingreso, datos.hora_real);
-    const division = datos.division === 'M' ? 'Masculino' : datos.division === 'F' ? 'Femenino' : '';
-    const texto =
-      `Futsal - Planilla de Partido\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📋 ${datos.torneo}${division ? ` | ${division}` : ''}\n` +
-      `Fecha ${datos.fecha_nro}\n` +
-      `📅 ${datos.dia} | ${datos.hora} hs\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `(L) ${datos.local}  ${resLocal} \n` +
-      `(V) ${datos.visitante}  ${resVisita}\n` +
-      `🏟️ ${datos.estadio}\n` +
-      `Árbitro: ${datos.arbitro}\n` +
-      `Oficial AFA:  ${soloApellido(datos.oficial_afa)}\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `Ingreso:  ${datos.ingreso || '-'} \n` +
-      `⏱️ Inicio Real:  ${datos.hora_real || '-'}\n` +
-      (demoraIngreso != null ? `Demora: ${demoraIngreso} min.\n` : '') +
-      `Final 1°T:  ${datos.final_1t || '-'} \n` +
-      `Inicio 2°T:  ${datos.inicio_2t || '-'}\n` +
-      `ET:  ${datos.et_min || '-'} min.\n` +
-      `⏱️ Final : ${datos.final_partido || '-'}\n` +
-      `Duración: ${datos.duracion_partido || '-'}\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📝 Conclusión: \n${concl}\n\n` +
-      `*ACTA FINAL:*\n${actaTexto}` +
-      (datos.acta_extra ? `\n${datos.acta_extra}` : '');
+    const texto = armarTextoWhatsApp(datos, actaTexto);
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`);
   };
 
@@ -190,7 +150,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         <Divider />
 
         {/* Acta automática */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase', textAlign: 'center' }}>
           Acta Final
         </div>
         <div style={{ background: '#e8edf8', border: '2px solid #0d1f4e', borderRadius: 10, padding: 16 }}>
@@ -244,7 +204,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         )}
         {onInicio && (
           <button onClick={onInicio}
-            style={{ width: '100%', height: 44, background: '#fff', color: '#0d1f4e', border: '1.5px solid #0d1f4e', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ width: '100%', height: 52, background: '#fadfba', color: '#8a5a10', border: '1.5px solid #c96a1c', borderRadius: 8, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer' }}>
             🏠 Volver a la pantalla de inicio
           </button>
         )}

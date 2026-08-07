@@ -141,7 +141,7 @@ export async function generarPDFOficial(datos, opciones = {}) {
 
   // 8. Acta Final: mismo texto que ya arma la app (observaciones + lo que
   // haya escrito el Oficial AFA a mano), para que se vea igual en cualquier lector.
-  const textoActa = [generarActaTexto(datos), datos.acta_extra?.trim()].filter(Boolean).join(' ');
+  const textoActa = [generarActaTexto(datos), datos.acta_extra?.trim()].filter(Boolean).join('\n');
   setTexto('textarea_82wqkf.acta_final_tx', textoActa);
 
   // Adobe/algunos lectores necesitan esto para repintar los campos de texto

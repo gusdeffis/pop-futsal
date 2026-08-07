@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Header, Campo, Input, InputHora, Select, SelectLibre, BtnNext, BtnSalir } from './UI';
+import { clubesParaTorneo } from '../utils/clubesPorCategoria';
 
 // Auto-avance en campo fecha: "4" → "07" → "2026"
 function useFechaInput(value, onChange) {
@@ -23,6 +24,7 @@ export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, on
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const valido = datos.torneo && datos.local && datos.visitante && datos.arbitro;
   const handleFecha = useFechaInput(datos.dia, set('dia'));
+  const clubesFiltrados = clubesParaTorneo(datos.torneo, listas.clubes, listas.clubesCategoria);
 
   // Auto-completa el día con la fecha de hoy si todavía está vacío
   useEffect(() => {
@@ -79,10 +81,10 @@ export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, on
 
         {/* Equipos */}
         <Campo label="Local" required>
-          <SelectLibre value={datos.local} onChange={set('local')} options={listas.clubes} placeholder="Equipo local" />
+          <SelectLibre value={datos.local} onChange={set('local')} options={clubesFiltrados} placeholder="Equipo local" />
         </Campo>
         <Campo label="Visitante" required>
-          <SelectLibre value={datos.visitante} onChange={set('visitante')} options={listas.clubes} placeholder="Equipo visitante" />
+          <SelectLibre value={datos.visitante} onChange={set('visitante')} options={clubesFiltrados} placeholder="Equipo visitante" />
         </Campo>
 
         {/* Estadio y Árbitro en la misma línea */}

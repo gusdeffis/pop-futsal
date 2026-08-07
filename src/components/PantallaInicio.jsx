@@ -10,7 +10,7 @@ function validarPin(pines, nombre, pin) {
   return entrada && entrada[1] === pin;
 }
 
-export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHistorial, oficiales, pines, oficialLogueado, onLogin, onLogout, esAdmin, onAdmin }) {
+export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHistorial, oficiales, pines, oficialLogueado, onLogin, onLogout, esAdmin, onAdmin, veInformes, onInformes }) {
   const [nombre, setNombre] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -32,10 +32,10 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center', alignItems: 'stretch', maxWidth: 360, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ flex: 1, padding: '24px 24px 0', display: 'flex', flexDirection: 'column', maxWidth: 360, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
         {!oficialLogueado ? (
-          <>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.azul, textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center', marginBottom: -4 }}>
               Identificate para ingresar
             </div>
@@ -64,14 +64,18 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
               Ingresar
             </button>
             <div style={{ textAlign: 'center', color: '#000', fontSize: 13, fontWeight: 700 }}>{APP_VERSION}</div>
-          </>
+          </div>
         ) : (
           <>
-            <div style={{ textAlign: 'center', marginBottom: -4 }}>
+            {/* Se centra verticalmente en el espacio libre entre la barra de
+                título y el botón "Nuevo Partido" — separado del resto de los
+                botones a propósito, para que este bloque respire solo. */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 56 }}>
               <div style={{ fontSize: 14, color: '#5a6b8c' }}>Conectado como</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: C.azul }}>{oficialLogueado}</div>
+              <div style={{ fontSize: 19, fontWeight: 700, color: C.azul }}>{oficialLogueado}</div>
             </div>
 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
             <button onClick={onNuevo} style={{
               minHeight: 64, background: C.azul, color: '#fff', border: 'none', borderRadius: 10,
               fontSize: 16, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
@@ -102,6 +106,16 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
               🗂️ Historial de Partidos
             </button>
 
+            {veInformes && (
+              <button onClick={onInformes} style={{
+                minHeight: 64, background: '#e0d7f5', color: '#4a2f8a', border: `1.5px solid #4a2f8a`, borderRadius: 10,
+                fontSize: 16, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                📊 Informes
+              </button>
+            )}
+
             {esAdmin && (
               <button onClick={onAdmin} style={{
                 minHeight: 64, background: '#fadfba', color: '#8a5a10', border: `1.5px solid #8a5a10`, borderRadius: 10,
@@ -112,12 +126,14 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
               </button>
             )}
 
-            <div onClick={onLogout} style={{ textAlign: 'center', color: C.rojo, fontWeight: 700, fontSize: 16, cursor: 'pointer', textDecoration: 'underline', textTransform: 'uppercase', letterSpacing: .3, marginTop: 4 }}>
+            <div onClick={onLogout} style={{ textAlign: 'center', color: C.rojo, fontWeight: 800, fontSize: 19, cursor: 'pointer', textDecoration: 'underline', textTransform: 'uppercase', letterSpacing: .3, marginTop: 4 }}>
               Salir
+            </div>
             </div>
           </>
         )}
 
+        <div style={{ textAlign: 'center', color: '#b8c0d0', fontSize: 10, padding: '0 0 12px' }}>© Gustavo Deffis</div>
       </div>
     </div>
   );
