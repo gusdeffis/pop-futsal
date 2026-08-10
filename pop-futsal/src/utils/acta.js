@@ -1,20 +1,42 @@
 import { textoHorariosCompleto } from './desviosHorarios';
 
-// Ítems de Control Previo (Pantalla2) — campo interno y texto legible para
-// el Acta. Mismo criterio que ya usa el bloque de "Campo de juego" más
-// abajo: si el oficial destildó el ítem, aparece acá aunque no haya
-// escrito ningún texto libre en el panel de Observación por Control.
+// Ítems de Control Previo (Pantalla2) — campo interno, texto legible para
+// el resumen del Acta, y la ETIQUETA exacta (mayúscula) que guarda el panel
+// "Observación por Control" delante de cada observación puntual (formato
+// "ETIQUETA: texto"). Con la etiqueta se puede saber si el oficial ya
+// escribió algo específico para ese ítem — si ya lo hizo, no hace falta
+// repetirlo en el resumen genérico de "ítems sin cumplir".
 const ITEMS_CONTROL_PREVIO = [
-  ['buen_estado', 'campo de juego'], ['ilum', 'iluminación'], ['mesa_crono', 'mesa de cronometraje'],
-  ['tablero', 'tablero'], ['redes_per', 'redes perimetrales'], ['altura', 'altura de protecciones'],
-  ['pared_prot', 'pared con protecciones'], ['meta_anclada', 'meta anclada'],
-  ['vest_l', 'vestuario local'], ['vest_v', 'vestuario visitante'], ['vest_arb', 'vestuario árbitro'],
-  ['banios', 'baños públicos'], ['limpieza', 'limpieza'], ['camiseta', 'camiseta con apellido'],
-  ['balon_nuevo', 'balón nuevo'], ['del_veedor_l', 'delegado/veedor local'], ['del_veedor_v', 'delegado/veedor visita'],
-  ['seguridad', 'seguridad/policía'], ['medico', 'médico'],
+  ['buen_estado', 'campo de juego', 'CAMPO DE JUEGO'], ['ilum', 'iluminación', 'ILUMINACIÓN'],
+  ['mesa_crono', 'mesa de cronometraje', 'MESA CRONO'], ['tablero', 'tablero', 'TABLERO'],
+  ['redes_per', 'redes perimetrales', 'REDES PERIMETRALES'], ['altura', 'altura de protecciones', 'ALTURA MIN. 5 MTS'],
+  ['pared_prot', 'pared con protecciones', 'PARED CON PROTECCIONES'], ['meta_anclada', 'meta anclada', 'META SIN ANCLAR'],
+  ['vest_l', 'vestuario local', 'VESTUARIO LOCAL'], ['vest_v', 'vestuario visitante', 'VESTUARIO VISITA'],
+  ['vest_arb', 'vestuario árbitro', 'VESTUARIO ÁRBITRO'], ['banios', 'baños públicos', 'BAÑOS PÚBLICOS'],
+  ['limpieza', 'limpieza', 'LIMPIEZA'], ['camiseta', 'camiseta con apellido', 'CAMISETA C/APELLIDO'],
+  ['balon_nuevo', 'balón nuevo', 'BALÓN NUEVO'], ['del_veedor_l', 'delegado/veedor local', 'VEEDOR LOCAL'],
+  ['del_veedor_v', 'delegado/veedor visita', 'VEEDOR VISITA'], ['seguridad', 'seguridad/policía', 'SEGURIDAD / POLICÍA'],
+  ['medico', 'médico', 'MÉDICO'],
 ];
 
-export function generarActaTexto(datos) {
+// Ítems de "durante el partido" (Pantalla4) — mismo criterio que Control
+// Previo: campo interno, texto legible para el resumen, y la ETIQUETA
+// exacta que guarda el panel "Obs. por Inconveniente" delante de cada
+// observación puntual. Si el oficial ya escribió algo específico para un
+// ítem, no hace falta repetirlo en el resumen genérico.
+const ITEMS_DURANTE_PARTIDO = [
+  ['tablero_fallas', 'tablero con fallas', 'TABLERO CON FALLAS'], ['sin_balon', 'sin balón de back-up', 'SIN BALÓN DE BACK-UP'],
+  ['medico_obs', 'sin médico', 'SIN MÉDICO'], ['policia', 'sin policía', 'SIN POLICÍA'],
+  ['ilum_obs', 'problemas de iluminación', 'ILUMINACIÓN'], ['humedad', 'humedad en el campo', 'HUMEDAD'],
+  ['goteras', 'goteras', 'GOTERAS'], ['arcos_obs', 'problemas en arcos/redes', 'ARCOS/REDES'],
+  ['tribunas', 'inconvenientes en tribunas', 'TRIBUNAS'], ['invasion', 'invasión de campo', 'INVASIÓN DE CAMPO'],
+  ['incidentes', 'incidentes', 'INCIDENTES'], ['agresiones', 'agresiones', 'AGRESIONES'],
+  ['gresca', 'gresca generalizada', 'GRESCA GENERALIZADA'], ['publico_l', 'incidentes de público local', 'PÚBLICO LOCAL'],
+  ['publico_v', 'incidentes de público visitante', 'PÚBLICO VISITA'],
+];
+
+export function generarActaTexto(datos, opciones = {}) {
+  const { paraWSP = false } = opciones;
   const conclusiones = datos.conclusiones || [];
 
   if (conclusiones.length === 0) {
@@ -28,35 +50,43 @@ export function generarActaTexto(datos) {
     susp: 'El partido fue SUSPENDIDO. Se eleva informe al Tribunal de Disciplina Deportiva.',
   };
 
-  let partes = conclusiones.map(c => textos[c]).filter(Boolean);
-
-  const incidentes = [];
-  if (datos.invasion) incidentes.push('invasión de campo');
-  if (datos.incidentes) incidentes.push('incidentes');
-  if (datos.agresiones) incidentes.push('agresiones');
-  if (datos.gresca) incidentes.push('gresca generalizada');
-  if (datos.publico_l) incidentes.push('incidentes de público local');
-  if (datos.publico_v) incidentes.push('incidentes de público visitante');
-  if (incidentes.length > 0) partes.push(`Se registraron: ${incidentes.join(', ')}.`);
-
-  const campoProbs = [];
-  if (datos.ilum_obs) campoProbs.push('problemas de iluminación');
-  if (datos.humedad) campoProbs.push('humedad en el campo');
-  if (datos.goteras) campoProbs.push('goteras');
-  if (datos.arcos_obs) campoProbs.push('problemas en arcos/redes');
-  if (datos.tribunas) campoProbs.push('inconvenientes en tribunas');
-  if (campoProbs.length > 0) partes.push(`Campo de juego: ${campoProbs.join(', ')}.`);
+  // En el WSP, la conclusión ya se muestra arriba en su propia sección
+  // ("📝 Conclusión:") — repetirla acá adentro del Acta queda redundante y
+  // alarga el mensaje sin necesidad.
+  let partes = paraWSP ? [] : conclusiones.map(c => textos[c]).filter(Boolean);
 
   if (datos.comenzo_si === 'no' && datos.motivo_inicio) {
     partes.push(`El partido no comenzó en horario. Motivo: ${datos.motivo_inicio}.`);
   }
 
-  if (datos.obs_previo?.trim()) partes.push(`Control previo: ${datos.obs_previo.trim()}`);
-  const controlPrevioProbs = ITEMS_CONTROL_PREVIO.filter(([campo]) => !datos[campo]).map(([, label]) => label);
+  // Control Previo: primero las observaciones puntuales de cada ítem (lo
+  // que el oficial escribió a mano en el panel), y recién después el
+  // resumen general de ítems sin cumplir — y de ese resumen general se
+  // sacan los ítems que ya quedaron cubiertos arriba con su propia
+  // observación, para no repetir el mismo dato dos veces.
+  const obsPrevio = (datos.obs_previo || '').trim();
+  if (obsPrevio) partes.push(`Control previo: ${obsPrevio}`);
+  const obsPrevioMayus = obsPrevio.toUpperCase();
+  const controlPrevioProbs = ITEMS_CONTROL_PREVIO
+    .filter(([campo]) => !datos[campo])
+    .filter(([, , etiqueta]) => !obsPrevioMayus.includes(`${etiqueta}:`))
+    .map(([, label]) => label);
   if (controlPrevioProbs.length > 0) partes.push(`Control previo, ítems sin cumplir: ${controlPrevioProbs.join(', ')}.`);
+
   const horarios = textoHorariosCompleto(datos);
   if (horarios) partes.push(`Horarios: ${horarios}`);
-  if (datos.obs_partido?.trim()) partes.push(datos.obs_partido.trim());
+
+  // Durante el partido: mismo criterio — primero el texto puntual que
+  // escribió el oficial (obs_partido), y recién después el resumen
+  // general de los ítems marcados que todavía no quedaron cubiertos.
+  const obsPartido = (datos.obs_partido || '').trim();
+  if (obsPartido) partes.push(obsPartido);
+  const obsPartidoMayus = obsPartido.toUpperCase();
+  const duranteProbs = ITEMS_DURANTE_PARTIDO
+    .filter(([campo]) => datos[campo])
+    .filter(([, , etiqueta]) => !obsPartidoMayus.includes(`${etiqueta}:`))
+    .map(([, label]) => label);
+  if (duranteProbs.length > 0) partes.push(`Durante el partido: ${duranteProbs.join(', ')}.`);
 
   return partes.join('\n');
 }

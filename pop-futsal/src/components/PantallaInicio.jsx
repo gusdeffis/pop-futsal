@@ -133,13 +133,13 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
               </button>
             )}
 
-            <div onClick={onLogout} style={{ textAlign: 'center', color: C.rojo, fontWeight: 800, fontSize: 19, cursor: 'pointer', textDecoration: 'underline', textTransform: 'uppercase', letterSpacing: .3, marginTop: 4 }}>
+            <div onClick={onLogout} style={{ textAlign: 'center', color: C.rojo, fontWeight: 800, fontSize: 19, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: .3, marginTop: 4 }}>
               Salir
             </div>
           </>
         )}
 
-        <div style={{ textAlign: 'center', color: '#b8c0d0', fontSize: 10, marginTop: 12 }}>© Gustavo Deffis</div>
+        <div style={{ textAlign: 'center', color: '#c9d0dc', fontSize: 9, marginTop: 24, paddingBottom: 6 }}>© Gustavo Deffis</div>
       </div>
     </div>
   );

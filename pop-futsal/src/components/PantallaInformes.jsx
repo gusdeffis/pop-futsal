@@ -74,7 +74,7 @@ function rivalDe(p, rol) {
 // OJO: esto es DISTINTO de "Obs. Instalaciones" del tablero de Informes,
 // que sale de columnas de DURANTE EL PARTIDO (Pantalla4) — ver más abajo.
 const ITEM_INSTALACIONES_POR_COLUMNA = {
-  'Campo Buen Estado': 'CAMPO EN BUEN ESTADO', 'Iluminación OK': 'ILUMINACIÓN', 'Mesa Crono OK': 'MESA CRONO',
+  'Campo Buen Estado': 'CAMPO DE JUEGO', 'Iluminación OK': 'ILUMINACIÓN', 'Mesa Crono OK': 'MESA CRONO',
   'Tablero OK': 'TABLERO', 'Redes Perimetrales OK': 'REDES PERIMETRALES', 'Altura OK': 'ALTURA MIN. 5 MTS',
   'Pared Protecciones OK': 'PARED CON PROTECCIONES', 'Meta Anclada OK': 'META SIN ANCLAR',
   'Vestuario Local OK': 'VESTUARIO LOCAL', 'Vestuario Visita OK': 'VESTUARIO VISITA', 'Vestuario Árbitro OK': 'VESTUARIO ÁRBITRO',
@@ -139,7 +139,9 @@ const DETALLE_PREDICADOS = {
 
 function verDetalle(setDetalle, club, tipo, partidosFiltrados) {
   const { titulo, filtro, detalle, motivo } = DETALLE_PREDICADOS[tipo];
-  const filas = partidosDelClubConRol(club, partidosFiltrados)
+  const partidosDelClub = partidosDelClubConRol(club, partidosFiltrados);
+  const genero = partidosDelClub.find(({ p }) => p['División'])?.p['División'] || '';
+  const filas = partidosDelClub
     .filter(filtro)
     .map(({ p, rol }) => ({
       fecha: p['Fecha N°'] || '',
@@ -150,7 +152,7 @@ function verDetalle(setDetalle, club, tipo, partidosFiltrados) {
       motivo: motivo({ p, rol }),
       oficial: p['Oficial AFA'] || '',
     }));
-  setDetalle({ club, tipo, titulo, filas });
+  setDetalle({ club, tipo, titulo, genero, filas });
 }
 
 // Arma el texto para enviar por WhatsApp con todo el detalle del modal.
@@ -198,8 +200,10 @@ function ModalDetalle({ detalle, filtros, onCerrar }) {
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }}>
         <div style={{ background: C.azul, padding: '14px 16px', position: 'sticky', top: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <div>
-            <div style={{ color: '#fff', fontSize: 11, textTransform: 'uppercase', opacity: .8 }}>{detalle.club}</div>
-            <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{detalle.titulo} ({detalle.filas.length})</div>
+            <div style={{ color: 'rgba(255,255,255,.75)', fontSize: 11, textTransform: 'uppercase' }}>{detalle.titulo} ({detalle.filas.length})</div>
+            <div style={{ color: '#fff', fontSize: 19, fontWeight: 700, textTransform: 'uppercase' }}>
+              {detalle.club}{detalle.genero && <span style={{ fontWeight: 600, opacity: .85 }}> ({detalle.genero})</span>}
+            </div>
           </div>
           {detalle.filas.length > 0 && (
             <button onClick={enviarWSP} style={{ background: C.verde, border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textTransform: 'uppercase', flexShrink: 0 }}>

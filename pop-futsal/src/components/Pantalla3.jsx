@@ -78,10 +78,11 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datos.hora, datos.ingreso_local, datos.ingreso_visita]);
 
-  // Demora de Regreso post-entretiempo: se espera que vuelvan a los 10
-  // minutos del Final del 1er Tiempo (tolerancia para empezar el 2°T).
+  // Demora de Regreso post-entretiempo: se espera que vuelvan a los 11
+  // minutos del Final del 1er Tiempo (mismo criterio de tolerancia que usa
+  // "Entretiempo Excedido" en el resto de la app).
   useEffect(() => {
-    const refRegreso = sumarMinutos(datos.final_1t, 10);
+    const refRegreso = sumarMinutos(datos.final_1t, 11);
     const demL = calcularDemoraContra(refRegreso, datos.regreso_local);
     const demV = calcularDemoraContra(refRegreso, datos.regreso_visita);
     if (demL !== datos.regreso_local_dem) set('regreso_local_dem')(demL);
@@ -181,8 +182,10 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
 
         {/* Fila 2: Regreso Local | Regreso Visita | Inicio 2° T */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <HoraInput label="Regreso Local" value={datos.regreso_local} onChange={set('regreso_local')} minHeight={ALTO_RECUADRO_HORARIO} />
-          <HoraInput label="Regreso Visita" value={datos.regreso_visita} onChange={set('regreso_visita')} minHeight={ALTO_RECUADRO_HORARIO} />
+          <HoraInput label="Regreso Local" value={datos.regreso_local} onChange={set('regreso_local')} minHeight={ALTO_RECUADRO_HORARIO}
+            variant={Number(datos.regreso_local_dem) > 0 ? 'naranja' : 'celeste'} />
+          <HoraInput label="Regreso Visita" value={datos.regreso_visita} onChange={set('regreso_visita')} minHeight={ALTO_RECUADRO_HORARIO}
+            variant={Number(datos.regreso_visita_dem) > 0 ? 'naranja' : 'celeste'} />
           <HoraInput label={['Inicio', '2°T']} value={datos.inicio_2t} onChange={set('inicio_2t')} minHeight={ALTO_RECUADRO_HORARIO} />
         </div>
 
@@ -201,8 +204,8 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
         {/* Fila 3: Entretiempo | Final del Partido | Duración */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           <div style={{
-            background: datos.excedido ? '#fadada' : '#c6dbf5',
-            border: `1.5px solid ${datos.excedido ? '#e03030' : '#0d1f4e'}`, borderRadius: 10, padding: 12,
+            background: datos.excedido ? '#fadfba' : '#c6dbf5',
+            border: `1.5px solid ${datos.excedido ? '#c96a1c' : '#0d1f4e'}`, borderRadius: 10, padding: 12,
             display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center',
             minHeight: ALTO_RECUADRO_HORARIO, boxSizing: 'border-box',
           }}>

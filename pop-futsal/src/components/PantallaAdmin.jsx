@@ -40,7 +40,7 @@ function nombreClub(v, sinDato) {
   return v;
 }
 
-export default function PantallaAdmin({ onBack, onEditarListas, onEditar }) {
+export default function PantallaAdmin({ onBack, onEditarListas, onEditar, listas }) {
   const [partidos, setPartidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
@@ -80,8 +80,12 @@ export default function PantallaAdmin({ onBack, onEditarListas, onEditar }) {
   const compartirDatos = (e, p) => {
     e.stopPropagation();
     const datos = sheetRowToDatos(p);
-    const actaTexto = p['Acta Final'] || generarActaTexto(datos);
-    const texto = armarTextoWhatsApp(datos, actaTexto);
+    // Si ya hay un Acta Final guardada en la planilla, se respeta tal cual
+    // (es el texto oficial ya generado en su momento). Si hay que
+    // generarla de cero acá, se usa la versión sin repetir la conclusión
+    // (ya se muestra arriba en su propia sección del mensaje de WSP).
+    const actaTexto = p['Acta Final'] || generarActaTexto(datos, { paraWSP: true });
+    const texto = armarTextoWhatsApp(datos, actaTexto, listas?.arbitros);
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`);
   };
 
@@ -97,7 +101,7 @@ export default function PantallaAdmin({ onBack, onEditarListas, onEditar }) {
     });
     return {
       torneos: [...new Set(partidos.map(p => p['Torneo']).filter(Boolean))].sort(),
-      fechas: [...new Set(partidos.map(p => p['Fecha N°']).filter(Boolean))].sort(),
+      fechas: [...new Set(partidos.map(p => p['Fecha N°']).filter(Boolean))].sort((a, b) => Number(a) - Number(b)),
       oficiales: [...new Set(partidos.map(p => p['Oficial AFA']).filter(Boolean))].sort(),
       dias: [...diasVistos.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v),
     };
@@ -165,7 +169,7 @@ export default function PantallaAdmin({ onBack, onEditarListas, onEditar }) {
             {opciones.dias.map(v => <option key={v} value={v}>{formatearDia(v)}</option>)}
           </select>
           <select style={{ ...selectStyle, gridColumn: '1 / -1' }} value={filtros.conclusion} onChange={setFiltro('conclusion')}>
-            <option value="">Toda Conclusión</option>
+            <option value="">Todas</option>
             {CONCL_COLUMNAS.map(([, label]) => <option key={label} value={label}>{label}</option>)}
           </select>
         </div>

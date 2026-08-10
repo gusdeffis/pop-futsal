@@ -155,7 +155,7 @@ export default function App() {
   }
 
   if (vista === 'admin') {
-    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} onEditar={editarDesdePlanilla} />;
+    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} onEditar={editarDesdePlanilla} listas={listas} />;
   }
 
   if (vista === 'adminListas') {
@@ -180,7 +180,7 @@ export default function App() {
       {pantalla === 2 && <Pantalla2 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(3); window.scrollTo(0,0); }} onBack={() => { setPantalla(1); window.scrollTo(0,0); }} />}
       {pantalla === 3 && <Pantalla3 datos={datos} setDatos={setDatos} listas={listas} onIrA={setPantalla} onNext={() => { setPantalla(4); window.scrollTo(0,0); }} onBack={() => { setPantalla(2); window.scrollTo(0,0); }} />}
       {pantalla === 4 && <Pantalla4 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(5); window.scrollTo(0,0); }} onBack={() => { setPantalla(3); window.scrollTo(0,0); }} />}
-      {pantalla === 5 && <Pantalla5 datos={datos} setDatos={setDatos} onIrA={setPantalla} onBack={() => { setPantalla(4); window.scrollTo(0,0); }} onInicio={irAInicio} onFinalizar={finalizarPartido} />}
+      {pantalla === 5 && <Pantalla5 datos={datos} setDatos={setDatos} onIrA={setPantalla} onBack={() => { setPantalla(4); window.scrollTo(0,0); }} onInicio={irAInicio} onFinalizar={finalizarPartido} listas={listas} />}
     </div>
   );
 }
