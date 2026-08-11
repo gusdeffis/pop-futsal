@@ -1,5 +1,21 @@
 import { useRef, useState, useLayoutEffect, useEffect } from 'react';
 
+// Valida los dígitos de una hora "HH:MM" a medida que se van tipeando —
+// corta en el primer dígito que haría una hora imposible (ej. minutos
+// arrancando en 6-9, como en "20:73"), en vez de aceptar cualquier cosa y
+// dejar que quede una hora inválida cargada.
+export function validarDigitosHora(digitos) {
+  let resultado = '';
+  for (let i = 0; i < digitos.length && i < 4; i++) {
+    const d = digitos[i];
+    if (i === 0 && d > '2') break; // hora no puede empezar con 3-9
+    if (i === 1 && resultado[0] === '2' && d > '3') break; // 24-29 no existen
+    if (i === 2 && d > '5') break; // minutos no pueden empezar con 6-9
+    resultado += d;
+  }
+  return resultado;
+}
+
 const C = {
   azul: '#0d1f4e',
   // Celeste oscuro: fondo de campos en pantallas 1-3, borde azul siempre visible
@@ -107,7 +123,7 @@ export function InputHora({ value, onChange, placeholder = 'HH:MM', style = {}, 
     const raw = e.target.value;
     const posCursorRaw = e.target.selectionStart;
     const digitosAntes = raw.slice(0, posCursorRaw).replace(/[^0-9]/g, '').length;
-    const digitos = raw.replace(/[^0-9]/g, '').slice(0, 4);
+    const digitos = validarDigitosHora(raw.replace(/[^0-9]/g, '').slice(0, 4));
     const formateado = digitos.length >= 3 ? `${digitos.slice(0, 2)}:${digitos.slice(2)}` : digitos;
     let nuevaPos = digitosAntes + (formateado.includes(':') && digitosAntes > 2 ? 1 : 0);
     cursor.current = Math.min(nuevaPos, formateado.length);
@@ -404,7 +420,7 @@ export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoto
     const raw = e.target.value;
     const posCursorRaw = e.target.selectionStart;
     const digitosAntes = raw.slice(0, posCursorRaw).replace(/[^0-9]/g, '').length;
-    const digitos = raw.replace(/[^0-9]/g, '').slice(0, 4);
+    const digitos = validarDigitosHora(raw.replace(/[^0-9]/g, '').slice(0, 4));
     const formateado = digitos.length >= 3 ? `${digitos.slice(0, 2)}:${digitos.slice(2)}` : digitos;
     let nuevaPos = digitosAntes + (formateado.includes(':') && digitosAntes > 2 ? 1 : 0);
     cursor.current = Math.min(nuevaPos, formateado.length);
@@ -431,7 +447,7 @@ export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoto
         style={{ fontSize: 26, fontWeight: 700, color, border: 'none', background: 'transparent', width: '100%', outline: 'none', letterSpacing: 2, padding: 0 }}
       />
       {!sinBoton && (
-        <button onClick={setAhora} style={{
+        <button onClick={setAhora} tabIndex={-1} style={{
           background: variant === 'rosa' ? C.bordo : C.rojo, color: '#fff', border: 'none', borderRadius: 6,
           padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
         }}>▶ Ahora</button>

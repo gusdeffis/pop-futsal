@@ -88,6 +88,18 @@ export function marcarEnviadoNube(id, enviado) {
   localStorage.setItem(KEY_HISTORIAL, JSON.stringify(actualizado));
 }
 
+// Registra CADA intento de envío (haya salido bien, mal, o quedado sin
+// confirmar) — separado de marcarEnviadoNube, que solo se llama si la
+// respuesta del servidor llegó y confirmó. Sirve para avisar si se intenta
+// reenviar muy poco después de un intento anterior, aunque la tarjeta
+// todavía no se haya puesto en verde (justo el caso que generó un partido
+// duplicado: la respuesta del primer envío no llegó a tiempo al celular).
+export function marcarIntentoEnvio(id) {
+  const historial = obtenerHistorial();
+  const actualizado = historial.map(h => h.id === id ? { ...h, ultimoIntentoEnvio: new Date().toISOString() } : h);
+  localStorage.setItem(KEY_HISTORIAL, JSON.stringify(actualizado));
+}
+
 // --- Puntero al último partido tocado: solo un id + en qué pantalla se
 // quedó. Los datos reales viven en el Historial, esto es nada más que un
 // "marcapáginas" para que "Continuar Partido" sepa a cuál ir.

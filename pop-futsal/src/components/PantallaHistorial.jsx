@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
 import { generarActaTexto } from '../utils/acta';
-import { enviarAPlanillaCompartida, marcarEnviadoNube } from '../useAutoSave';
+import { enviarAPlanillaCompartida, marcarEnviadoNube, marcarIntentoEnvio } from '../useAutoSave';
 
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030', enCursoBg: '#fadfba', enCursoBorde: '#c96a1c' };
 
@@ -69,7 +69,20 @@ export default function PantallaHistorial({ historial: historialCompleto, onBack
       const fecha = h.fechaEnvioNube ? formatearFechaHora(h.fechaEnvioNube) : 'antes';
       const ok = window.confirm(`Este partido ya fue enviado el ${fecha}. ¿Querés reenviarlo? Se va a actualizar el dato anterior en la planilla.`);
       if (!ok) return;
+    } else if (h.ultimoIntentoEnvio) {
+      // Aunque la tarjeta todavía diga "No enviado", si hubo un intento
+      // hace muy poco puede ser que ese envío anterior sí haya llegado a
+      // la planilla y la respuesta simplemente no se haya confirmado a
+      // tiempo en el celular — reenviar ahí puede duplicar la fila.
+      const segundosDesdeUltimoIntento = (Date.now() - new Date(h.ultimoIntentoEnvio).getTime()) / 1000;
+      if (segundosDesdeUltimoIntento < 120) {
+        const ok = window.confirm(
+          `Hace menos de 2 minutos ya intentaste enviar este partido. Puede que ese envío haya funcionado y todavía no se haya reflejado acá.\n\nSi volvés a enviar ahora, podría quedar duplicado en la planilla.\n\n¿Preferís esperar un momento y revisar antes? Tocá Cancelar para esperar, o Aceptar para enviar de todos modos.`
+        );
+        if (!ok) return;
+      }
     }
+    marcarIntentoEnvio(h.id);
     setSubiendoId(h.id);
     try {
       const actaTexto = h.actaTexto || generarActaTexto(h.datos);

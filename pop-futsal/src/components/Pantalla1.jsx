@@ -2,17 +2,6 @@ import { useEffect } from 'react';
 import { Header, Campo, Input, InputHora, Select, SelectLibre, BtnNext, BtnSalir } from './UI';
 import { clubesParaTorneo } from '../utils/clubesPorCategoria';
 
-// Auto-avance en campo fecha: "4" → "07" → "2026"
-function useFechaInput(value, onChange) {
-  const handleChange = (val) => {
-    let v = val.replace(/[^0-9]/g, '');
-    if (v.length >= 2) v = v.slice(0, 2) + '/' + v.slice(2);
-    if (v.length >= 5) v = v.slice(0, 5) + '/' + v.slice(5, 9);
-    onChange(v.slice(0, 10));
-  };
-  return handleChange;
-}
-
 function fechaHoy() {
   const now = new Date();
   const dd = String(now.getDate()).padStart(2, '0');
@@ -20,10 +9,21 @@ function fechaHoy() {
   return `${dd}/${mm}/${now.getFullYear()}`;
 }
 
+// El resto de la app (WSP, PDF, Historial) espera "DD/MM/AAAA" en
+// datos.dia, pero el selector nativo de calendario necesita "AAAA-MM-DD"
+// — se convierte en el borde nomás, sin tocar el formato guardado.
+function ddmmaaaaAIso(v) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v || '');
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+}
+function isoADdmmaaaa(v) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || '');
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+}
+
 export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, onIrA }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const valido = datos.torneo && datos.local && datos.visitante && datos.arbitro;
-  const handleFecha = useFechaInput(datos.dia, set('dia'));
   const clubesFiltrados = clubesParaTorneo(datos.torneo, listas.clubes, listas.clubesCategoria);
 
   // Auto-completa el día con la fecha de hoy si todavía está vacío
@@ -72,7 +72,7 @@ export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, on
         {/* Día y Hora */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <Campo label="Día">
-            <Input value={datos.dia} onChange={handleFecha} placeholder="DD/MM/AAAA" />
+            <Input type="date" value={ddmmaaaaAIso(datos.dia)} onChange={v => set('dia')(isoADdmmaaaa(v))} />
           </Campo>
           <Campo label="Hora">
             <InputHora value={datos.hora} onChange={set('hora')} />
