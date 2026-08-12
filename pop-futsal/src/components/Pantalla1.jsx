@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Header, Campo, Input, InputHora, Select, SelectLibre, BtnNext, BtnSalir } from './UI';
 import { clubesParaTorneo } from '../utils/clubesPorCategoria';
+import { estadioPorDefecto } from '../utils/fixture';
 
 function fechaHoy() {
   const now = new Date();
@@ -21,7 +22,7 @@ function isoADdmmaaaa(v) {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
 }
 
-export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, onIrA }) {
+export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, onIrA, fixtureFilas, clubesFilas }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const valido = datos.torneo && datos.local && datos.visitante && datos.arbitro;
   const clubesFiltrados = clubesParaTorneo(datos.torneo, listas.clubes, listas.clubesCategoria);
@@ -31,6 +32,22 @@ export default function Pantalla1({ datos, setDatos, onNext, listas, onSalir, on
     if (!datos.dia) set('dia')(fechaHoy());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Precarga el Estadio apenas están los 4 datos que lo identifican
+  // (Torneo + Fecha N° + Local + Visitante) — primero busca si el
+  // coordinador ya asignó uno puntual en Fixture, si no cae al estadio por
+  // defecto del club Local. Nunca pisa un valor que el oficial ya haya
+  // tipeado a mano.
+  useEffect(() => {
+    if (datos.estadio) return; // no pisar lo que ya está cargado
+    if (!datos.torneo || !datos.fecha_nro || !datos.local || !datos.visitante) return;
+    const encontrado = estadioPorDefecto({
+      torneo: datos.torneo, fechaNro: datos.fecha_nro, local: datos.local, visitante: datos.visitante,
+      fixture: fixtureFilas, clubes: clubesFilas,
+    });
+    if (encontrado) set('estadio')(encontrado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datos.torneo, datos.fecha_nro, datos.local, datos.visitante]);
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>

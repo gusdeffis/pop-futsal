@@ -315,6 +315,17 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
   const [detalle, setDetalle] = useState(null);
   const [exportando, setExportando] = useState(false);
 
+  // Modo presentación: en una pantalla ancha (notebook/proyector, no
+  // celular) agranda las tablas para que se lean bien de lejos en una
+  // reunión — el resto de la app sigue pensada para celular, esto es
+  // exclusivo de esta pantalla.
+  const [modoAncho, setModoAncho] = useState(typeof window !== 'undefined' && window.innerWidth > 900);
+  useEffect(() => {
+    const onResize = () => setModoAncho(window.innerWidth > 900);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const cargar = async () => {
     setCargando(true);
     const { ok, partidos: nuevos } = await obtenerTodosLosPartidos();
@@ -393,7 +404,7 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
   };
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
+    <div style={{ maxWidth: modoAncho ? 1100 : 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
       <ModalDetalle detalle={detalle} filtros={filtros} onCerrar={() => setDetalle(null)} />
       <div style={{ background: C.azul, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack} style={{ background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', width: 36, height: 36, borderRadius: 8, fontSize: 18, cursor: 'pointer' }}>←</button>
@@ -445,35 +456,39 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
       )}
 
       {!cargando && !error && partidos.length > 0 && mostrarFiltros && (
-        <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8, borderBottom: `1px solid ${C.celeste}` }}>
-          <select style={{ ...selectFiltro, width: '100%' }} value={filtros.torneo} onChange={setFiltro('torneo')}>
+        <div style={{
+          padding: 12, borderBottom: `1px solid ${C.celeste}`,
+          display: modoAncho ? 'grid' : 'flex', flexDirection: modoAncho ? undefined : 'column',
+          gridTemplateColumns: modoAncho ? '1fr 1fr 1fr 1fr 1fr' : undefined, gap: modoAncho ? 12 : 8, alignItems: modoAncho ? 'end' : undefined,
+        }}>
+          <select style={{ ...selectFiltro, width: '100%', ...(modoAncho ? { height: 48, fontSize: 14 } : {}) }} value={filtros.torneo} onChange={setFiltro('torneo')}>
             <option value="">Todos los Torneos</option>
             {opciones.torneos.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
-          <select style={{ ...selectFiltro, width: '100%' }} value={filtros.division} onChange={setFiltro('division')}>
+          <select style={{ ...selectFiltro, width: '100%', ...(modoAncho ? { height: 48, fontSize: 14 } : {}) }} value={filtros.division} onChange={setFiltro('division')}>
             <option value="">Todas las Divisiones</option>
             {opciones.divisiones.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
-          <select style={{ ...selectFiltro, width: '100%' }} value={filtros.categoriaClub} onChange={setFiltro('categoriaClub')}>
+          <select style={{ ...selectFiltro, width: '100%', ...(modoAncho ? { height: 48, fontSize: 14 } : {}) }} value={filtros.categoriaClub} onChange={setFiltro('categoriaClub')}>
             <option value="">Todos los Clubes</option>
             {['A', 'B', 'C', 'D'].map(v => <option key={v} value={v}>Categoría {v}</option>)}
           </select>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.azul, textTransform: 'uppercase', marginBottom: 4 }}>Rango de fechas</div>
+            <div style={{ fontSize: modoAncho ? 12 : 10, fontWeight: 700, color: C.azul, textTransform: 'uppercase', marginBottom: 4 }}>Rango de fechas</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <input type="date" style={inputFiltro} value={filtros.fechaDesde} onChange={setFiltro('fechaDesde')} placeholder="Desde" />
-              <input type="date" style={inputFiltro} value={filtros.fechaHasta} onChange={setFiltro('fechaHasta')} placeholder="Hasta" />
+              <input type="date" style={{ ...inputFiltro, ...(modoAncho ? { height: 48, fontSize: 14 } : {}) }} value={filtros.fechaDesde} onChange={setFiltro('fechaDesde')} placeholder="Desde" />
+              <input type="date" style={{ ...inputFiltro, ...(modoAncho ? { height: 48, fontSize: 14 } : {}) }} value={filtros.fechaHasta} onChange={setFiltro('fechaHasta')} placeholder="Hasta" />
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.azul, textTransform: 'uppercase', marginBottom: 4 }}>Rango de fechas de torneo</div>
+            <div style={{ fontSize: modoAncho ? 12 : 10, fontWeight: 700, color: C.azul, textTransform: 'uppercase', marginBottom: 4 }}>Rango de fechas de torneo</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <input type="number" style={inputFiltro} value={filtros.fechaNroDesde} onChange={setFiltro('fechaNroDesde')} placeholder="Desde (ej: 1)" />
-              <input type="number" style={inputFiltro} value={filtros.fechaNroHasta} onChange={setFiltro('fechaNroHasta')} placeholder="Hasta (ej: 10)" />
+              <input type="number" style={{ ...inputFiltro, ...(modoAncho ? { height: 48, fontSize: 14 } : {}) }} value={filtros.fechaNroDesde} onChange={setFiltro('fechaNroDesde')} placeholder="Desde (ej: 1)" />
+              <input type="number" style={{ ...inputFiltro, ...(modoAncho ? { height: 48, fontSize: 14 } : {}) }} value={filtros.fechaNroHasta} onChange={setFiltro('fechaNroHasta')} placeholder="Hasta (ej: 10)" />
             </div>
           </div>
           {hayFiltrosActivos && (
-            <button onClick={() => setFiltros(FILTROS_VACIOS)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: C.rojo, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+            <button onClick={() => setFiltros(FILTROS_VACIOS)} style={{ alignSelf: modoAncho ? 'center' : 'flex-start', background: 'none', border: 'none', color: C.rojo, fontSize: modoAncho ? 14 : 12, fontWeight: 700, cursor: 'pointer', padding: 0, gridColumn: modoAncho ? '5' : undefined }}>
               ✕ Limpiar filtros
             </button>
           )}
@@ -485,7 +500,7 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
       )}
 
       {!cargando && !error && porClub.length > 0 && (
-        <>
+        <div style={modoAncho ? { zoom: 1.4 } : undefined}>
           <div style={{ padding: '10px 12px 0', fontSize: 15, fontWeight: 700, color: C.azul, textTransform: 'uppercase' }}>
             Tablero de Demoras en Inicio y Entretiempos
           </div>
@@ -542,7 +557,7 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
               </button>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

@@ -183,7 +183,7 @@ export function Input({ value, onChange, placeholder, type = 'text', style = {},
 // Igual que Select, pero además permite escribir un valor que no está en la
 // lista (para amistosos con equipos/árbitros/estadios de afuera). Usa un
 // <input> con lista desplegable de sugerencias en vez de un <select> cerrado.
-export function SelectLibre({ value, onChange, options, placeholder, variant = 'celeste' }) {
+export function SelectLibre({ value, onChange, options, placeholder, variant = 'celeste', style = {} }) {
   const [abierto, setAbierto] = useState(false);
   // Al volver a tocar un campo que ya tiene un valor cargado, se muestra la
   // lista COMPLETA (para reelegir otra opción), no filtrada por el texto ya
@@ -248,6 +248,7 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d1f4e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
             backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
             backgroundSize: '16px', paddingRight: 32,
+            ...style,
           }}
         />
       </div>
@@ -269,7 +270,7 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
   );
 }
 
-export function Select({ value, onChange, options, placeholder, variant = 'celeste' }) {
+export function Select({ value, onChange, options, placeholder, variant = 'celeste', style = {} }) {
   return (
     <select
       value={value}
@@ -281,6 +282,7 @@ export function Select({ value, onChange, options, placeholder, variant = 'celes
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d1f4e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
         backgroundSize: '16px', paddingRight: 32,
+        ...style,
       }}
     >
       <option value="">{placeholder}</option>

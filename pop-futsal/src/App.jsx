@@ -10,26 +10,61 @@ import PantallaAdmin from './components/PantallaAdmin';
 import PantallaAdminListas from './components/PantallaAdminListas';
 import PantallaInformes from './components/PantallaInformes';
 import PantallaInformeClub from './components/PantallaInformeClub';
+import PantallaAsignarPartidos from './components/PantallaAsignarPartidos';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
+import { obtenerListasAdmin } from './useListasAdmin';
 import { generarActaTexto } from './utils/acta';
 import { sheetRowToDatos } from './utils/sheetRowToDatos';
+import { parsearFixture, partidosPendientes } from './utils/fixture';
 import {
   useAutoSave, cargarGuardado, guardarInmediato, limpiarPuntero,
   obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube,
-  guardarLogin, cargarLogin, borrarLogin, generarId,
+  guardarLogin, cargarLogin, borrarLogin, generarId, obtenerTodosLosPartidos,
 } from './useAutoSave';
 
 export default function App() {
   const loginInicial = cargarLogin();
 
-  const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial' | 'admin' | 'adminListas'
+  const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial' | 'admin' | 'adminListas' | 'asignar'
   const [pantalla, setPantalla] = useState(1);
   const [datos, setDatos] = useState(ESTADO_INICIAL);
   const [guardado, setGuardado] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [oficialLogueado, setOficialLogueado] = useState(loginInicial);
   const listas = useListas();
+
+  // Fixture + Clubes (para precargar Estadio en Pantalla1) y los partidos
+  // pendientes de este oficial (para el aviso en Pantalla de Inicio) — se
+  // traen UNA sola vez, justo después de loguearse, no en cada pantalla.
+  // También se puede volver a pedir a mano (botón "Actualizar" en la
+  // tarjeta de avisos), por si tardó y no llegó a mostrarse a tiempo.
+  const [fixtureFilas, setFixtureFilas] = useState(null);
+  const [clubesFilas, setClubesFilas] = useState(null);
+  const [pendientes, setPendientes] = useState([]);
+  const [cargandoPendientes, setCargandoPendientes] = useState(false);
+
+  const cargarPendientes = async (nombreOficial) => {
+    if (!nombreOficial) { setPendientes([]); return; }
+    setCargandoPendientes(true);
+    try {
+      const [{ hojas }, { partidos: partidosCargados }] = await Promise.all([
+        obtenerListasAdmin(),
+        obtenerTodosLosPartidos(),
+      ]);
+      const fixture = hojas.Fixture || [];
+      setFixtureFilas(fixture);
+      setClubesFilas(hojas.Clubes || []);
+      setPendientes(partidosPendientes(nombreOficial, fixture, partidosCargados));
+    } finally {
+      setCargandoPendientes(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarPendientes(oficialLogueado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oficialLogueado]);
 
   useEffect(() => {
     setGuardado(cargarGuardado());
@@ -95,6 +130,7 @@ export default function App() {
 
   const esAdmin = !!oficialLogueado && listas.perfiles?.[(oficialLogueado || '').toUpperCase()] === 'ADMINISTRADOR';
   const veInformes = esAdmin || (!!oficialLogueado && !!listas.veInformes?.[(oficialLogueado || '').toUpperCase()]);
+  const veAsignar = esAdmin || (!!oficialLogueado && !!listas.veAsignar?.[(oficialLogueado || '').toUpperCase()]);
   const irAAdmin = () => setVista('admin');
 
   // Se llama al tocar "Finalizar Partido" en el Acta: lo marca como
@@ -150,8 +186,27 @@ export default function App() {
         onAdmin={irAAdmin}
         veInformes={veInformes}
         onInformes={() => setVista('informes')}
+        veAsignar={veAsignar}
+        onAsignar={() => setVista('asignar')}
+        pendientes={pendientes}
+        cargandoPendientes={cargandoPendientes}
+        onActualizarPendientes={() => cargarPendientes(oficialLogueado)}
+        onCargarPendiente={(p) => {
+          setDatos({
+            ...ESTADO_INICIAL, _id: generarId(),
+            torneo: p.torneo, division: p.division, fecha_nro: p.fecha_nro,
+            local: p.local, visitante: p.visitante, estadio: p.estadio,
+            dia: p.dia, hora: p.hora, nro: p.partido_nro,
+          });
+          setPantalla(1);
+          setVista('partido');
+        }}
       />
     );
+  }
+
+  if (vista === 'asignar') {
+    return <PantallaAsignarPartidos onBack={irAInicio} listas={listas} fixtureFilas={fixtureFilas} clubesFilas={clubesFilas} />;
   }
 
   if (vista === 'admin') {
@@ -176,7 +231,7 @@ export default function App() {
 
   return (
     <div>
-      {pantalla === 1 && <Pantalla1 datos={datos} setDatos={setDatos} listas={listas} onSalir={irAInicio} onIrA={setPantalla} onNext={() => { setPantalla(2); window.scrollTo(0,0); }} />}
+      {pantalla === 1 && <Pantalla1 datos={datos} setDatos={setDatos} listas={listas} onSalir={irAInicio} onIrA={setPantalla} onNext={() => { setPantalla(2); window.scrollTo(0,0); }} fixtureFilas={fixtureFilas} clubesFilas={clubesFilas} />}
       {pantalla === 2 && <Pantalla2 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(3); window.scrollTo(0,0); }} onBack={() => { setPantalla(1); window.scrollTo(0,0); }} />}
       {pantalla === 3 && <Pantalla3 datos={datos} setDatos={setDatos} listas={listas} onIrA={setPantalla} onNext={() => { setPantalla(4); window.scrollTo(0,0); }} onBack={() => { setPantalla(2); window.scrollTo(0,0); }} />}
       {pantalla === 4 && <Pantalla4 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(5); window.scrollTo(0,0); }} onBack={() => { setPantalla(3); window.scrollTo(0,0); }} />}

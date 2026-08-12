@@ -2,6 +2,19 @@ import { useEffect } from 'react';
 import { APPS_SCRIPT_PARTIDOS_URL } from './data';
 import { generarActaTexto } from './utils/acta';
 
+// Mismo motivo que en useListasAdmin.js: sin un límite de tiempo, un fetch
+// lento podía dejar pantallas como "Buscando partidos asignados..." pegadas
+// para siempre, sin nunca mostrar el resultado ni el botón de reintentar.
+async function fetchConTimeout(url, opciones = {}, msTimeout = 20000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), msTimeout);
+  try {
+    return await fetch(url, { ...opciones, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 const KEY_HISTORIAL = 'pop_historial';
 const KEY_PUNTERO = 'pop_puntero_activo';
 const KEY_LOGIN = 'pop_login';
@@ -155,7 +168,7 @@ export function guardarInmediato(datos, pantalla) {
 export async function obtenerTodosLosPartidos() {
   if (!APPS_SCRIPT_PARTIDOS_URL) return { ok: false, partidos: [] };
   try {
-    const res = await fetch(APPS_SCRIPT_PARTIDOS_URL, { cache: 'no-store' });
+    const res = await fetchConTimeout(APPS_SCRIPT_PARTIDOS_URL, { cache: 'no-store' });
     const json = await res.json();
     return { ok: !!json.ok, partidos: json.partidos || [] };
   } catch {
