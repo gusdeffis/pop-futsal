@@ -22,7 +22,7 @@ export function normalizarClub(nombre) {
 export const UMBRAL_DEMORA_MIN = 1; // > 1 minuto ya cuenta como demora (mismo criterio que el resto de la app)
 const ET_LIMITE_MIN = 11; // mismo límite que usa Pantalla3 para "excedido"
 
-const COLUMNAS_OBS_INSTALACIONES = ['Tablero con Fallas', 'Iluminación Obs.', 'Humedad', 'Goteras', 'Arcos/Redes', 'Tribunas'];
+export const COLUMNAS_OBS_INSTALACIONES = ['Tablero con Fallas', 'Iluminación Obs.', 'Humedad', 'Goteras', 'Arcos/Redes', 'Tribunas'];
 
 // Minutos desde medianoche. Acepta "HH:MM" de texto o una fecha ISO (Google
 // Sheets a veces serializa las celdas de hora como fecha con el epoch

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Pantalla1 from './components/Pantalla1';
 import Pantalla2 from './components/Pantalla2';
 import Pantalla3 from './components/Pantalla3';
@@ -10,26 +10,108 @@ import PantallaAdmin from './components/PantallaAdmin';
 import PantallaAdminListas from './components/PantallaAdminListas';
 import PantallaInformes from './components/PantallaInformes';
 import PantallaInformeClub from './components/PantallaInformeClub';
+import PantallaAsignarPartidos from './components/PantallaAsignarPartidos';
 import { ESTADO_INICIAL } from './data';
 import { useListas } from './useListas';
+import { obtenerListasAdmin } from './useListasAdmin';
 import { generarActaTexto } from './utils/acta';
 import { sheetRowToDatos } from './utils/sheetRowToDatos';
+import { parsearFixture, partidosPendientes } from './utils/fixture';
 import {
   useAutoSave, cargarGuardado, guardarInmediato, limpiarPuntero,
   obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube,
-  guardarLogin, cargarLogin, borrarLogin, generarId,
+  guardarLogin, cargarLogin, borrarLogin, generarId, obtenerTodosLosPartidos,
 } from './useAutoSave';
 
 export default function App() {
   const loginInicial = cargarLogin();
 
-  const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial' | 'admin' | 'adminListas'
+  const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial' | 'admin' | 'adminListas' | 'asignar'
   const [pantalla, setPantalla] = useState(1);
   const [datos, setDatos] = useState(ESTADO_INICIAL);
   const [guardado, setGuardado] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [oficialLogueado, setOficialLogueado] = useState(loginInicial);
   const listas = useListas();
+  // Bug real corregido: en el PRIMER login (justo al cargar la página),
+  // el propio hook useListas() YA pide los permisos frescos por su cuenta
+  // — si acá TAMBIÉN se pedía de nuevo con recargar(), quedaban 2 pedidos
+  // corriendo en paralelo al mismo link, y si el segundo llegaba después
+  // con datos más viejos (por timing de red), pisaba el resultado correcto
+  // — un botón que aparecía un instante y después desaparecía solo. Con
+  // este flag, recargar() solo se llama en logins SIGUIENTES (deslogueo +
+  // login de nuevo en la misma pestaña), no en el primero.
+  const primerLoginHecho = useRef(false);
+
+  // Fixture + Clubes (para precargar Estadio en Pantalla1) y los partidos
+  // pendientes de este oficial (para el aviso en Pantalla de Inicio) — se
+  // traen UNA sola vez, justo después de loguearse, no en cada pantalla.
+  // También se puede volver a pedir a mano (botón "Actualizar" en la
+  // tarjeta de avisos), por si tardó y no llegó a mostrarse a tiempo.
+  //
+  // Punto 4 (feedback real): antes, cada vez que entrabas mostraba
+  // "Buscando..." aunque ya hubieras visto esos mismos partidos la vez
+  // anterior — molesto si no cambió nada. Ahora se guarda en el celular/
+  // notebook (localStorage) lo último que se vio para ESE oficial puntual,
+  // y se muestra al toque sin esperar nada. Igual se sigue pidiendo la
+  // versión fresca en segundo plano (por si asignaron o sacaron algo
+  // mientras tanto) y se reemplaza en silencio cuando llega — sin volver a
+  // mostrar "Buscando..." si ya había algo para mostrar.
+  const claveCachePendientes = (nombreOficial) => `popa_pendientes_${(nombreOficial || '').trim().toUpperCase()}`;
+
+  const leerPendientesCache = (nombreOficial) => {
+    try {
+      const raw = localStorage.getItem(claveCachePendientes(nombreOficial));
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  };
+
+  const guardarPendientesCache = (nombreOficial, lista) => {
+    try { localStorage.setItem(claveCachePendientes(nombreOficial), JSON.stringify(lista)); } catch {}
+  };
+
+  const [fixtureFilas, setFixtureFilas] = useState(null);
+  const [clubesFilas, setClubesFilas] = useState(null);
+  const [pendientes, setPendientes] = useState([]);
+  const [cargandoPendientes, setCargandoPendientes] = useState(false);
+
+  const cargarPendientes = async (nombreOficial) => {
+    if (!nombreOficial) { setPendientes([]); return; }
+    const cache = leerPendientesCache(nombreOficial);
+    if (cache) {
+      setPendientes(cache); // se ve al toque, sin esperar nada
+    } else {
+      setCargandoPendientes(true); // recién acá, si no hay nada guardado, se muestra "Buscando..."
+    }
+    try {
+      const [{ hojas }, { partidos: partidosCargados }] = await Promise.all([
+        obtenerListasAdmin(),
+        obtenerTodosLosPartidos(),
+      ]);
+      const fixture = hojas.Fixture || [];
+      setFixtureFilas(fixture);
+      setClubesFilas(hojas.Clubes || []);
+      const frescos = partidosPendientes(nombreOficial, fixture, partidosCargados);
+      setPendientes(frescos);
+      guardarPendientesCache(nombreOficial, frescos);
+    } finally {
+      setCargandoPendientes(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarPendientes(oficialLogueado);
+    // Bug real: los permisos (Perfil/Informes/Asignar) solo se pedían una
+    // vez, al cargar la página — si alguien probaba deslogueando y
+    // volviendo a loguear en la MISMA pestaña ya abierta después de editar
+    // la hoja, seguía viendo los permisos viejos. Ahora se vuelven a pedir
+    // en cada login SIGUIENTE (no en el primero, ver comentario arriba).
+    if (oficialLogueado) {
+      if (primerLoginHecho.current) listas.recargar?.();
+      primerLoginHecho.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oficialLogueado]);
 
   useEffect(() => {
     setGuardado(cargarGuardado());
@@ -94,7 +176,13 @@ export default function App() {
   };
 
   const esAdmin = !!oficialLogueado && listas.perfiles?.[(oficialLogueado || '').toUpperCase()] === 'ADMINISTRADOR';
+  // GESTION: perfil liviano que solo ve Informes (ej. alguien de la
+  // comisión que necesita mirar los tableros, sin ser un Oficial de
+  // Partido de verdad) — se le ocultan Nuevo Partido/Continuar/Historial,
+  // que no le sirven de nada.
+  const esGestion = !!oficialLogueado && listas.perfiles?.[(oficialLogueado || '').toUpperCase()] === 'GESTION';
   const veInformes = esAdmin || (!!oficialLogueado && !!listas.veInformes?.[(oficialLogueado || '').toUpperCase()]);
+  const veAsignar = esAdmin || (!!oficialLogueado && !!listas.veAsignar?.[(oficialLogueado || '').toUpperCase()]);
   const irAAdmin = () => setVista('admin');
 
   // Se llama al tocar "Finalizar Partido" en el Acta: lo marca como
@@ -147,15 +235,35 @@ export default function App() {
         onLogin={handleLogin}
         onLogout={handleLogout}
         esAdmin={esAdmin}
+        esGestion={esGestion}
         onAdmin={irAAdmin}
         veInformes={veInformes}
         onInformes={() => setVista('informes')}
+        veAsignar={veAsignar}
+        onAsignar={() => setVista('asignar')}
+        pendientes={pendientes}
+        cargandoPendientes={cargandoPendientes}
+        onActualizarPendientes={() => cargarPendientes(oficialLogueado)}
+        onCargarPendiente={(p) => {
+          setDatos({
+            ...ESTADO_INICIAL, _id: generarId(),
+            torneo: p.torneo, division: p.division, fecha_nro: p.fecha_nro,
+            local: p.local, visitante: p.visitante, estadio: p.estadio,
+            dia: p.dia, hora: p.hora, nro: p.partido_nro,
+          });
+          setPantalla(1);
+          setVista('partido');
+        }}
       />
     );
   }
 
+  if (vista === 'asignar') {
+    return <PantallaAsignarPartidos onBack={irAInicio} listas={listas} fixtureFilas={fixtureFilas} clubesFilas={clubesFilas} />;
+  }
+
   if (vista === 'admin') {
-    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} onEditar={editarDesdePlanilla} />;
+    return <PantallaAdmin onBack={irAInicio} onEditarListas={() => setVista('adminListas')} onEditar={editarDesdePlanilla} listas={listas} />;
   }
 
   if (vista === 'adminListas') {
@@ -176,11 +284,11 @@ export default function App() {
 
   return (
     <div>
-      {pantalla === 1 && <Pantalla1 datos={datos} setDatos={setDatos} listas={listas} onSalir={irAInicio} onIrA={setPantalla} onNext={() => { setPantalla(2); window.scrollTo(0,0); }} />}
+      {pantalla === 1 && <Pantalla1 datos={datos} setDatos={setDatos} listas={listas} onSalir={irAInicio} onIrA={setPantalla} onNext={() => { setPantalla(2); window.scrollTo(0,0); }} fixtureFilas={fixtureFilas} clubesFilas={clubesFilas} />}
       {pantalla === 2 && <Pantalla2 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(3); window.scrollTo(0,0); }} onBack={() => { setPantalla(1); window.scrollTo(0,0); }} />}
       {pantalla === 3 && <Pantalla3 datos={datos} setDatos={setDatos} listas={listas} onIrA={setPantalla} onNext={() => { setPantalla(4); window.scrollTo(0,0); }} onBack={() => { setPantalla(2); window.scrollTo(0,0); }} />}
       {pantalla === 4 && <Pantalla4 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(5); window.scrollTo(0,0); }} onBack={() => { setPantalla(3); window.scrollTo(0,0); }} />}
-      {pantalla === 5 && <Pantalla5 datos={datos} setDatos={setDatos} onIrA={setPantalla} onBack={() => { setPantalla(4); window.scrollTo(0,0); }} onInicio={irAInicio} onFinalizar={finalizarPartido} />}
+      {pantalla === 5 && <Pantalla5 datos={datos} setDatos={setDatos} onIrA={setPantalla} onBack={() => { setPantalla(4); window.scrollTo(0,0); }} onInicio={irAInicio} onFinalizar={finalizarPartido} listas={listas} />}
     </div>
   );
 }

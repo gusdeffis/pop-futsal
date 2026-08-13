@@ -11,7 +11,7 @@ const CONCL_OPCIONES = [
   { id: 'susp', label: 'Suspensión', color: '#e03030', bg: '#fff0f0', exclusivo: false },
 ];
 
-export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinalizar, onIrA }) {
+export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinalizar, onIrA, listas }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
 
   const handleFinalizar = () => {
@@ -89,7 +89,10 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
   };
 
   const handleWhatsApp = () => {
-    const texto = armarTextoWhatsApp(datos, actaTexto);
+    // Versión del Acta específica para WSP: sin repetir la conclusión, que
+    // ya se muestra arriba en su propia sección del mensaje.
+    const actaTextoWSP = generarActaTexto(datos, { paraWSP: true });
+    const texto = armarTextoWhatsApp(datos, actaTextoWSP, listas?.arbitros);
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`);
   };
 

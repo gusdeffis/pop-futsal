@@ -1,5 +1,21 @@
 import { useRef, useState, useLayoutEffect, useEffect } from 'react';
 
+// Valida los dígitos de una hora "HH:MM" a medida que se van tipeando —
+// corta en el primer dígito que haría una hora imposible (ej. minutos
+// arrancando en 6-9, como en "20:73"), en vez de aceptar cualquier cosa y
+// dejar que quede una hora inválida cargada.
+export function validarDigitosHora(digitos) {
+  let resultado = '';
+  for (let i = 0; i < digitos.length && i < 4; i++) {
+    const d = digitos[i];
+    if (i === 0 && d > '2') break; // hora no puede empezar con 3-9
+    if (i === 1 && resultado[0] === '2' && d > '3') break; // 24-29 no existen
+    if (i === 2 && d > '5') break; // minutos no pueden empezar con 6-9
+    resultado += d;
+  }
+  return resultado;
+}
+
 const C = {
   azul: '#0d1f4e',
   // Celeste oscuro: fondo de campos en pantallas 1-3, borde azul siempre visible
@@ -107,7 +123,7 @@ export function InputHora({ value, onChange, placeholder = 'HH:MM', style = {}, 
     const raw = e.target.value;
     const posCursorRaw = e.target.selectionStart;
     const digitosAntes = raw.slice(0, posCursorRaw).replace(/[^0-9]/g, '').length;
-    const digitos = raw.replace(/[^0-9]/g, '').slice(0, 4);
+    const digitos = validarDigitosHora(raw.replace(/[^0-9]/g, '').slice(0, 4));
     const formateado = digitos.length >= 3 ? `${digitos.slice(0, 2)}:${digitos.slice(2)}` : digitos;
     let nuevaPos = digitosAntes + (formateado.includes(':') && digitosAntes > 2 ? 1 : 0);
     cursor.current = Math.min(nuevaPos, formateado.length);
@@ -167,7 +183,7 @@ export function Input({ value, onChange, placeholder, type = 'text', style = {},
 // Igual que Select, pero además permite escribir un valor que no está en la
 // lista (para amistosos con equipos/árbitros/estadios de afuera). Usa un
 // <input> con lista desplegable de sugerencias en vez de un <select> cerrado.
-export function SelectLibre({ value, onChange, options, placeholder, variant = 'celeste' }) {
+export function SelectLibre({ value, onChange, options, placeholder, variant = 'celeste', style = {} }) {
   const [abierto, setAbierto] = useState(false);
   // Al volver a tocar un campo que ya tiene un valor cargado, se muestra la
   // lista COMPLETA (para reelegir otra opción), no filtrada por el texto ya
@@ -232,6 +248,7 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d1f4e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
             backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
             backgroundSize: '16px', paddingRight: 32,
+            ...style,
           }}
         />
       </div>
@@ -253,7 +270,7 @@ export function SelectLibre({ value, onChange, options, placeholder, variant = '
   );
 }
 
-export function Select({ value, onChange, options, placeholder, variant = 'celeste' }) {
+export function Select({ value, onChange, options, placeholder, variant = 'celeste', style = {} }) {
   return (
     <select
       value={value}
@@ -265,6 +282,7 @@ export function Select({ value, onChange, options, placeholder, variant = 'celes
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d1f4e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
         backgroundSize: '16px', paddingRight: 32,
+        ...style,
       }}
     >
       <option value="">{placeholder}</option>
@@ -404,7 +422,7 @@ export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoto
     const raw = e.target.value;
     const posCursorRaw = e.target.selectionStart;
     const digitosAntes = raw.slice(0, posCursorRaw).replace(/[^0-9]/g, '').length;
-    const digitos = raw.replace(/[^0-9]/g, '').slice(0, 4);
+    const digitos = validarDigitosHora(raw.replace(/[^0-9]/g, '').slice(0, 4));
     const formateado = digitos.length >= 3 ? `${digitos.slice(0, 2)}:${digitos.slice(2)}` : digitos;
     let nuevaPos = digitosAntes + (formateado.includes(':') && digitosAntes > 2 ? 1 : 0);
     cursor.current = Math.min(nuevaPos, formateado.length);
@@ -431,7 +449,7 @@ export function HoraInput({ value, onChange, label, variant = 'celeste', sinBoto
         style={{ fontSize: 26, fontWeight: 700, color, border: 'none', background: 'transparent', width: '100%', outline: 'none', letterSpacing: 2, padding: 0 }}
       />
       {!sinBoton && (
-        <button onClick={setAhora} style={{
+        <button onClick={setAhora} tabIndex={-1} style={{
           background: variant === 'rosa' ? C.bordo : C.rojo, color: '#fff', border: 'none', borderRadius: 6,
           padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
         }}>▶ Ahora</button>

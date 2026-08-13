@@ -110,7 +110,7 @@ const PADDING_BOTON_INSTALACIONES = '5px 10px';
 // texto de observaciones a partir de lo que falta marcar — un solo campo
 // por ítem, con nombre completo para Vestuarios (en la grilla van
 // abreviados, pero en el texto de observaciones conviene el nombre entero).
-const LABELS_COMPLETOS = { vest_l: 'Vestuario Local', vest_v: 'Vestuario Visita', vest_arb: 'Vestuario Árbitro' };
+const LABELS_COMPLETOS = { buen_estado: 'Campo de Juego', vest_l: 'Vestuario Local', vest_v: 'Vestuario Visita', vest_arb: 'Vestuario Árbitro' };
 const TODOS_LOS_ITEMS = FILAS_INSTALACIONES.flatMap(f => f.items)
   .map(([campo, label]) => [campo, LABELS_COMPLETOS[campo] || label]);
 

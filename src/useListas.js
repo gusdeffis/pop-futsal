@@ -35,27 +35,46 @@ function parseCSVColumnaA(texto) {
 }
 
 // Hoja "Oficiales": cuatro columnas (Nombre | PIN | Perfil | Informes).
-// Devuelve { pines: {NOMBRE: pin}, perfiles: {NOMBRE: 'ADMINISTRADOR'|'OFICIAL'},
-// veInformes: {NOMBRE: true|false} }. Perfil e Informes son opcionales: si
-// están vacías, se toman como 'OFICIAL' y sin acceso a Informes.
+// Devuelve { pines: {NOMBRE: pin}, perfiles: {NOMBRE: 'ADMINISTRADOR'|'GESTION'|'OFICIAL'},
+// veInformes: {NOMBRE: true|false}, veAsignar: {NOMBRE: true|false} }.
+//
+// Columna Perfil: acepta 'ADM' (nuevo, corto) o 'ADMINISTRADOR' (formato viejo,
+// para no romper filas ya cargadas) → ADMINISTRADOR. 'GES' o 'GESTION' → GESTION
+// (perfil liviano que solo ve Informes, sin ser un Oficial de Partido de
+// verdad — no aparece en el desplegable de Asignar Partidos). Cualquier otro
+// valor, o vacío → OFICIAL (el caso normal).
+//
+// GESTION ve Informes automáticamente, sin necesitar además la columna
+// Informes en "SI" — evita cargar el mismo dato dos veces.
 export function parsePinesCSV(texto) {
   const lineas = texto.split(/\r?\n/);
   const pines = {};
   const perfiles = {};
   const veInformes = {};
+  const veAsignar = {};
   for (let i = 1; i < lineas.length; i++) {
     const cols = lineas[i].split(',');
     const nombre = (cols[0] ?? '').trim().replace(/^"|"$/g, '').trim();
     const pin = (cols[1] ?? '').trim().replace(/^"|"$/g, '').trim();
     const perfil = (cols[2] ?? '').trim().replace(/^"|"$/g, '').trim().toUpperCase();
     const informes = (cols[3] ?? '').trim().replace(/^"|"$/g, '').trim().toUpperCase();
+    const asignar = (cols[4] ?? '').trim().replace(/^"|"$/g, '').trim().toUpperCase();
     if (nombre && pin) {
+      const perfilFinal =
+        (perfil === 'ADM' || perfil === 'ADMINISTRADOR') ? 'ADMINISTRADOR' :
+        (perfil === 'GES' || perfil === 'GESTION') ? 'GESTION' : 'OFICIAL';
       pines[nombre.toUpperCase()] = pin;
-      perfiles[nombre.toUpperCase()] = perfil === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'OFICIAL';
-      veInformes[nombre.toUpperCase()] = informes === 'SI';
+      perfiles[nombre.toUpperCase()] = perfilFinal;
+      // Acepta "SI" (lo que escribe el casillero de la app) o "X" (lo más
+      // intuitivo si alguien lo tipea a mano en el Excel directo) — caso
+      // real: alguien puso "X" a mano y no se activó el permiso porque acá
+      // solo se aceptaba "SI" exacto.
+      const esSi = (v) => v === 'SI' || v === 'X' || v === 'TRUE';
+      veInformes[nombre.toUpperCase()] = perfilFinal === 'GESTION' || esSi(informes);
+      veAsignar[nombre.toUpperCase()] = esSi(asignar);
     }
   }
-  return { pines, perfiles, veInformes };
+  return { pines, perfiles, veInformes, veAsignar };
 }
 
 
@@ -129,6 +148,7 @@ export function useListas() {
     iniciales.pines = cacheInicial.pines || OFICIAL_PINS;
     iniciales.perfiles = cacheInicial.perfiles || {};
     iniciales.veInformes = cacheInicial.veInformes || {};
+    iniciales.veAsignar = cacheInicial.veAsignar || {};
     iniciales.clubesCategoria = cacheInicial.clubesCategoria || {};
     iniciales.motivosInicioMapa = cacheInicial.motivosInicioMapa
       || Object.fromEntries(DEFAULT_MOTIVOS_INICIO.filter(Boolean).map(m => [m.toUpperCase(), m.toUpperCase()]));
@@ -139,104 +159,111 @@ export function useListas() {
   const [cargando, setCargando] = useState(true);
   const [ultimaActualizacion, setUltimaActualizacion] = useState(cacheInicial.__timestamp || null);
 
-  useEffect(() => {
-    let activo = true;
+  // Bug real corregido: esto antes solo se pedía UNA vez, al cargar la
+  // página — si alguien editaba Perfil/Informes/Asignar en la hoja y
+  // probaba deslogueando y volviendo a loguear en la MISMA pestaña ya
+  // abierta (sin recargar la página entera), seguía viendo los permisos
+  // viejos, aunque la hoja ya tuviera el dato correcto. `recargar` deja
+  // pedirlo de nuevo a mano — App.jsx lo llama en cada login.
+  const cargarTodas = async () => {
+    const cache = cargarCache();
+    const nuevasListas = {};
+    let huboActualizacion = false;
 
-    async function cargarTodas() {
-      const cache = cargarCache();
-      const nuevasListas = {};
-      let huboActualizacion = false;
+    await Promise.all(Object.entries(CONFIG).map(async ([clave, [urlKey, def, blanco]]) => {
+      const url = SHEET_URLS[urlKey];
+      if (!url) return; // pestaña todavía no publicada: se queda con el fallback
 
-      await Promise.all(Object.entries(CONFIG).map(async ([clave, [urlKey, def, blanco]]) => {
-        const url = SHEET_URLS[urlKey];
-        if (!url) return; // pestaña todavía no publicada: se queda con el fallback
-        try {
-          let valores = await fetchLista(url);
-          if (clave === 'clubes') valores = valores.filter(v => !pareceFechaRota(v));
-          if (valores.length > 0) {
-            const final = blanco ? ['', ...valores] : valores;
-            nuevasListas[clave] = final;
-            cache[clave] = valores;
+      try {
+        let valores = await fetchLista(url);
+        if (clave === 'clubes') valores = valores.filter(v => !pareceFechaRota(v));
+        if (valores.length > 0) {
+          const final = blanco ? ['', ...valores] : valores;
+          nuevasListas[clave] = final;
+          cache[clave] = valores;
+          huboActualizacion = true;
+        }
+      } catch {
+        // sin conexión o error de red: se mantiene la caché/fallback existente
+      }
+    }));
+
+    // PINs, Perfiles, Informes y Asignar: se leen de las columnas B, C, D
+    // y E de la MISMA hoja "Oficiales" (A = nombre, B = PIN, C = Perfil,
+    // D = Informes, E = Asignar), no hace falta una pestaña aparte.
+    if (SHEET_URLS.oficiales) {
+      try {
+        const res = await fetch(SHEET_URLS.oficiales, { cache: 'no-store' });
+        if (res.ok) {
+          const { pines, perfiles, veInformes, veAsignar } = parsePinesCSV(await res.text());
+          if (Object.keys(pines).length > 0) {
+            nuevasListas.pines = pines;
+            nuevasListas.perfiles = perfiles;
+            nuevasListas.veInformes = veInformes;
+            nuevasListas.veAsignar = veAsignar;
+            cache.pines = pines;
+            cache.perfiles = perfiles;
+            cache.veInformes = veInformes;
+            cache.veAsignar = veAsignar;
             huboActualizacion = true;
           }
-        } catch {
-          // sin conexión o error de red: se mantiene la caché/fallback existente
         }
-      }));
-
-      // PINs, Perfiles e Informes: se leen de las columnas B, C y D de la
-      // MISMA hoja "Oficiales" (A = nombre, B = PIN, C = Perfil, D = Informes),
-      // no hace falta una pestaña aparte.
-      if (SHEET_URLS.oficiales) {
-        try {
-          const res = await fetch(SHEET_URLS.oficiales, { cache: 'no-store' });
-          if (res.ok) {
-            const { pines, perfiles, veInformes } = parsePinesCSV(await res.text());
-            if (Object.keys(pines).length > 0) {
-              nuevasListas.pines = pines;
-              nuevasListas.perfiles = perfiles;
-              nuevasListas.veInformes = veInformes;
-              cache.pines = pines;
-              cache.perfiles = perfiles;
-              cache.veInformes = veInformes;
-              huboActualizacion = true;
-            }
-          }
-        } catch {
-          // sin conexión o error: se mantiene el respaldo/caché existente
-        }
+      } catch {
+        // sin conexión o error: se mantiene el respaldo/caché existente
       }
-
-      // Columna B de la hoja Clubes: categoría (A/B/C/D) de cada club, para
-      // filtrar el listado según el torneo elegido.
-      if (SHEET_URLS.clubes) {
-        try {
-          const res = await fetch(SHEET_URLS.clubes, { cache: 'no-store' });
-          if (res.ok) {
-            const mapa = parseClubesCategoriaCSV(await res.text());
-            if (Object.keys(mapa).length > 0) {
-              nuevasListas.clubesCategoria = mapa;
-              cache.clubesCategoria = mapa;
-              huboActualizacion = true;
-            }
-          }
-        } catch {
-          // sin conexión o error: se mantiene el respaldo/caché existente
-        }
-      }
-
-      // Columna B de las hojas de Motivos (valor exacto para el PDF, además
-      // del texto que se ve en la app en la columna A).
-      for (const [clave, urlKey] of [['motivosInicioMapa', 'motivosInicio'], ['motivosETMapa', 'motivosET']]) {
-        const url = SHEET_URLS[urlKey];
-        if (!url) continue;
-        try {
-          const res = await fetch(url, { cache: 'no-store' });
-          if (res.ok) {
-            const mapa = parseMapaCSV(await res.text());
-            if (Object.keys(mapa).length > 0) {
-              nuevasListas[clave] = mapa;
-              cache[clave] = mapa;
-              huboActualizacion = true;
-            }
-          }
-        } catch {
-          // sin conexión o error: se mantiene el respaldo/caché existente
-        }
-      }
-
-      if (activo && huboActualizacion) {
-        cache.__timestamp = new Date().toISOString();
-        guardarCache(cache);
-        setListas(prev => ({ ...prev, ...nuevasListas }));
-        setUltimaActualizacion(cache.__timestamp);
-      }
-      if (activo) setCargando(false);
     }
 
+    // Columna B de la hoja Clubes: categoría (A/B/C/D) de cada club, para
+    // filtrar el listado según el torneo elegido.
+    if (SHEET_URLS.clubes) {
+      try {
+        const res = await fetch(SHEET_URLS.clubes, { cache: 'no-store' });
+        if (res.ok) {
+          const mapa = parseClubesCategoriaCSV(await res.text());
+          if (Object.keys(mapa).length > 0) {
+            nuevasListas.clubesCategoria = mapa;
+            cache.clubesCategoria = mapa;
+            huboActualizacion = true;
+          }
+        }
+      } catch {
+        // sin conexión o error: se mantiene el respaldo/caché existente
+      }
+    }
+
+    // Columna B de las hojas de Motivos (valor exacto para el PDF, además
+    // del texto que se ve en la app en la columna A).
+    for (const [clave, urlKey] of [['motivosInicioMapa', 'motivosInicio'], ['motivosETMapa', 'motivosET']]) {
+      const url = SHEET_URLS[urlKey];
+      if (!url) continue;
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res.ok) {
+          const mapa = parseMapaCSV(await res.text());
+          if (Object.keys(mapa).length > 0) {
+            nuevasListas[clave] = mapa;
+            cache[clave] = mapa;
+            huboActualizacion = true;
+          }
+        }
+      } catch {
+        // sin conexión o error: se mantiene el respaldo/caché existente
+      }
+    }
+
+    if (huboActualizacion) {
+      cache.__timestamp = new Date().toISOString();
+      guardarCache(cache);
+      setListas(prev => ({ ...prev, ...nuevasListas }));
+      setUltimaActualizacion(cache.__timestamp);
+    }
+    setCargando(false);
+  };
+
+  useEffect(() => {
     cargarTodas();
-    return () => { activo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { ...listas, cargando, ultimaActualizacion };
+  return { ...listas, cargando, ultimaActualizacion, recargar: cargarTodas };
 }

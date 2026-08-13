@@ -10,6 +10,43 @@ const selectStyle = {
   backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
 };
 
+// Recuadro compartido para "Demora Inicio/Partido" y "Entretiempo" — mismo
+// criterio de color en los dos: celeste mientras no hay dato, verde pastel
+// si está en horario/dentro del límite, naranja pastel + número en blanco
+// con píldora roja si está excedido/con demora, e igual placa "Excedido"
+// abajo en ese caso. `textoEnHora`, si se pasa, reemplaza el número por ese
+// texto cuando está OK (ej. "en hora"); si no, se muestra el número tal cual.
+function RecuadroDemora({ titulo, valor, excedido, textoEnHora, sufijo = 'min.', minHeight }) {
+  const vacio = valor === '' || valor == null;
+  return (
+    <div style={{
+      background: vacio ? '#c6dbf5' : (excedido ? '#fadfba' : '#c8ecd4'),
+      border: `1.5px solid ${vacio ? '#0d1f4e' : (excedido ? '#c96a1c' : '#1a7a3a')}`, borderRadius: 10, padding: 12,
+      display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center',
+      minHeight, boxSizing: 'border-box',
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center' }}>{titulo}</div>
+      {!vacio && !excedido && textoEnHora ? (
+        <span style={{ fontSize: 20, fontWeight: 700, color: '#0d1f4e' }}>{textoEnHora}</span>
+      ) : (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+          borderRadius: 8, padding: '4px 12px',
+          background: vacio ? 'transparent' : (excedido ? '#e03030' : '#1a7a3a'),
+        }}>
+          <span style={{ fontSize: 22, fontWeight: 700, color: vacio ? '#0d1f4e' : '#fff' }}>{vacio ? '—' : valor}</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: vacio ? '#0d1f4e' : '#fff' }}>{sufijo}</span>
+        </div>
+      )}
+      {excedido && (
+        <div style={{ background: '#e03030', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, textTransform: 'uppercase', letterSpacing: .3 }}>
+          Excedido
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Calcula minutos entre dos horas "HH:MM". Si inicio_2t < final_1t asume que cruzó la hora.
 function calcularMinutos(inicio, fin) {
   if (!inicio || !fin || !inicio.includes(':') || !fin.includes(':')) return '';
@@ -78,10 +115,11 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datos.hora, datos.ingreso_local, datos.ingreso_visita]);
 
-  // Demora de Regreso post-entretiempo: se espera que vuelvan a los 10
-  // minutos del Final del 1er Tiempo (tolerancia para empezar el 2°T).
+  // Demora de Regreso post-entretiempo: se espera que vuelvan a los 11
+  // minutos del Final del 1er Tiempo (mismo criterio de tolerancia que usa
+  // "Entretiempo Excedido" en el resto de la app).
   useEffect(() => {
-    const refRegreso = sumarMinutos(datos.final_1t, 10);
+    const refRegreso = sumarMinutos(datos.final_1t, 11);
     const demL = calcularDemoraContra(refRegreso, datos.regreso_local);
     const demV = calcularDemoraContra(refRegreso, datos.regreso_visita);
     if (demL !== datos.regreso_local_dem) set('regreso_local_dem')(demL);
@@ -163,26 +201,22 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
         {/* Fila 1: Inicio Real | Desvío Inicio Partido | Final 1° T */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           <HoraInput label={['Inicio', 'Real']} value={datos.hora_real} onChange={set('hora_real')} minHeight={ALTO_RECUADRO_HORARIO} />
-          <div style={{
-            background: datos.desvio_inicio === '' ? '#c6dbf5' : (Number(datos.desvio_inicio) <= 1 ? '#d7f0dd' : '#fadada'),
-            border: `1.5px solid ${datos.desvio_inicio !== '' && Number(datos.desvio_inicio) > 1 ? '#e03030' : '#0d1f4e'}`, borderRadius: 10, padding: 12,
-            display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', justifyContent: 'center',
-            minHeight: ALTO_RECUADRO_HORARIO, boxSizing: 'border-box',
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center' }}>
-              {datos.desvio_inicio !== '' && Number(datos.desvio_inicio) <= 1 ? 'Inicio de Partido' : 'Desvío Inicio Partido'}
-            </div>
-            <span style={{ fontSize: 20, fontWeight: 700, color: datos.desvio_inicio !== '' && Number(datos.desvio_inicio) > 1 ? '#e03030' : '#0d1f4e' }}>
-              {datos.desvio_inicio === '' ? '—' : (Number(datos.desvio_inicio) <= 1 ? 'en hora' : `${datos.desvio_inicio} min.`)}
-            </span>
-          </div>
+          <RecuadroDemora
+            titulo="Demora Inicio/Partido"
+            valor={datos.desvio_inicio}
+            excedido={datos.desvio_inicio !== '' && Number(datos.desvio_inicio) > 1}
+            textoEnHora="en hora"
+            minHeight={ALTO_RECUADRO_HORARIO}
+          />
           <HoraInput label={['Final', '1°T']} value={datos.final_1t} onChange={set('final_1t')} minHeight={ALTO_RECUADRO_HORARIO} />
         </div>
 
         {/* Fila 2: Regreso Local | Regreso Visita | Inicio 2° T */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <HoraInput label="Regreso Local" value={datos.regreso_local} onChange={set('regreso_local')} minHeight={ALTO_RECUADRO_HORARIO} />
-          <HoraInput label="Regreso Visita" value={datos.regreso_visita} onChange={set('regreso_visita')} minHeight={ALTO_RECUADRO_HORARIO} />
+          <HoraInput label="Regreso Local" value={datos.regreso_local} onChange={set('regreso_local')} minHeight={ALTO_RECUADRO_HORARIO}
+            variant={Number(datos.regreso_local_dem) > 0 ? 'naranja' : 'celeste'} />
+          <HoraInput label="Regreso Visita" value={datos.regreso_visita} onChange={set('regreso_visita')} minHeight={ALTO_RECUADRO_HORARIO}
+            variant={Number(datos.regreso_visita_dem) > 0 ? 'naranja' : 'celeste'} />
           <HoraInput label={['Inicio', '2°T']} value={datos.inicio_2t} onChange={set('inicio_2t')} minHeight={ALTO_RECUADRO_HORARIO} />
         </div>
 
@@ -200,27 +234,12 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
 
         {/* Fila 3: Entretiempo | Final del Partido | Duración */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <div style={{
-            background: datos.excedido ? '#fadada' : '#c6dbf5',
-            border: `1.5px solid ${datos.excedido ? '#e03030' : '#0d1f4e'}`, borderRadius: 10, padding: 12,
-            display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center',
-            minHeight: ALTO_RECUADRO_HORARIO, boxSizing: 'border-box',
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5 }}>Entretiempo</div>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-              borderRadius: 8, padding: '4px 12px',
-              background: datos.et_min === '' ? 'transparent' : (Number(datos.et_min) <= 11 ? '#1a7a3a' : '#e03030'),
-            }}>
-              <span style={{ fontSize: 22, fontWeight: 700, color: datos.et_min === '' ? '#0d1f4e' : '#fff' }}>{datos.et_min || '—'}</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: datos.et_min === '' ? '#0d1f4e' : '#fff' }}>min.</span>
-            </div>
-            {datos.excedido && (
-              <div style={{ background: '#e03030', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, textTransform: 'uppercase', letterSpacing: .3 }}>
-                Excedido
-              </div>
-            )}
-          </div>
+          <RecuadroDemora
+            titulo="Entretiempo"
+            valor={datos.et_min}
+            excedido={datos.excedido}
+            minHeight={ALTO_RECUADRO_HORARIO}
+          />
           <HoraInput label="Final del partido" value={datos.final_partido} onChange={set('final_partido')} minHeight={ALTO_RECUADRO_HORARIO} />
           <div style={{ background: '#c6dbf5', border: '1.5px solid #0d1f4e', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center', minHeight: ALTO_RECUADRO_HORARIO, boxSizing: 'border-box' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, lineHeight: 1.2, textAlign: 'center' }}>

@@ -10,7 +10,7 @@ import { demoraInicioMin, normalizarClub } from './indicadoresClub';
 // "Sin cumplir en fecha X". Si algún día cambian las etiquetas de
 // Pantalla2, hay que actualizar esta 3ra columna para que sigan calzando.
 const ITEMS_INSTALACIONES = [
-  ['Campo Buen Estado', 'Campo de Juego', 'CAMPO EN BUEN ESTADO'],
+  ['Campo Buen Estado', 'Campo de Juego', 'CAMPO DE JUEGO'],
   ['Iluminación OK', 'Iluminación', 'ILUMINACIÓN'],
   ['Mesa Crono OK', 'Mesa Crono', 'MESA CRONO'],
   ['Tablero OK', 'Tablero', 'TABLERO'],

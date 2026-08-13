@@ -2,6 +2,19 @@ import { useEffect } from 'react';
 import { APPS_SCRIPT_PARTIDOS_URL } from './data';
 import { generarActaTexto } from './utils/acta';
 
+// Mismo motivo que en useListasAdmin.js: sin un límite de tiempo, un fetch
+// lento podía dejar pantallas como "Buscando partidos asignados..." pegadas
+// para siempre, sin nunca mostrar el resultado ni el botón de reintentar.
+async function fetchConTimeout(url, opciones = {}, msTimeout = 20000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), msTimeout);
+  try {
+    return await fetch(url, { ...opciones, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 const KEY_HISTORIAL = 'pop_historial';
 const KEY_PUNTERO = 'pop_puntero_activo';
 const KEY_LOGIN = 'pop_login';
@@ -88,6 +101,18 @@ export function marcarEnviadoNube(id, enviado) {
   localStorage.setItem(KEY_HISTORIAL, JSON.stringify(actualizado));
 }
 
+// Registra CADA intento de envío (haya salido bien, mal, o quedado sin
+// confirmar) — separado de marcarEnviadoNube, que solo se llama si la
+// respuesta del servidor llegó y confirmó. Sirve para avisar si se intenta
+// reenviar muy poco después de un intento anterior, aunque la tarjeta
+// todavía no se haya puesto en verde (justo el caso que generó un partido
+// duplicado: la respuesta del primer envío no llegó a tiempo al celular).
+export function marcarIntentoEnvio(id) {
+  const historial = obtenerHistorial();
+  const actualizado = historial.map(h => h.id === id ? { ...h, ultimoIntentoEnvio: new Date().toISOString() } : h);
+  localStorage.setItem(KEY_HISTORIAL, JSON.stringify(actualizado));
+}
+
 // --- Puntero al último partido tocado: solo un id + en qué pantalla se
 // quedó. Los datos reales viven en el Historial, esto es nada más que un
 // "marcapáginas" para que "Continuar Partido" sepa a cuál ir.
@@ -143,7 +168,7 @@ export function guardarInmediato(datos, pantalla) {
 export async function obtenerTodosLosPartidos() {
   if (!APPS_SCRIPT_PARTIDOS_URL) return { ok: false, partidos: [] };
   try {
-    const res = await fetch(APPS_SCRIPT_PARTIDOS_URL, { cache: 'no-store' });
+    const res = await fetchConTimeout(APPS_SCRIPT_PARTIDOS_URL, { cache: 'no-store' });
     const json = await res.json();
     return { ok: !!json.ok, partidos: json.partidos || [] };
   } catch {
