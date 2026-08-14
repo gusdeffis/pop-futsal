@@ -43,6 +43,12 @@ export default function App() {
   // login de nuevo en la misma pestaña), no en el primero.
   const primerLoginHecho = useRef(false);
 
+  // Punto: "Ir a Fixture" desde Editar Listas (Panel Administrador) navega
+  // a Asignar Partidos y abre directo la vista de Fixture ahí — antes había
+  // 2 pantallas de Fixture distintas y desactualizadas entre sí, ahora es
+  // una sola.
+  const [abrirFixtureAlEntrar, setAbrirFixtureAlEntrar] = useState(false);
+
   // Fixture + Clubes (para precargar Estadio en Pantalla1) y los partidos
   // pendientes de este oficial (para el aviso en Pantalla de Inicio) — se
   // traen UNA sola vez, justo después de loguearse, no en cada pantalla.
@@ -153,6 +159,7 @@ export default function App() {
   const irAInicio = () => {
     setGuardado(cargarGuardado());
     setVista('inicio');
+    setAbrirFixtureAlEntrar(false); // se resetea al salir, no queda pegado en próximas entradas normales
   };
 
   const nuevoPartido = () => {
@@ -259,7 +266,7 @@ export default function App() {
   }
 
   if (vista === 'asignar') {
-    return <PantallaAsignarPartidos onBack={irAInicio} listas={listas} fixtureFilas={fixtureFilas} clubesFilas={clubesFilas} />;
+    return <PantallaAsignarPartidos onBack={irAInicio} listas={listas} fixtureFilas={fixtureFilas} clubesFilas={clubesFilas} abrirFixtureAlEntrar={abrirFixtureAlEntrar} />;
   }
 
   if (vista === 'admin') {
@@ -267,7 +274,7 @@ export default function App() {
   }
 
   if (vista === 'adminListas') {
-    return <PantallaAdminListas onBack={() => setVista('admin')} oficialLogueado={oficialLogueado} />;
+    return <PantallaAdminListas onBack={() => setVista('admin')} oficialLogueado={oficialLogueado} onIrAFixture={() => { setAbrirFixtureAlEntrar(true); setVista('asignar'); }} />;
   }
 
   if (vista === 'informes') {

@@ -129,7 +129,7 @@ export default function PantallaInicio({ guardado, onNuevo, onContinuar, onHisto
                         {p.dia && `${diaDeLaSemana(p.dia)} ${p.dia}`}{p.hora ? `, ${p.hora} hs` : ''}
                       </div>
                     )}
-                    {p.estadio && <div style={{ fontSize: 13, fontWeight: 700, color: '#666' }}>{p.estadio}</div>}
+                    {p.estadio && <div style={{ fontSize: 13, fontWeight: 700, color: '#666' }}>Estadio: {p.estadio}</div>}
                   </div>
                 ))}
               </div>

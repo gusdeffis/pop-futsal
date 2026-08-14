@@ -1,8 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { Input, InputHora, SelectLibre, Select } from './UI';
 import { obtenerListasAdmin, guardarListaAdmin } from '../useListasAdmin';
 import { parsearFixture, serializarFixture, estadiosDelClub } from '../utils/fixture';
 import { generarPDFAsignaciones } from '../utils/asignacionesPdf';
+import { generarExcelAsignaciones, descargarExcel } from '../utils/asignacionesExcel';
 import { descargarPDF } from '../utils/pdfFiller';
 
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030', amarillo: '#8a6a10', amarilloClaro: '#fdf3d8', gris: '#8a94a6' };
@@ -79,7 +81,7 @@ function proximoNumero(fixture) {
   return maximo + 1;
 }
 
-export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, clubesFilas: clubesFilasIniciales }) {
+export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, clubesFilas: clubesFilasIniciales, abrirFixtureAlEntrar }) {
   const [cargando, setCargando] = useState(!fixtureFilas);
   const [error, setError] = useState(false);
   const [fixture, setFixture] = useState(() => fixtureFilas ? parsearFixture(fixtureFilas) : []);
@@ -93,14 +95,35 @@ export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, 
   const [guardando, setGuardando] = useState(false);
   const [avisoGuardado, setAvisoGuardado] = useState('');
   const [generandoPDF, setGenerandoPDF] = useState(false);
+  const [generandoExcel, setGenerandoExcel] = useState(false);
+
+  // Corrige el Torneo por defecto si el texto exacto que puse ("Camp. de 1°
+  // A") no coincide letra por letra con el que está guardado de verdad en
+  // la planilla (un caracter como "°" puede verse igual pero ser distinto
+  // por dentro) — caso real: el filtro decía "Camp. de 1° A" pero no
+  // filtraba nada, porque el desplegable no encontraba ESA opción exacta.
+  // Busca de forma más flexible (sin importar mayúsculas/tildes/espacios) y
+  // ajusta el filtro al nombre real, una sola vez, apenas llega la lista.
+  useEffect(() => {
+    const normalizar = (s) => (s || '').trim().toUpperCase().replace(/[°º]/g, '');
+    const torneosReales = listas?.torneos || [];
+    if (torneosReales.length === 0) return;
+    if (torneosReales.includes(filtros.torneo)) return; // ya coincide exacto, no hay nada que corregir
+    const coincidencia = torneosReales.find(t => normalizar(t) === normalizar(filtros.torneo));
+    if (coincidencia) setFiltros(f => ({ ...f, torneo: coincidencia }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listas?.torneos]);
 
   // --- Punto 7/8/9: acceso a Fixture directo desde Asignar Partidos ---
-  const [mostrarFixture, setMostrarFixture] = useState(false);
+  const [mostrarFixture, setMostrarFixture] = useState(!!abrirFixtureAlEntrar);
   const [nuevosFixture, setNuevosFixture] = useState([['', '', '']]); // N°, Local, Visitante
   const [guardandoFixture, setGuardandoFixture] = useState(false);
   const [mensajeFixture, setMensajeFixture] = useState('');
   const [fechaFiltroCargados, setFechaFiltroCargados] = useState(''); // punto 8: filtro nuevo, solo acá
   const [filasBorradas, setFilasBorradas] = useState(new Set()); // _filaIndex marcados para borrar al guardar
+  const [importando, setImportando] = useState(false);
+  const [mensajeImport, setMensajeImport] = useState('');
+  const inputArchivoRef = useRef(null);
 
   // Si App.jsx todavía no había terminado de traer fixtureFilas/clubesFilas
   // al montar este componente, useState solo agarra el valor inicial (vacío)
@@ -299,6 +322,65 @@ export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, 
     setFixture(fx => fx.filter(p => p._filaIndex !== filaIndex));
   };
 
+  // Subir el fixture completo de una vez desde un Excel, en vez de cargarlo
+  // partido por partido a mano. Espera columnas Torneo, Division, Fecha,
+  // Local, Visitante (sin distinguir mayúscula/minúscula ni espacios de
+  // más). Se SUMA al Fixture existente, nunca lo reemplaza — mismo criterio
+  // que la carga manual/pegado de arriba.
+  const importarExcelFixture = async (archivo) => {
+    setImportando(true);
+    setMensajeImport('');
+    try {
+      const buffer = await archivo.arrayBuffer();
+      const libro = XLSX.read(buffer, { type: 'array' });
+      const hoja = libro.Sheets[libro.SheetNames[0]];
+      const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
+
+      if (filas.length === 0) {
+        setMensajeImport('❌ El archivo no tiene filas de datos.');
+        setImportando(false);
+        return;
+      }
+
+      const normalizarClave = (obj, buscada) => {
+        const clave = Object.keys(obj).find(k => k.trim().toLowerCase() === buscada);
+        return clave ? String(obj[clave] ?? '').trim() : '';
+      };
+
+      const nuevasFilas = filas
+        .map(fila => ({
+          torneo: normalizarClave(fila, 'torneo'),
+          division: normalizarClave(fila, 'division') || normalizarClave(fila, 'división'),
+          fecha: normalizarClave(fila, 'fecha'),
+          local: normalizarClave(fila, 'local'),
+          visitante: normalizarClave(fila, 'visitante'),
+        }))
+        .filter(f => f.local || f.visitante);
+
+      if (nuevasFilas.length === 0) {
+        setMensajeImport('❌ No se encontraron columnas Torneo/Division/Fecha/Local/Visitante en el archivo.');
+        setImportando(false);
+        return;
+      }
+
+      const filasCompletas = nuevasFilas.map(f => [
+        f.torneo, f.division.toUpperCase().startsWith('F') ? 'F' : 'M', f.fecha, f.local, f.visitante, '', '', '', '', '', '', '',
+      ]);
+
+      const { ok, hojas } = await obtenerListasAdmin({ soloHoja: 'Fixture' });
+      const fixtureActual = ok ? (hojas.Fixture || []) : serializarFixture(fixture);
+      const combinado = [...fixtureActual, ...filasCompletas];
+      const okGuardar = await guardarListaAdmin('Fixture', combinado);
+      setMensajeImport(okGuardar ? `✅ Se importaron ${filasCompletas.length} partido(s) del Excel.` : '❌ No se pudo guardar, revisá la conexión');
+      if (okGuardar) setFixture(parsearFixture(combinado));
+    } catch (err) {
+      setMensajeImport(`❌ No se pudo leer el archivo. Revisá que sea un Excel válido.\n\nDetalle técnico: ${err?.message || err}`);
+    } finally {
+      setImportando(false);
+      if (inputArchivoRef.current) inputArchivoRef.current.value = '';
+    }
+  };
+
   // Antes de guardar, trae la versión más fresca posible del fixture
   // completo (por si otro coordinador guardó algo mientras tanto) y aplica
   // ahí arriba SOLO los cambios hechos en esta sesión — así no se pisan
@@ -331,7 +413,7 @@ export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, 
     const texto = [
       `📋 Partidos asignados`,
       '',
-      elegidos.map(p => `${p.local} vs ${p.visitante} — ${p.dia ? `${diaDeLaSemana(p.dia)} ${p.dia}` : '(sin fecha)'}${p.hora ? `, ${p.hora} hs` : ''}${p.estadio ? ` — ${p.estadio}` : ''}${p.partido_nro ? ` (Partido N° ${p.partido_nro})` : ''}`).join('\n\n'),
+      elegidos.map(p => `${p.local} vs ${p.visitante} — ${p.dia ? `${diaDeLaSemana(p.dia)} ${p.dia}` : '(sin fecha)'}${p.hora ? `, ${p.hora} hs` : ''}${p.estadio ? ` — Estadio: ${p.estadio}` : ''}`).join('\n\n'),
     ].join('\n');
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`);
   };
@@ -348,11 +430,32 @@ export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, 
     }
   };
 
+  const handleGenerarExcel = () => {
+    setGenerandoExcel(true);
+    try {
+      const { bytes, nombreSugerido } = generarExcelAsignaciones(filtrados);
+      descargarExcel(bytes, nombreSugerido);
+    } catch (err) {
+      alert(`No se pudo generar el Excel.\n\nDetalle técnico: ${err?.message || err}`);
+    } finally {
+      setGenerandoExcel(false);
+    }
+  };
+
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
       <div style={{ background: C.azul, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack} style={{ background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', width: 36, height: 36, borderRadius: 8, fontSize: 18, cursor: 'pointer' }}>←</button>
         <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>Asignar Partidos</div>
+        {/* Punto 7 (reubicado): acceso a Fixture — es secundario, así que va
+            chico, pegado al margen derecho del título, no como su propia
+            línea abajo (se confundía con un filtro más). */}
+        <button onClick={() => setMostrarFixture(v => !v)} style={{
+          marginLeft: 'auto', background: mostrarFixture ? '#fff' : 'rgba(255,255,255,.15)', color: mostrarFixture ? C.azul : '#fff',
+          border: 'none', borderRadius: 8, padding: '6px 10px', fontWeight: 700, fontSize: 12, cursor: 'pointer', flexShrink: 0,
+        }}>
+          📄 Fixture
+        </button>
       </div>
 
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -366,26 +469,20 @@ export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, 
 
         {!cargando && !error && (
           <>
-            {/* Punto 7: acceso directo a Fixture, arriba de los filtros —
-                misma carga rápida que existe en Editar Listas, sin sacarla
-                de ahí (quedan los 2 lados). */}
-            <button onClick={() => setMostrarFixture(v => !v)} style={{
-              alignSelf: 'flex-start', background: mostrarFixture ? C.azul : '#fff', color: mostrarFixture ? '#fff' : C.azul,
-              border: `1.5px solid ${C.azul}`, borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            }}>
-              📄 Fixture
-            </button>
-
+            {/* Punto 7: el botón se movió al header (arriba, al lado del
+                título) — acá queda solo la vista que se muestra al tocarlo. */}
             {mostrarFixture ? (
               <VistaFixture
-                torneo={filtros.torneo} genero={filtros.generoMF}
+                torneo={filtros.torneo} genero={filtros.generoMF} opcionesTorneo={opciones.torneos}
                 fixture={fixture} clubesConocidos={clubesConocidos} nombreClubValido={nombreClubValido}
                 nuevosFixture={nuevosFixture} cambiarCelda={cambiarCeldaFixtureNuevo} agregarFila={agregarFilaFixtureNuevo}
                 borrarFila={borrarFilaFixtureNuevo} pegar={pegarEnFixtureNuevo} guardar={guardarFixtureNuevo}
                 guardando={guardandoFixture} mensaje={mensajeFixture}
                 fechaFiltro={fechaFiltroCargados} setFechaFiltro={setFechaFiltroCargados}
                 setGeneroFiltro={g => setFiltros(f => ({ ...f, generoMF: g }))}
+                setTorneoFiltro={t => setFiltros(f => ({ ...f, torneo: t }))}
                 actualizarPartido={actualizarPartido} borrarPartido={borrarPartidoCargado}
+                importarExcel={importarExcelFixture} importando={importando} mensajeImport={mensajeImport} inputArchivoRef={inputArchivoRef}
               />
             ) : (
               <>
@@ -410,7 +507,7 @@ export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, 
               </select>
               <button onClick={() => setFiltros(f => ({ ...f, soloPendientes: !f.soloPendientes }))} style={{
                 height: 36, borderRadius: 8, fontWeight: 700, fontSize: 10, cursor: 'pointer', padding: '0 2px',
-                background: filtros.soloPendientes ? C.rojo : '#fff', color: filtros.soloPendientes ? '#fff' : C.rojo, border: `1.5px solid ${C.rojo}`,
+                background: filtros.soloPendientes ? C.rojo : '#fde4cc', color: filtros.soloPendientes ? '#fff' : C.rojo, border: `1.5px solid ${C.rojo}`,
               }}>
                 PEND
               </button>
@@ -461,8 +558,16 @@ export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, 
                 const opcionesEstadio = [estadiosClub.principal, estadiosClub.alt2, estadiosClub.alt3, ...(listas?.estadios || [])].filter((v, i, arr) => v && arr.indexOf(v) === i);
                 const seCubre = p.se_cubre !== 'NO'; // SI por defecto
                 const seleccionado = seleccionados.has(filaIndex);
+                // Partido "completo": tiene Fecha, Hora y Oficial cargados —
+                // se resalta con borde verde agua para distinguirlo de un
+                // vistazo del resto, que todavía necesita algo.
+                const completo = seCubre && !!p.dia && !!p.hora && !!p.oficial_asignado;
                 return (
-                  <div key={filaIndex} style={{
+                  <div key={filaIndex} style={completo ? {
+                    border: `2px solid ${C.verde}`, background: '#eaf7ee', borderRadius: 10, padding: 8,
+                    marginTop: idx > 0 ? 4 : 0, marginBottom: 4,
+                    display: 'flex', flexDirection: 'column', gap: 4,
+                  } : {
                     borderTop: idx === 0 ? 'none' : `1px solid ${C.celeste}`, padding: '8px 0 8px',
                     display: 'flex', flexDirection: 'column', gap: 4,
                   }}>
@@ -547,6 +652,12 @@ export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, 
           }}>
             {generandoPDF ? 'Generando...' : '📄 Generar PDF de estos partidos'}
           </button>
+          <button onClick={handleGenerarExcel} disabled={generandoExcel || filtrados.length === 0} style={{
+            minHeight: 52, background: '#fff', color: C.verde, border: `1.5px solid ${C.verde}`, borderRadius: 10,
+            fontSize: 15, fontWeight: 700, cursor: (generandoExcel || filtrados.length === 0) ? 'not-allowed' : 'pointer', textTransform: 'uppercase',
+          }}>
+            {generandoExcel ? 'Generando...' : '📊 Generar Excel de estos partidos'}
+          </button>
         </div>
       )}
     </div>
@@ -558,7 +669,8 @@ export default function PantallaAsignarPartidos({ onBack, listas, fixtureFilas, 
 // cargados como recuadros simples, editables/borrables ahí mismo.
 function VistaFixture({
   torneo, genero, fixture, nombreClubValido, nuevosFixture, cambiarCelda, agregarFila, borrarFila, pegar,
-  guardar, guardando, mensaje, fechaFiltro, setFechaFiltro, setGeneroFiltro, actualizarPartido, borrarPartido,
+  guardar, guardando, mensaje, fechaFiltro, setFechaFiltro, setGeneroFiltro, setTorneoFiltro, opcionesTorneo,
+  actualizarPartido, borrarPartido, importarExcel, importando, mensajeImport, inputArchivoRef,
 }) {
   const cargadosDelTorneo = useMemo(
     () => fixture.filter(p => (!torneo || p.torneo === torneo) && (!genero || p.division === genero)),
@@ -573,8 +685,16 @@ function VistaFixture({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* El Torneo se elige acá mismo (además de reflejar/actualizar el
+          filtro principal de arriba) — antes quedaba fijo al que ya
+          estuviera elegido arriba, sin poder cambiarlo desde esta vista. */}
+      <select value={torneo} onChange={e => setTorneoFiltro(e.target.value)} style={{ height: 40, border: `1.5px solid ${C.azul}`, borderRadius: 8, padding: '0 10px', fontSize: 13, fontWeight: 700, color: C.azul, background: C.celeste }}>
+        <option value="">Elegí el Torneo</option>
+        {opcionesTorneo.map(t => <option key={t} value={t}>{t}</option>)}
+      </select>
+
       {!torneo && (
-        <div style={{ fontSize: 12, color: C.rojo }}>Elegí un Torneo en los filtros de arriba antes de cargar Fixture.</div>
+        <div style={{ fontSize: 12, color: C.rojo }}>Elegí un Torneo arriba antes de cargar Fixture.</div>
       )}
 
       {torneo && (
@@ -603,6 +723,8 @@ function VistaFixture({
               <div key={p._filaIndex} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <input value={p.partido_nro} onChange={e => actualizarPartido(p._filaIndex, 'partido_nro', e.target.value)}
                   placeholder="N°" style={{ flex: 0.5, minWidth: 0, height: 36, borderRadius: 6, padding: '0 6px', fontSize: 12, border: `1.5px solid ${C.azul}`, color: C.azul }} />
+                <input value={p.fecha_nro} onChange={e => actualizarPartido(p._filaIndex, 'fecha_nro', e.target.value)}
+                  placeholder="Fec." style={{ flex: 0.5, minWidth: 0, height: 36, borderRadius: 6, padding: '0 6px', fontSize: 12, border: `1.5px solid ${C.azul}`, color: C.azul }} />
                 <input value={p.local} onChange={e => actualizarPartido(p._filaIndex, 'local', e.target.value)}
                   placeholder="Local" style={{ flex: 1, minWidth: 0, height: 36, borderRadius: 6, padding: '0 6px', fontSize: 12, textTransform: 'uppercase', border: `1.5px solid ${nombreClubValido(p.local) ? C.azul : C.rojo}`, color: C.azul }} />
                 <input value={p.visitante} onChange={e => actualizarPartido(p._filaIndex, 'visitante', e.target.value)}
@@ -650,6 +772,20 @@ function VistaFixture({
               {guardando ? 'Guardando...' : 'Sumar al Fixture'}
             </button>
             {mensaje && <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 700 }}>{mensaje}</div>}
+
+            <div style={{ borderTop: `1.5px solid ${C.celeste}`, marginTop: 4, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 12, color: '#666' }}>
+                O subí el fixture completo de una vez desde un Excel, con columnas Torneo, Division, Fecha, Local y Visitante.
+              </div>
+              <input
+                ref={inputArchivoRef} type="file" accept=".xlsx,.xls"
+                onChange={e => e.target.files[0] && importarExcel(e.target.files[0])}
+                disabled={importando}
+                style={{ fontSize: 13 }}
+              />
+              {importando && <div style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>Importando...</div>}
+              {mensajeImport && <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 700, whiteSpace: 'pre-line' }}>{mensajeImport}</div>}
+            </div>
           </div>
         </>
       )}
