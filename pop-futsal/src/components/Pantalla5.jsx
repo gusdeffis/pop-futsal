@@ -166,25 +166,25 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         </div>
         <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, background: '#e8edf8', border: '1.5px solid #b8c8e8', borderRadius: 10, padding: 12 }}>
           <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{datos.local || 'Local'}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', marginBottom: 6, lineHeight: '17px', height: 17, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{datos.local || 'Local'}</div>
             <input className="sin-flechas" type="number" value={datos.res_local} onChange={e => set('res_local')(e.target.value)}
               style={{ width: '100%', boxSizing: 'border-box', height: 46, border: '2px solid #0d1f4e', borderRadius: 8, textAlign: 'center', fontSize: 24, fontWeight: 700, color: '#0d1f4e', background: '#fff', outline: 'none' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, visibility: 'hidden' }}>—</div>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, lineHeight: '17px', height: 17, visibility: 'hidden' }}>—</div>
             <div style={{ height: 46, display: 'flex', alignItems: 'center' }}>
               <span style={{ fontSize: 20, fontWeight: 700, color: '#0d1f4e' }}>—</span>
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{datos.visitante || 'Visita'}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', marginBottom: 6, lineHeight: '17px', height: 17, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{datos.visitante || 'Visita'}</div>
             <input className="sin-flechas" type="number" value={datos.res_visitante} onChange={e => set('res_visitante')(e.target.value)}
               style={{ width: '100%', boxSizing: 'border-box', height: 46, border: '2px solid #0d1f4e', borderRadius: 8, textAlign: 'center', fontSize: 24, fontWeight: 700, color: '#0d1f4e', background: '#fff', outline: 'none' }} />
           </div>
           {/* Definición por penales (playoffs): se muestra entre paréntesis al lado del resultado */}
           <div style={{ width: 1.5, background: '#b8c8e8', flexShrink: 0 }} />
           <div style={{ width: 84, flexShrink: 0, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .3, lineHeight: '17px' }}>Def. Penales</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .3, lineHeight: '17px', height: 17 }}>Def. Penales</div>
             <div style={{ display: 'flex', gap: 4 }}>
               <input className="sin-flechas" type="number" inputMode="numeric" aria-label="Penales local" value={datos.pen_local ?? ''} onChange={e => set('pen_local')(e.target.value)}
                 style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', height: 46, border: '2px solid #0d1f4e', borderRadius: 8, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#0d1f4e', background: '#fff', outline: 'none', padding: 0 }} />
