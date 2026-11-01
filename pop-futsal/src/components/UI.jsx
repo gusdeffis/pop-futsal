@@ -43,7 +43,7 @@ const C = {
 const upper = (v) => (typeof v === 'string' ? v.toUpperCase() : v);
 
 export function Header({ paso, total = 5, onIrA }) {
-  const pasos = ['DATOS', 'CONTROL', 'HORARIOS', 'OBS.', 'ACTA'];
+  const pasos = ['DATOS', 'CONTROL', 'HORARIOS', 'GOL', 'ACTA'];
   return (
     <div>
       <div style={{ background: C.azul, padding: '10px 16px', display: 'flex', alignItems: 'center' }}>

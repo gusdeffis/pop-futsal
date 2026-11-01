@@ -1,5 +1,6 @@
 import { soloApellido } from './fixture';
 import { resultadoConPenales } from './resultado';
+import { bloqueGolesTarjetasWSP } from './golesTarjetas';
 
 const CONCL_LABELS = { normal: 'Partido Normal', obs: 'Con Observaciones', tdd: 'Informe al TDD', susp: 'Suspensión' };
 
@@ -100,6 +101,7 @@ export function armarTextoWhatsApp(datos, actaTexto, arbitros) {
     `⏱️ Final : ${datos.final_partido || '-'}\n` +
     `Duración: ${datos.duracion_partido || '-'}\n` +
     `${SEPARADOR}\n` +
+    (bloqueGolesTarjetasWSP(datos) ? `${bloqueGolesTarjetasWSP(datos)}${SEPARADOR}\n` : '') +
     `📝 Conclusión: \n${concl}\n\n` +
     `*ACTA FINAL:*\n${actaTexto}` +
     (datos.acta_extra ? `\n${datos.acta_extra}` : '')

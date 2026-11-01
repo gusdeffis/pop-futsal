@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Header, SeccionHeader, CheckRojo, CheckRojoChico, LVRojo, Textarea, PanelCompletarObs, BtnNext, BtnBack } from './UI';
+import { CheckRojo, CheckRojoChico, LVRojo, Textarea, PanelCompletarObs, BtnNext } from './UI';
 
 const BORDO = '#7a1030';
 const ROSA = '#fbdbe1';
@@ -14,7 +14,12 @@ const TODOS_LOS_ITEMS = [
   ['publico_l', 'Público Local'], ['publico_v', 'Público Visita'],
 ];
 
-export default function Pantalla4({ datos, setDatos, onNext, onBack, onIrA }) {
+// Desde v117 ya no es un paso fijo del partido: se abre desde el botón
+// "Observaciones" de Horarios (onCerrar) y al terminar vuelve ahí.
+export const ITEMS_OBS_PARTIDO = ['tablero_fallas', 'sin_balon', 'medico_obs', 'policia', 'calent_supl', 'arcos_obs', 'ilum_obs',
+  'goteras', 'humedad', 'tribunas', 'invasion', 'incidentes', 'agresiones', 'gresca', 'publico_l', 'publico_v'];
+
+export default function Pantalla4({ datos, setDatos, onCerrar }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
   const [panelAbierto, setPanelAbierto] = useState(false);
 
@@ -27,15 +32,17 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack, onIrA }) {
       const continuar = window.confirm(`Marcaste ${marcados.length} incumplimiento(s) sin observación. ¿Querés continuar igual, o detallarlos ahora?\n\nAceptar = continuar igual\nCancelar = detallar ahora`);
       if (!continuar) { setPanelAbierto(true); return; }
     }
-    onNext();
+    onCerrar();
   };
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
-      <Header paso={4} onIrA={onIrA} />
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: '#c96a1c', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px' }}>
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: .3 }}>Observaciones durante el partido</span>
+        <button onClick={handleSiguiente} style={{ background: '#fff', color: '#c96a1c', border: 'none', borderRadius: 6, fontWeight: 800, fontSize: 13, padding: '7px 10px', cursor: 'pointer' }}>✕ Cerrar</button>
+      </div>
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-        <SeccionHeader>4. Observaciones durante el partido</SeccionHeader>
         <div style={{ background: '#e03030', color: '#fff', fontWeight: 700, fontSize: 12, padding: '8px 12px', borderRadius: 6, textAlign: 'center', textTransform: 'uppercase', letterSpacing: .5 }}>
           Marcar si hay incumplimiento o problema
         </div>
@@ -121,8 +128,7 @@ export default function Pantalla4({ datos, setDatos, onNext, onBack, onIrA }) {
 
       </div>
       <div style={{ padding: '8px 16px 24px', display: 'flex', gap: 10 }}>
-        <BtnBack onClick={onBack} />
-        <BtnNext onClick={handleSiguiente}>Siguiente: Acta Final</BtnNext>
+        <BtnNext onClick={handleSiguiente}>Volver a Horarios</BtnNext>
       </div>
     </div>
   );

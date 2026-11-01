@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import Pantalla1 from './components/Pantalla1';
 import Pantalla2 from './components/Pantalla2';
 import Pantalla3 from './components/Pantalla3';
-import Pantalla4 from './components/Pantalla4';
+import Pantalla4, { ITEMS_OBS_PARTIDO } from './components/Pantalla4';
+import PantallaGol from './components/PantallaGol';
 import Pantalla5 from './components/Pantalla5';
 import PantallaInicio from './components/PantallaInicio';
 import PantallaHistorial from './components/PantallaHistorial';
@@ -29,6 +30,9 @@ export default function App() {
 
   const [vista, setVista] = useState('inicio'); // 'inicio' | 'partido' | 'historial' | 'admin' | 'adminListas' | 'asignar'
   const [pantalla, setPantalla] = useState(1);
+  // "Observaciones durante el partido" (ex pantalla 4) se abre por encima
+  // de Horarios con un botón; no es un paso fijo.
+  const [obsAbiertas, setObsAbiertas] = useState(false);
   const [datos, setDatos] = useState(ESTADO_INICIAL);
   const [guardado, setGuardado] = useState(null);
   const [historial, setHistorial] = useState([]);
@@ -333,12 +337,19 @@ export default function App() {
     return <PantallaHistorial historial={historial} onBack={irAInicio} onEditar={editarDesdeHistorial} oficialLogueado={oficialLogueado} onRecargar={() => setHistorial(obtenerHistorial())} />;
   }
 
+  if (obsAbiertas) {
+    return <Pantalla4 datos={datos} setDatos={setDatos} onCerrar={() => { setObsAbiertas(false); window.scrollTo(0,0); }} />;
+  }
+
+  const irAPantalla = (n) => { setObsAbiertas(false); setPantalla(n); window.scrollTo(0,0); };
+  const cantObs = ITEMS_OBS_PARTIDO.filter(k => datos[k]).length;
+
   return (
     <div>
       {pantalla === 1 && <Pantalla1 datos={datos} setDatos={setDatos} listas={listas} onSalir={irAInicio} onIrA={setPantalla} onNext={() => { setPantalla(2); window.scrollTo(0,0); }} fixtureFilas={fixtureFilas} clubesFilas={clubesFilas} />}
       {pantalla === 2 && <Pantalla2 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(3); window.scrollTo(0,0); }} onBack={() => { setPantalla(1); window.scrollTo(0,0); }} />}
-      {pantalla === 3 && <Pantalla3 datos={datos} setDatos={setDatos} listas={listas} onIrA={setPantalla} onNext={() => { setPantalla(4); window.scrollTo(0,0); }} onBack={() => { setPantalla(2); window.scrollTo(0,0); }} />}
-      {pantalla === 4 && <Pantalla4 datos={datos} setDatos={setDatos} onIrA={setPantalla} onNext={() => { setPantalla(5); window.scrollTo(0,0); }} onBack={() => { setPantalla(3); window.scrollTo(0,0); }} />}
+      {pantalla === 3 && <Pantalla3 datos={datos} setDatos={setDatos} listas={listas} onIrA={setPantalla} onNext={() => { setPantalla(4); window.scrollTo(0,0); }} onBack={() => { setPantalla(2); window.scrollTo(0,0); }} onAbrirObs={() => { setObsAbiertas(true); window.scrollTo(0,0); }} cantObs={cantObs} />}
+      {pantalla === 4 && <PantallaGol datos={datos} setDatos={setDatos} onIrA={irAPantalla} onNext={() => { setPantalla(5); window.scrollTo(0,0); }} onBack={() => { setPantalla(3); window.scrollTo(0,0); }} />}
       {pantalla === 5 && <Pantalla5 datos={datos} setDatos={setDatos} onIrA={setPantalla} onBack={() => { setPantalla(4); window.scrollTo(0,0); }} onInicio={irAInicio} onFinalizar={finalizarPartido} listas={listas} />}
     </div>
   );

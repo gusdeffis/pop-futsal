@@ -84,8 +84,9 @@ function calcularDemoraContra(horaReferencia, horaReal) {
 // y otros no, así que sin un alto fijo común quedaban desparejos.
 const ALTO_RECUADRO_HORARIO = 112;
 
-export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onIrA }) {
+export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onIrA, onAbrirObs, cantObs }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
+  const colorComenzo = datos.comenzo_si === 'si' ? '#1a7a3a' : datos.comenzo_si === 'no' ? '#e03030' : '#0d1f4e';
 
   // ET = Inicio 2°T - Final 1°T, se recalcula solo. Excedido = ET > 11 min,
   // ya no es un check manual, se resalta solo.
@@ -165,25 +166,18 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
           <HoraInput label="Ingreso al Campo" value={datos.ingreso} onChange={set('ingreso')} />
         </div>
 
-        {/* Protocolo y comienzo */}
-        <CheckAzul label="Protocolo de inicio cumplido" checked={datos.protocolo} onChange={set('protocolo')} />
-
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
-          ¿Comenzó en hora?
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {[['si', 'SI', '#1a7a3a', '#e8f5ee'], ['no', 'NO', '#e03030', '#fff0f0']].map(([val, label, color, bg]) => (
-            <button key={val}
-              onClick={() => set('comenzo_si')(datos.comenzo_si === val ? null : val)}
-              style={{
-                flex: 1, height: 50, borderRadius: 8,
-                border: `2px solid ${datos.comenzo_si === val ? color : '#b8c8e8'}`,
-                background: datos.comenzo_si === val ? color : bg,
-                color: datos.comenzo_si === val ? '#fff' : color,
-                fontSize: 16, fontWeight: 700, cursor: 'pointer',
-              }}
-            >{label}</button>
-          ))}
+        {/* Protocolo y comienzo, en la misma fila (mitad y mitad).
+            "Comenzó en hora" es un solo botón: un toque = SÍ, otro = NO. */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <CheckAzul label="Protocolo de inicio" checked={datos.protocolo} onChange={set('protocolo')} minHeight={50} padding="0 10px" />
+          <button onClick={() => set('comenzo_si')(datos.comenzo_si === 'si' ? 'no' : 'si')} style={{
+            height: 50, borderRadius: 8, cursor: 'pointer', padding: '0 6px', boxSizing: 'border-box', lineHeight: 1.15,
+            border: `2px solid ${colorComenzo}`, background: datos.comenzo_si ? colorComenzo : '#c6dbf5',
+            color: datos.comenzo_si ? '#fff' : '#0d1f4e', fontWeight: 700,
+          }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: .3 }}>Comenzó en hora</div>
+            <div style={{ fontSize: 16 }}>{datos.comenzo_si === 'si' ? 'SÍ' : datos.comenzo_si === 'no' ? 'NO' : 'tocar'}</div>
+          </button>
         </div>
 
         {datos.comenzo_si === 'no' && (
@@ -249,7 +243,15 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
           </div>
         </div>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Observaciones de horarios</div>
+        {/* Observaciones de horarios + botón que abre "Observaciones durante el
+            partido" (la ex pantalla 4, ahora plegada detrás de este botón). */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignItems: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Observ. de horarios</div>
+          <button onClick={onAbrirObs} style={{
+            height: 50, borderRadius: 8, cursor: 'pointer', border: '2px solid #c96a1c', background: '#fadfba',
+            color: '#7a3d08', fontSize: 14, fontWeight: 800, textTransform: 'uppercase',
+          }}>Observaciones{cantObs ? ` (${cantObs})` : ''} ›</button>
+        </div>
         {desviosDetectados.length > 0 && (
           <div style={{ background: '#fff3cd', border: '1.5px solid #e0b84a', borderRadius: 8, padding: 10 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', marginBottom: 4 }}>
@@ -265,7 +267,7 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
       </div>
       <div style={{ padding: '8px 16px 24px', display: 'flex', gap: 10 }}>
         <BtnBack onClick={onBack} />
-        <BtnNext onClick={onNext}>Siguiente: Observaciones</BtnNext>
+        <BtnNext onClick={onNext}>Siguiente: Gol</BtnNext>
       </div>
     </div>
   );

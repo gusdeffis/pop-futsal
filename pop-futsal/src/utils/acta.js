@@ -1,4 +1,5 @@
 import { textoHorariosCompleto, capitalizarFrase } from './desviosHorarios';
+import { lineasGolesTarjetasActa } from './golesTarjetas';
 
 // Ítems de Control Previo (Pantalla2) — campo interno, texto legible para
 // el resumen del Acta, y la ETIQUETA exacta (mayúscula) que guarda el panel
@@ -87,6 +88,10 @@ export function generarActaTexto(datos, opciones = {}) {
     .filter(([, , etiqueta]) => !obsPartidoMayus.includes(`${etiqueta}:`))
     .map(([, label]) => label);
   if (duranteProbs.length > 0) partes.push(`Durante el partido: ${duranteProbs.join(', ')}.`);
+
+  // Goles y tarjetas (pantalla GOL). En el WhatsApp ya van en su propia
+  // sección, así que acá se agregan solo al Acta / PDF / planilla.
+  if (!paraWSP) partes.push(...lineasGolesTarjetasActa(datos));
 
   return partes.join('\n');
 }
