@@ -86,7 +86,6 @@ const ALTO_RECUADRO_HORARIO = 112;
 
 export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onIrA, onAbrirObs, cantObs }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
-  const colorComenzo = datos.comenzo_si === 'si' ? '#1a7a3a' : datos.comenzo_si === 'no' ? '#e03030' : '#0d1f4e';
 
   // ET = Inicio 2°T - Final 1°T, se recalcula solo. Excedido = ET > 11 min,
   // ya no es un check manual, se resalta solo.
@@ -170,14 +169,27 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
             "Comenzó en hora" es un solo botón: un toque = SÍ, otro = NO. */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <CheckAzul label="Protocolo de inicio" checked={datos.protocolo} onChange={set('protocolo')} minHeight={50} padding="0 10px" />
-          <button onClick={() => set('comenzo_si')(datos.comenzo_si === 'si' ? 'no' : 'si')} style={{
-            height: 50, borderRadius: 8, cursor: 'pointer', padding: '0 6px', boxSizing: 'border-box', lineHeight: 1.15,
-            border: `2px solid ${colorComenzo}`, background: datos.comenzo_si ? colorComenzo : '#c6dbf5',
-            color: datos.comenzo_si ? '#fff' : '#0d1f4e', fontWeight: 700,
+          {/* Mismo formato que "Protocolo de inicio" (CheckAzul), con 3 estados:
+              sin tocar (vacío) → SÍ (✓, azul) → NO (✗, rojo) → SÍ ... */}
+          <div role="button" aria-label="Comenzó en hora" onClick={() => set('comenzo_si')(datos.comenzo_si === 'si' ? 'no' : 'si')} style={{
+            display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, minHeight: 50, padding: '0 10px', boxSizing: 'border-box',
+            background: datos.comenzo_si === 'si' ? '#0d1f4e' : datos.comenzo_si === 'no' ? '#e03030' : '#c6dbf5',
+            border: `1.5px solid ${datos.comenzo_si === 'no' ? '#e03030' : '#0d1f4e'}`,
+            borderRadius: 8, cursor: 'pointer', userSelect: 'none', transition: 'all .15s',
           }}>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: .3 }}>Comenzó en hora</div>
-            <div style={{ fontSize: 16 }}>{datos.comenzo_si === 'si' ? 'SÍ' : datos.comenzo_si === 'no' ? 'NO' : 'tocar'}</div>
-          </button>
+            <div style={{
+              width: 22, height: 22, borderRadius: 4, flexShrink: 0, boxSizing: 'border-box',
+              background: datos.comenzo_si === 'si' ? '#c6dbf5' : '#fff',
+              border: `2px solid ${datos.comenzo_si === 'si' ? '#c6dbf5' : datos.comenzo_si === 'no' ? '#fff' : '#0d1f4e'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {datos.comenzo_si === 'si' && <span style={{ color: '#0d1f4e', fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
+              {datos.comenzo_si === 'no' && <span style={{ color: '#e03030', fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✗</span>}
+            </div>
+            <span style={{ fontSize: 13, color: datos.comenzo_si ? '#fff' : '#0d1f4e', lineHeight: 1.2, fontWeight: 600, textTransform: 'uppercase', minWidth: 0 }}>
+              Comenzó en hora{datos.comenzo_si === 'si' ? ': SÍ' : datos.comenzo_si === 'no' ? ': NO' : ''}
+            </span>
+          </div>
         </div>
 
         {datos.comenzo_si === 'no' && (
@@ -244,13 +256,13 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
         </div>
 
         {/* Observaciones de horarios + botón que abre "Observaciones durante el
-            partido" (la ex pantalla 4, ahora plegada detrás de este botón). */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignItems: 'center' }}>
+            partido" (la ex pantalla 4, ahora "Incumplimientos", plegada detrás de este botón). */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignItems: 'end' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>Observ. de horarios</div>
           <button onClick={onAbrirObs} style={{
-            height: 50, borderRadius: 8, cursor: 'pointer', border: '2px solid #c96a1c', background: '#fadfba',
-            color: '#7a3d08', fontSize: 14, fontWeight: 800, textTransform: 'uppercase',
-          }}>Observaciones{cantObs ? ` (${cantObs})` : ''} ›</button>
+            height: 50, borderRadius: 8, cursor: 'pointer', border: '1.5px solid #7a1030', background: '#fbdbe1',
+            color: '#7a1030', fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
+          }}>Incumplimientos{cantObs ? ` (${cantObs})` : ''} ›</button>
         </div>
         {desviosDetectados.length > 0 && (
           <div style={{ background: '#fff3cd', border: '1.5px solid #e0b84a', borderRadius: 8, padding: 10 }}>
@@ -267,7 +279,7 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
       </div>
       <div style={{ padding: '8px 16px 24px', display: 'flex', gap: 10 }}>
         <BtnBack onClick={onBack} />
-        <BtnNext onClick={onNext}>Siguiente: Gol</BtnNext>
+        <BtnNext onClick={onNext}>Siguiente: Goles</BtnNext>
       </div>
     </div>
   );

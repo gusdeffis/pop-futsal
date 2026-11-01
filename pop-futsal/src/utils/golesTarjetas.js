@@ -1,25 +1,30 @@
-// Goles y tarjetas del partido (pantalla GOL) — textos para el Acta Final
-// (que también va al PDF y a la planilla) y para el WhatsApp de resumen.
+// Goles y tarjetas del partido (pantalla GOLES) — textos para el Acta Final
+// (que también va al PDF y a la planilla), para el WhatsApp de resumen y
+// para el aviso por WhatsApp de lo que todavía no se envió.
 //
 // Estructura guardada en datos:
-//   goles:    [{ id, lado: 'L'|'V', num, min, wsp }]
-//   tarjetas: [{ id, lado: 'L'|'V', color: 'A'|'R', quien: 'JUG'|'DT'|'AUX', num, min }]
+//   goles:    [{ id, lado: 'L'|'V', tiempo: 1|2, min, num, wsp }]
+//   tarjetas: [{ id, lado: 'L'|'V', tiempo: 1|2, color: 'A'|'R', quien: 'JUG'|'DT'|'AUX', min, num, wsp }]
+// `wsp` = ya avisado por WhatsApp. `min` es el minuto DENTRO de ese tiempo.
 //
 // El PDF oficial usa una fuente que no tiene emojis: por eso el texto del
 // Acta va con palabras ("Amarilla"/"Roja") y los emojis solo en WhatsApp.
 
 const texto = (v) => String(v ?? '').trim();
+const tiempoDe = (x) => (Number(x.tiempo) === 2 ? 2 : 1); // registros sin tiempo (v117) cuentan como 1T
 
-// Ordena por minuto (los que no tienen minuto van al final, en el orden
-// en que se cargaron).
-function porMinuto(lista) {
+// Orden cronológico: 1T antes que 2T, y dentro de cada tiempo por minuto
+// (los que no tienen minuto van al final de su tiempo, en orden de carga).
+export function ordenCronologico(lista) {
   return [...lista]
-    .map((x, i) => ({ x, i, m: texto(x.min) === '' ? Infinity : Number(x.min) }))
-    .sort((a, b) => (a.m - b.m) || (a.i - b.i))
+    .map((x, i) => ({ x, i, t: tiempoDe(x), m: texto(x.min) === '' ? Infinity : Number(x.min) }))
+    .sort((a, b) => (a.t - b.t) || (a.m - b.m) || (a.i - b.i))
     .map(({ x }) => x);
 }
 
-const minuto = (x) => (texto(x.min) ? ` (${texto(x.min)}')` : '');
+// "5' 1T", o solo "1T" si no tiene minuto.
+const momento = (x) => `${texto(x.min) ? `${texto(x.min)}' ` : ''}${tiempoDe(x)}T`;
+const jugador = (x) => (texto(x.num) ? `N° ${texto(x.num)}` : 's/n');
 
 export function quienTarjeta(t) {
   if (t.quien === 'DT') return 'DT';
@@ -27,70 +32,67 @@ export function quienTarjeta(t) {
   return texto(t.num) ? `N° ${texto(t.num)}` : 'Jugador';
 }
 
-function lineaPorEquipo(datos, lista, describir) {
-  const partes = ['L', 'V']
-    .map(lado => {
-      const delLado = porMinuto(lista.filter(x => x.lado === lado));
-      if (delLado.length === 0) return '';
-      const club = lado === 'L' ? datos.local : datos.visitante;
-      return `${club}: ${delLado.map(describir).join(', ')}`;
-    })
-    .filter(Boolean);
-  return partes.join(' — ');
-}
-
 export function golesDe(datos) { return Array.isArray(datos.goles) ? datos.goles : []; }
 export function tarjetasDe(datos) { return Array.isArray(datos.tarjetas) ? datos.tarjetas : []; }
+
+const club = (datos, lado) => (lado === 'L' ? datos.local : datos.visitante);
+
+function porEquipo(datos, lista, describir, separador) {
+  return ['L', 'V']
+    .map(lado => {
+      const del = ordenCronologico(lista.filter(x => x.lado === lado));
+      return del.length ? `${club(datos, lado)}: ${del.map(describir).join(', ')}` : '';
+    })
+    .filter(Boolean)
+    .join(separador);
+}
+
+const descGol = (g) => `${jugador(g)} (${momento(g)})`;
+const descTarjetaActa = (t) => `${t.color === 'R' ? 'Roja' : 'Amarilla'} ${quienTarjeta(t)} (${momento(t)})`;
+const descTarjetaWsp = (t) => `${t.color === 'R' ? '🟥' : '🟨'} ${quienTarjeta(t)} (${momento(t)})`;
 
 // Líneas para el Acta Final / PDF (sin emojis).
 export function lineasGolesTarjetasActa(datos) {
   const lineas = [];
   const goles = golesDe(datos);
   const tarjetas = tarjetasDe(datos);
-  if (goles.length) {
-    lineas.push(`Goles: ${lineaPorEquipo(datos, goles, g => `${texto(g.num) ? `N° ${texto(g.num)}` : 's/n'}${minuto(g)}`)}.`);
-  }
-  if (tarjetas.length) {
-    lineas.push(`Tarjetas: ${lineaPorEquipo(datos, tarjetas, t => `${t.color === 'R' ? 'Roja' : 'Amarilla'} ${quienTarjeta(t)}${minuto(t)}`)}.`);
-  }
+  if (goles.length) lineas.push(`Goles: ${porEquipo(datos, goles, descGol, ' — ')}.`);
+  if (tarjetas.length) lineas.push(`Tarjetas: ${porEquipo(datos, tarjetas, descTarjetaActa, ' — ')}.`);
   return lineas;
 }
 
-// Bloque para el WhatsApp de resumen (con emojis). Vacío si no hay nada.
+// Bloque para el WhatsApp de resumen del partido (con emojis). Vacío si no hay nada.
 export function bloqueGolesTarjetasWSP(datos) {
   const goles = golesDe(datos);
   const tarjetas = tarjetasDe(datos);
-  if (!goles.length && !tarjetas.length) return '';
   let out = '';
-  if (goles.length) {
-    out += `⚽ Goles:\n` + ['L', 'V'].map(lado => {
-      const del = porMinuto(goles.filter(g => g.lado === lado));
-      if (!del.length) return '';
-      const club = lado === 'L' ? datos.local : datos.visitante;
-      return `${club}: ${del.map(g => `${texto(g.num) ? `N° ${texto(g.num)}` : 's/n'}${minuto(g)}`).join(', ')}\n`;
-    }).join('');
-  }
-  if (tarjetas.length) {
-    out += `Tarjetas:\n` + ['L', 'V'].map(lado => {
-      const del = porMinuto(tarjetas.filter(t => t.lado === lado));
-      if (!del.length) return '';
-      const club = lado === 'L' ? datos.local : datos.visitante;
-      return `${club}: ${del.map(t => `${t.color === 'R' ? '🟥' : '🟨'} ${quienTarjeta(t)}${minuto(t)}`).join(', ')}\n`;
-    }).join('');
-  }
+  if (goles.length) out += `⚽ Goles:\n${porEquipo(datos, goles, descGol, '\n')}\n`;
+  if (tarjetas.length) out += `Tarjetas:\n${porEquipo(datos, tarjetas, descTarjetaWsp, '\n')}\n`;
   return out;
 }
 
-// Mensaje del botón de WhatsApp de cada gol, con el parcial a ese minuto.
-export function textoAvisoGol(datos, gol) {
-  const goles = golesDe(datos);
-  const m = texto(gol.min) === '' ? null : Number(gol.min);
-  const hasta = m == null ? goles : goles.filter(g => texto(g.min) === '' || Number(g.min) <= m);
-  const pl = hasta.filter(g => g.lado === 'L').length;
-  const pv = hasta.filter(g => g.lado === 'V').length;
-  const club = gol.lado === 'L' ? datos.local : datos.visitante;
-  return `⚽ GOL de ${club}` +
-    (texto(gol.num) ? ` — Jugador N° ${texto(gol.num)}` : '') +
-    (texto(gol.min) ? `, min ${texto(gol.min)}'` : '') +
-    `\nParcial: ${datos.local} ${pl} - ${pv} ${datos.visitante}`;
+// Lo que todavía no se avisó por WhatsApp (goles y tarjetas).
+export function pendientesWsp(datos) {
+  return {
+    goles: golesDe(datos).filter(g => !g.wsp),
+    tarjetas: tarjetasDe(datos).filter(t => !t.wsp),
+  };
+}
+
+// Mensaje del botón de WhatsApp: todo lo pendiente, en orden cronológico,
+// y el parcial actual al final. '' si no hay nada pendiente.
+export function textoAvisoPendientes(datos) {
+  const { goles, tarjetas } = pendientesWsp(datos);
+  const items = ordenCronologico([
+    ...goles.map(g => ({ ...g, _tipo: 'gol' })),
+    ...tarjetas.map(t => ({ ...t, _tipo: 'tarjeta' })),
+  ]);
+  if (!items.length) return '';
+  const lineas = items.map(x => x._tipo === 'gol'
+    ? `⚽ GOL ${club(datos, x.lado)} — ${jugador(x)}, ${momento(x)}`
+    : `${x.color === 'R' ? '🟥' : '🟨'} ${club(datos, x.lado)} — ${quienTarjeta(x)}, ${momento(x)}`);
+  const todos = golesDe(datos);
+  const pl = todos.filter(g => g.lado === 'L').length;
+  const pv = todos.filter(g => g.lado === 'V').length;
+  return `${lineas.join('\n')}\nParcial: ${datos.local} ${pl} - ${pv} ${datos.visitante}`;
 }

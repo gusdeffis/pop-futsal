@@ -160,7 +160,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
         <SeccionHeader>5. Acta Final</SeccionHeader>
 
         {/* Resultado */}
-        <style>{`.sin-flechas::-webkit-outer-spin-button,.sin-flechas::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}.sin-flechas{-moz-appearance:textfield;appearance:textfield}`}</style>
+        <style>{`.sin-flechas::-webkit-outer-spin-button,.sin-flechas::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}.sin-flechas{-moz-appearance:textfield;appearance:textfield}.pen-input{background:#fff;border:2px solid #0d1f4e}.pen-input:placeholder-shown:not(:focus){background:#e4e7ee;border-color:#a3acbd}`}</style>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', letterSpacing: .5, textTransform: 'uppercase' }}>
           Resultado del partido
         </div>
@@ -186,10 +186,12 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
           <div style={{ width: 84, flexShrink: 0, textAlign: 'center' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#0d1f4e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .3, lineHeight: '17px', height: 17 }}>Def. Penales</div>
             <div style={{ display: 'flex', gap: 4 }}>
-              <input className="sin-flechas" type="number" inputMode="numeric" aria-label="Penales local" value={datos.pen_local ?? ''} onChange={e => set('pen_local')(e.target.value)}
-                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', height: 46, border: '2px solid #0d1f4e', borderRadius: 8, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#0d1f4e', background: '#fff', outline: 'none', padding: 0 }} />
-              <input className="sin-flechas" type="number" inputMode="numeric" aria-label="Penales visitante" value={datos.pen_visitante ?? ''} onChange={e => set('pen_visitante')(e.target.value)}
-                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', height: 46, border: '2px solid #0d1f4e', borderRadius: 8, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#0d1f4e', background: '#fff', outline: 'none', padding: 0 }} />
+              <input className="sin-flechas pen-input" type="number" inputMode="numeric" aria-label="Penales local" value={datos.pen_local ?? ''} onChange={e => set('pen_local')(e.target.value)}
+                placeholder=" "
+                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', height: 46, borderRadius: 8, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#0d1f4e', outline: 'none', padding: 0 }} />
+              <input className="sin-flechas pen-input" type="number" inputMode="numeric" aria-label="Penales visitante" value={datos.pen_visitante ?? ''} onChange={e => set('pen_visitante')(e.target.value)}
+                placeholder=" "
+                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', height: 46, borderRadius: 8, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#0d1f4e', outline: 'none', padding: 0 }} />
             </div>
           </div>
         </div>

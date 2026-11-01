@@ -37,9 +37,9 @@ export default function Pantalla4({ datos, setDatos, onCerrar }) {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: '#c96a1c', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px' }}>
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: .3 }}>Observaciones durante el partido</span>
-        <button onClick={handleSiguiente} style={{ background: '#fff', color: '#c96a1c', border: 'none', borderRadius: 6, fontWeight: 800, fontSize: 13, padding: '7px 10px', cursor: 'pointer' }}>✕ Cerrar</button>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: BORDO, color: '#fff', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px' }}>
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: .3 }}>Incumplimientos</span>
+        <button onClick={handleSiguiente} style={{ background: '#fff', color: BORDO, border: 'none', borderRadius: 6, fontWeight: 800, fontSize: 13, padding: '7px 10px', cursor: 'pointer' }}>✕ Cerrar</button>
       </div>
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
