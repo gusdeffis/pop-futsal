@@ -26,6 +26,8 @@ export function ordenCronologico(lista) {
 const momento = (x) => `${texto(x.min) ? `${texto(x.min)}' ` : ''}${tiempoDe(x)}T`;
 const jugador = (x) => (texto(x.num) ? `N° ${texto(x.num)}` : 's/n');
 
+export const esCuerpoTecnico = (t) => t.quien === 'DT' || t.quien === 'AUX';
+
 export function quienTarjeta(t) {
   if (t.quien === 'DT') return 'DT';
   if (t.quien === 'AUX') return 'Aux.';
@@ -57,7 +59,10 @@ export function lineasGolesTarjetasActa(datos) {
   const goles = golesDe(datos);
   const tarjetas = tarjetasDe(datos);
   if (goles.length) lineas.push(`Goles: ${porEquipo(datos, goles, descGol, ' — ')}.`);
-  if (tarjetas.length) lineas.push(`Tarjetas: ${porEquipo(datos, tarjetas, descTarjetaActa, ' — ')}.`);
+  const jug = tarjetas.filter(t => !esCuerpoTecnico(t));
+  const ct = tarjetas.filter(esCuerpoTecnico);
+  if (jug.length) lineas.push(`Tarjetas: ${porEquipo(datos, jug, descTarjetaActa, ' — ')}.`);
+  if (ct.length) lineas.push(`Cuerpo técnico: ${porEquipo(datos, ct, descTarjetaActa, ' — ')}.`);
   return lineas;
 }
 
@@ -67,7 +72,10 @@ export function bloqueGolesTarjetasWSP(datos) {
   const tarjetas = tarjetasDe(datos);
   let out = '';
   if (goles.length) out += `⚽ Goles:\n${porEquipo(datos, goles, descGol, '\n')}\n`;
-  if (tarjetas.length) out += `Tarjetas:\n${porEquipo(datos, tarjetas, descTarjetaWsp, '\n')}\n`;
+  const jug = tarjetas.filter(t => !esCuerpoTecnico(t));
+  const ct = tarjetas.filter(esCuerpoTecnico);
+  if (jug.length) out += `Tarjetas:\n${porEquipo(datos, jug, descTarjetaWsp, '\n')}\n`;
+  if (ct.length) out += `Cuerpo técnico:\n${porEquipo(datos, ct, descTarjetaWsp, '\n')}\n`;
   return out;
 }
 

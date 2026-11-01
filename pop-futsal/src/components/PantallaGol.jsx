@@ -2,7 +2,7 @@ import { Header, SeccionHeader, BtnNext, BtnBack } from './UI';
 import { golesDe, tarjetasDe, pendientesWsp, textoAvisoPendientes } from '../utils/golesTarjetas';
 
 // Pantalla 4 — GOLES: goles y tarjetas del partido, separados por 1er y
-// 2do tiempo, local a la izquierda y visitante a la derecha. Los goles
+// 2do tiempo (goles, tarjetas de jugadores y del cuerpo técnico), local a la izquierda y visitante a la derecha. Los goles
 // completan solos el resultado del Acta Final (que sigue siendo editable
 // a mano). Un solo botón de WhatsApp abajo manda todo lo que todavía no
 // se avisó; lo enviado queda pintado. Si se corrige algo ya enviado,
@@ -24,8 +24,6 @@ const inpEnviado = { ...inp, background: ENVIADO, borderColor: ENVIADO, color: '
 const encabezadoCol = { fontSize: 9, fontWeight: 700, color: '#5a6b8c', textTransform: 'uppercase', textAlign: 'center' };
 const subtitulo = { fontSize: 11, fontWeight: 700, color: AZUL, letterSpacing: .5, textTransform: 'uppercase' };
 
-const GRID_GOL = '1fr 1fr 24px';
-const GRID_TARJ = '8px 1fr 46px 1fr 24px';
 
 function IconWsp({ size = 18, color = '#fff' }) {
   return (
@@ -89,66 +87,73 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   const nombre = (lado) => (lado === 'L' ? datos.local : datos.visitante) || (lado === 'L' ? 'LOCAL' : 'VISITANTE');
   const tiempoDe = (x) => (Number(x.tiempo) === 2 ? 2 : 1);
 
+  // Las tres secciones (Goles, Tarjetas, Cuerpo técnico) usan la MISMA
+  // línea: marca de color (vacía en goles) → Min → Jugador o DT/AUX → ✕,
+  // con los mismos anchos, para que los casilleros queden alineados.
+  const GRID = '8px 1fr 1fr 24px';
+  const encabezado = (segunda) => (
+    <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5 }}>
+      <div /><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
+    </div>
+  );
+  const marca = (color) => color
+    ? <div title={color === 'R' ? 'Roja' : 'Amarilla'} style={{ width: 8, height: 30, borderRadius: 2, boxSizing: 'border-box', background: color === 'R' ? ROJA : AMARILLA, border: `1px solid ${color === 'R' ? ROJA_BORDE : AMARILLA_BORDE}` }} />
+    : <div />;
+  const botonesTarjeta = (agregar) => (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+      <button onClick={() => agregar('A')} style={{ height: 38, borderRadius: 8, border: `2px solid ${AMARILLA_BORDE}`, background: AMARILLA, color: '#5a4a00', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>+ AM.</button>
+      <button onClick={() => agregar('R')} style={{ height: 38, borderRadius: 8, border: `2px solid ${ROJA_BORDE}`, background: ROJA, color: '#fff', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>+ ROJA</button>
+    </div>
+  );
+  const columna = (children) => <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>{children}</div>;
+
   const columnaGoles = (lado, tiempo) => {
     const lista = goles.filter(g => g.lado === lado && tiempoDe(g) === tiempo);
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-        <button onClick={() => guardarGoles([...goles, { id: nuevoId(), lado, tiempo, min: '', num: '', wsp: false }])} style={{
-          height: 42, borderRadius: 8, border: `2px solid ${AZUL}`, background: '#fff', color: AZUL,
-          fontWeight: 800, fontSize: 14, cursor: 'pointer',
-        }}>+ GOL</button>
-        {lista.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: GRID_GOL, gap: 5 }}>
-            <div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>Nº</div><div />
+    return columna(<>
+      <button onClick={() => guardarGoles([...goles, { id: nuevoId(), lado, tiempo, min: '', num: '', wsp: false }])} style={{
+        height: 38, borderRadius: 8, border: `2px solid ${AZUL}`, background: '#fff', color: AZUL,
+        fontWeight: 800, fontSize: 14, cursor: 'pointer',
+      }}>+ GOL</button>
+      {lista.length > 0 && encabezado('Jugador')}
+      {lista.map(g => {
+        const st = g.wsp ? inpEnviado : inp;
+        return (
+          <div key={g.id} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5, alignItems: 'center' }}>
+            {marca(null)}
+            <input aria-label="Minuto" inputMode="numeric" value={g.min} onChange={e => cambiarGol(g.id, { min: soloDigitos(e.target.value) })} style={st} />
+            <input aria-label="Número de jugador" inputMode="numeric" value={g.num} onChange={e => cambiarGol(g.id, { num: soloDigitos(e.target.value) })} style={st} />
+            <BtnBorrar onClick={() => guardarGoles(goles.filter(x => x.id !== g.id))} />
           </div>
-        )}
-        {lista.map(g => {
-          const st = g.wsp ? inpEnviado : inp;
-          return (
-            <div key={g.id} style={{ display: 'grid', gridTemplateColumns: GRID_GOL, gap: 5, alignItems: 'center' }}>
-              <input aria-label="Minuto" inputMode="numeric" value={g.min} onChange={e => cambiarGol(g.id, { min: soloDigitos(e.target.value) })} style={st} />
-              <input aria-label="Número de jugador" inputMode="numeric" value={g.num} onChange={e => cambiarGol(g.id, { num: soloDigitos(e.target.value) })} style={st} />
-              <BtnBorrar onClick={() => guardarGoles(goles.filter(x => x.id !== g.id))} />
-            </div>
-          );
-        })}
-      </div>
-    );
+        );
+      })}
+    </>);
   };
 
-  const columnaTarjetas = (lado, tiempo) => {
-    const lista = tarjetas.filter(t => t.lado === lado && tiempoDe(t) === tiempo);
-    const agregar = (color) => guardarTarjetas([...tarjetas, { id: nuevoId(), lado, tiempo, color, quien: 'JUG', min: '', num: '', wsp: false }]);
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-          <button onClick={() => agregar('A')} style={{ height: 38, borderRadius: 8, border: `2px solid ${AMARILLA_BORDE}`, background: AMARILLA, color: '#5a4a00', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>+ AM.</button>
-          <button onClick={() => agregar('R')} style={{ height: 38, borderRadius: 8, border: `2px solid ${ROJA_BORDE}`, background: ROJA, color: '#fff', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>+ ROJA</button>
-        </div>
-        {lista.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: GRID_TARJ, gap: 4 }}>
-            <div /><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>Quién</div><div style={encabezadoCol}>Nº</div><div />
+  // Tarjetas de jugadores (quien = 'JUG') o del cuerpo técnico (DT/AUX).
+  const columnaTarjetas = (lado, tiempo, cuerpoTecnico) => {
+    const esCT = (t) => t.quien === 'DT' || t.quien === 'AUX';
+    const lista = tarjetas.filter(t => t.lado === lado && tiempoDe(t) === tiempo && esCT(t) === cuerpoTecnico);
+    const agregar = (color) => guardarTarjetas([...tarjetas, { id: nuevoId(), lado, tiempo, color, quien: cuerpoTecnico ? 'DT' : 'JUG', min: '', num: '', wsp: false }]);
+    return columna(<>
+      {botonesTarjeta(agregar)}
+      {lista.length > 0 && encabezado(cuerpoTecnico ? 'DT / Aux.' : 'Jugador')}
+      {lista.map(t => {
+        const st = t.wsp ? inpEnviado : inp;
+        return (
+          <div key={t.id} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5, alignItems: 'center' }}>
+            {marca(t.color)}
+            <input aria-label="Minuto" inputMode="numeric" value={t.min} onChange={e => cambiarTarjeta(t.id, { min: soloDigitos(e.target.value) })} style={st} />
+            {cuerpoTecnico
+              ? <select aria-label="DT o auxiliar" value={t.quien} onChange={e => cambiarTarjeta(t.id, { quien: e.target.value })}
+                  style={{ ...st, fontSize: 14, padding: 0, textAlign: 'center', textAlignLast: 'center', appearance: 'none' }}>
+                  <option value="DT">DT</option><option value="AUX">AUX</option>
+                </select>
+              : <input aria-label="Número de jugador" inputMode="numeric" value={t.num} onChange={e => cambiarTarjeta(t.id, { num: soloDigitos(e.target.value) })} style={st} />}
+            <BtnBorrar onClick={() => guardarTarjetas(tarjetas.filter(x => x.id !== t.id))} />
           </div>
-        )}
-        {lista.map(t => {
-          const st = t.wsp ? inpEnviado : inp;
-          return (
-            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: GRID_TARJ, gap: 4, alignItems: 'center' }}>
-              <div title={t.color === 'R' ? 'Roja' : 'Amarilla'} style={{ width: 8, height: 30, borderRadius: 2, boxSizing: 'border-box', background: t.color === 'R' ? ROJA : AMARILLA, border: `1px solid ${t.color === 'R' ? ROJA_BORDE : AMARILLA_BORDE}` }} />
-              <input aria-label="Minuto" inputMode="numeric" value={t.min} onChange={e => cambiarTarjeta(t.id, { min: soloDigitos(e.target.value) })} style={st} />
-              <select aria-label="Quién" value={t.quien} onChange={e => cambiarTarjeta(t.id, { quien: e.target.value })}
-                style={{ ...st, fontSize: 12, padding: '0 2px', textAlign: 'center', appearance: 'none' }}>
-                <option value="JUG">JUG</option><option value="DT">DT</option><option value="AUX">AUX</option>
-              </select>
-              {t.quien === 'JUG'
-                ? <input aria-label="Número de jugador" inputMode="numeric" value={t.num} onChange={e => cambiarTarjeta(t.id, { num: soloDigitos(e.target.value) })} style={st} />
-                : <div style={{ ...inp, background: '#eef1f7', border: '1.5px solid #dde1ec', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>—</div>}
-              <BtnBorrar onClick={() => guardarTarjetas(tarjetas.filter(x => x.id !== t.id))} />
-            </div>
-          );
-        })}
-      </div>
-    );
+        );
+      })}
+    </>);
   };
 
   const separador = { borderLeft: '1px solid #dde1ec', paddingLeft: 10, minWidth: 0 };
@@ -165,8 +170,13 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
       </div>
       <div style={subtitulo}>Tarjetas</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {columnaTarjetas('L', tiempo)}
-        <div style={separador}>{columnaTarjetas('V', tiempo)}</div>
+        {columnaTarjetas('L', tiempo, false)}
+        <div style={separador}>{columnaTarjetas('V', tiempo, false)}</div>
+      </div>
+      <div style={subtitulo}>Cuerpo técnico</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {columnaTarjetas('L', tiempo, true)}
+        <div style={separador}>{columnaTarjetas('V', tiempo, true)}</div>
       </div>
     </div>
   );

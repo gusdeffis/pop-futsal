@@ -170,20 +170,20 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <CheckAzul label="Protocolo de inicio" checked={datos.protocolo} onChange={set('protocolo')} minHeight={50} padding="0 10px" />
           {/* Mismo formato que "Protocolo de inicio" (CheckAzul), con 3 estados:
-              sin tocar (vacío) → SÍ (✓, azul) → NO (✗, rojo) → SÍ ... */}
+              sin tocar (vacío) → SÍ (✓, verde) → NO (✗, rojo) → SÍ ... */}
           <div role="button" aria-label="Comenzó en hora" onClick={() => set('comenzo_si')(datos.comenzo_si === 'si' ? 'no' : 'si')} style={{
             display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, minHeight: 50, padding: '0 10px', boxSizing: 'border-box',
-            background: datos.comenzo_si === 'si' ? '#0d1f4e' : datos.comenzo_si === 'no' ? '#e03030' : '#c6dbf5',
-            border: `1.5px solid ${datos.comenzo_si === 'no' ? '#e03030' : '#0d1f4e'}`,
+            background: datos.comenzo_si === 'si' ? '#1a7a3a' : datos.comenzo_si === 'no' ? '#e03030' : '#c6dbf5',
+            border: `1.5px solid ${datos.comenzo_si === 'si' ? '#1a7a3a' : datos.comenzo_si === 'no' ? '#e03030' : '#0d1f4e'}`,
             borderRadius: 8, cursor: 'pointer', userSelect: 'none', transition: 'all .15s',
           }}>
             <div style={{
               width: 22, height: 22, borderRadius: 4, flexShrink: 0, boxSizing: 'border-box',
-              background: datos.comenzo_si === 'si' ? '#c6dbf5' : '#fff',
-              border: `2px solid ${datos.comenzo_si === 'si' ? '#c6dbf5' : datos.comenzo_si === 'no' ? '#fff' : '#0d1f4e'}`,
+              background: '#fff',
+              border: `2px solid ${datos.comenzo_si ? '#fff' : '#0d1f4e'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              {datos.comenzo_si === 'si' && <span style={{ color: '#0d1f4e', fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
+              {datos.comenzo_si === 'si' && <span style={{ color: '#1a7a3a', fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
               {datos.comenzo_si === 'no' && <span style={{ color: '#e03030', fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✗</span>}
             </div>
             <span style={{ fontSize: 13, color: datos.comenzo_si ? '#fff' : '#0d1f4e', lineHeight: 1.2, fontWeight: 600, textTransform: 'uppercase', minWidth: 0 }}>
