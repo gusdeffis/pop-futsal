@@ -88,10 +88,10 @@ export function generarActaSecciones(datos) {
   // Inicio del partido
   const inicio = [];
   if (datos.comenzo_si === 'no') {
-    inicio.push({ label: 'No comenzó en horario', texto: datos.motivo_inicio ? `Motivo: ${capitalizarFrase(datos.motivo_inicio)}.` : '' });
+    inicio.push({ label: 'No comenzó en horario', texto: datos.motivo_inicio ? `Motivo: ${capitalizarFrase(datos.motivo_inicio)}.` : 'Motivo: sin especificar.' });
   }
   if (datos.protocolo === false) {
-    inicio.push({ label: 'Protocolo de inicio no realizado', texto: (datos.protocolo_obs || '').trim() });
+    inicio.push({ label: 'Protocolo de inicio no realizado', texto: (datos.protocolo_obs || '').trim() || 'Sin observaciones.' });
   }
   agregar('inicio', 'Inicio', '⚠️', inicio);
 

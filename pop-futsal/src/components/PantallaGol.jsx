@@ -31,7 +31,7 @@ const tituloGoles = { ...subtitulo, fontSize: 19, textAlign: 'center' };
 // cuando ya se avisó por WhatsApp.
 const VERDE_ENVIADO = '#1a9e4a';
 function estiloJugador(enviado) {
-  return { ...inp, background: enviado ? VERDE_ENVIADO : AZUL, borderColor: enviado ? VERDE_ENVIADO : AZUL, color: '#fff' };
+  return { ...inp, background: enviado ? VERDE_ENVIADO : AZUL, borderColor: enviado ? VERDE_ENVIADO : AZUL, color: '#fff', fontSize: 17, fontWeight: 800 };
 }
 
 // "Ir" del teclado numérico: en el minuto pasa al casillero del jugador de
@@ -50,7 +50,7 @@ function CampoMinuto({ value, onChange }) {
   return (
     <input aria-label="Minuto" inputMode="numeric" enterKeyHint="next" value={value}
       onChange={e => onChange(soloDigitos(e.target.value))} onKeyDown={alApretarIr}
-      style={{ ...inp, color: '#000', background: '#e4e7ee', border: '1.5px solid #a3acbd' }} />
+      style={{ ...inp, color: '#000', background: '#e4e7ee', border: '1.5px solid #a3acbd', fontSize: 17, fontWeight: 800 }} />
   );
 }
 
@@ -83,7 +83,7 @@ function IconWsp({ size = 18, color = '#fff' }) {
 function BtnBorrar({ onClick }) {
   return (
     <button onClick={onClick} aria-label="Borrar" style={{
-      height: 34, width: 24, border: 'none', background: 'none', color: ROJA, fontSize: 24, fontWeight: 700,
+      height: 34, width: '100%', border: 'none', background: 'none', color: ROJA, fontSize: 24, fontWeight: 700,
       lineHeight: 1, cursor: 'pointer', padding: 0,
     }}>×</button>
   );
@@ -142,7 +142,8 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   // Las tres secciones (Goles, Tarjetas, Cuerpo técnico) usan la MISMA
   // línea: rayita de color (vacía en goles) → Min → Jugador o DT/AUX → ✕,
   // con los mismos anchos, para que los casilleros queden alineados.
-  const GRID = '24px 36px 1fr 1fr 24px';
+  // 5 espacios iguales: ícono · tiempo · minuto · jugador · borrar
+  const GRID = 'repeat(5, minmax(0, 1fr))';
   const encabezado = (segunda) => (
     <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5 }}>
       <div /><div /><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
@@ -153,7 +154,7 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   const tiempoActual = [...goles, ...tarjetas].some(x => tiempoDe(x) === 2) ? 2 : 1;
   const botonTiempo = (x, cambiar) => (
     <button aria-label="Tiempo" onClick={() => cambiar({ tiempo: tiempoDe(x) === 1 ? 2 : 1 })} style={{
-      height: 34, width: 36, borderRadius: 7, padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 800,
+      height: 34, width: '100%', borderRadius: 7, padding: 0, cursor: 'pointer', fontSize: 11, fontWeight: 600,
       border: '1.5px solid #a3acbd', background: '#e4e7ee', color: '#000',
     }}>{tiempoDe(x)}T</button>
   );

@@ -59,11 +59,26 @@ function nombreCompletoArbitro(valorGuardado, listaArbitros) {
 
 // Mismo formato de texto que ya arma "Compartir Datos" en Pantalla5 —
 // función única para que no se desalinee si se cambia en un solo lugar.
+const negritaSi = (cond, txt) => (cond ? `*${txt}*` : txt);
+
+export function ganadorPartido(datos) {
+  const n = (v) => (String(v ?? '').trim() === '' || Number.isNaN(Number(v)) ? null : Number(v));
+  const l = n(datos.res_local), v = n(datos.res_visitante);
+  if (l == null || v == null) return null;
+  if (l !== v) return l > v ? 'L' : 'V';
+  const pl = n(datos.pen_local), pv = n(datos.pen_visitante);
+  if (pl == null || pv == null || pl === pv) return null;
+  return pl > pv ? 'L' : 'V';
+}
+
 export function armarTextoWhatsApp(datos, actaTexto, arbitros) {
   const conclusiones = datos.conclusiones || [];
   const resPen = resultadoConPenales(datos);
   const resLocal = resPen.local || '-';
   const resVisita = resPen.visitante || '-';
+  // El ganador va en negrita (por goles, o por penales si empataron); si
+  // empataron sin penales, ninguno.
+  const ganador = ganadorPartido(datos);
   const concl = conclusiones.map(c => CONCL_LABELS[c]).filter(Boolean).join(' / ');
   // La demora que se muestra acá tiene que ser la del INICIO REAL del
   // partido (Hora programada vs Hora Inicio Real) — no la del ingreso al
@@ -86,8 +101,8 @@ export function armarTextoWhatsApp(datos, actaTexto, arbitros) {
     `Fecha ${datos.fecha_nro}\n` +
     `📅 ${datos.dia} | ${datos.hora} hs\n` +
     `${SEPARADOR}\n` +
-    `(L) ${datos.local}  ${resLocal} \n` +
-    `(V) ${datos.visitante}  ${resVisita}\n` +
+    `(L) ${negritaSi(ganador === 'L', `${datos.local}  ${resLocal}`)} \n` +
+    `(V) ${negritaSi(ganador === 'V', `${datos.visitante}  ${resVisita}`)}\n` +
     `Estadio: ${datos.estadio}\n` +
     `Árbitro: ${formatoNombre(nombreCompletoArbitro(datos.arbitro, arbitros))}\n` +
     `Oficial AFA:  ${soloApellido(formatoNombre(datos.oficial_afa))}\n` +
