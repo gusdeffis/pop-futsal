@@ -111,7 +111,7 @@ export function textoAvisoPendientes(datos) {
   ]);
   if (!items.length) return '';
   const lineas = items.map(x => x._tipo === 'gol'
-    ? `⚽ GOL ${club(datos, x.lado)} — ${jugador(x)}, ${momento(x)}`
+    ? `⚽ ${club(datos, x.lado)} — ${jugador(x)}, ${momento(x)}`
     : `${x.color === 'R' ? '🟥' : '🟨'} ${club(datos, x.lado)} — ${quienTarjeta(x)}, ${momento(x)}`);
   const todos = golesDe(datos);
   const pl = todos.filter(g => g.lado === 'L').length;
