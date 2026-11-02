@@ -23,15 +23,9 @@ const inp = {
 };
 const encabezadoCol = { fontSize: 9, fontWeight: 700, color: '#5a6b8c', textTransform: 'uppercase', textAlign: 'center' };
 const subtitulo = { fontSize: 14, fontWeight: 800, color: AZUL, letterSpacing: .5, textTransform: 'uppercase', borderBottom: `2px solid ${AZUL}`, paddingBottom: 3, marginTop: 4 };
-const ROJA_PASTEL = '#f9c4c4';
-
-// Casillero del jugador (o DT/AUX): celeste en goles, del color de la
-// tarjeta en tarjetas, azul cuando ya se avisó por WhatsApp.
-function estiloJugador(color, enviado) {
-  if (enviado) return { ...inp, background: ENVIADO, borderColor: ENVIADO, color: '#fff' };
-  if (color === 'A') return { ...inp, background: AMARILLA, borderColor: AMARILLA_BORDE, color: '#5a4a00' };
-  if (color === 'R') return { ...inp, background: ROJA_PASTEL, borderColor: ROJA, color: '#7a1030' };
-  return inp;
+// Casillero del jugador (o DT/AUX): celeste, azul cuando ya se avisó por WhatsApp.
+function estiloJugador(enviado) {
+  return enviado ? { ...inp, background: ENVIADO, borderColor: ENVIADO, color: '#fff' } : inp;
 }
 
 // Minuto: recuadro gris con letra negra mientras se escribe (o si está
@@ -118,14 +112,19 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   const tiempoDe = (x) => (Number(x.tiempo) === 2 ? 2 : 1);
 
   // Las tres secciones (Goles, Tarjetas, Cuerpo técnico) usan la MISMA
-  // línea: Min → Jugador o DT/AUX → ✕ (el color de la tarjeta va en el casillero),
+  // línea: rayita de color (vacía en goles) → Min → Jugador o DT/AUX → ✕,
   // con los mismos anchos, para que los casilleros queden alineados.
-  const GRID = '1fr 1fr 24px';
+  const GRID = '8px 1fr 1fr 24px';
   const encabezado = (segunda) => (
     <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5 }}>
-      <div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
+      <div /><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
     </div>
   );
+  // Rayita de color a la izquierda de cada fila de tarjeta (vacía en goles,
+  // para que todas las filas queden alineadas).
+  const marca = (color) => color
+    ? <div title={color === 'R' ? 'Roja' : 'Amarilla'} style={{ width: 8, height: 30, borderRadius: 2, boxSizing: 'border-box', background: color === 'R' ? ROJA : AMARILLA, border: `1px solid ${color === 'R' ? ROJA_BORDE : AMARILLA_BORDE}` }} />
+    : <div />;
   // Botones con forma de tarjeta (más angostos que altos).
   const botonesTarjeta = (agregar) => (
     <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 14 }}>
@@ -144,9 +143,10 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
       }}>+ GOL</button>
       {lista.length > 0 && encabezado('Jugador')}
       {lista.map(g => {
-        const st = estiloJugador(null, g.wsp);
+        const st = estiloJugador(g.wsp);
         return (
           <div key={g.id} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5, alignItems: 'center' }}>
+            {marca(null)}
             <CampoMinuto value={g.min} onChange={v => cambiarGol(g.id, { min: v })} />
             <input aria-label="Número de jugador" inputMode="numeric" value={g.num} onChange={e => cambiarGol(g.id, { num: soloDigitos(e.target.value) })} style={st} />
             <BtnBorrar onClick={() => guardarGoles(goles.filter(x => x.id !== g.id))} />
@@ -165,9 +165,10 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
       {botonesTarjeta(agregar)}
       {lista.length > 0 && encabezado(cuerpoTecnico ? 'DT / Aux.' : 'Jugador')}
       {lista.map(t => {
-        const st = estiloJugador(t.color, t.wsp);
+        const st = estiloJugador(t.wsp);
         return (
           <div key={t.id} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5, alignItems: 'center' }}>
+            {marca(t.color)}
             <CampoMinuto value={t.min} onChange={v => cambiarTarjeta(t.id, { min: v })} />
             {cuerpoTecnico
               ? <select aria-label="DT o auxiliar" value={t.quien} onChange={e => cambiarTarjeta(t.id, { quien: e.target.value })}
