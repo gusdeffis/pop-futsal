@@ -32,6 +32,17 @@ function ActaVista({ datos, textoVacio }) {
               • {it.label && <b>{capitalizarFrase(it.label)}: </b>}{it.crudo ? it.texto : aOracion(it.texto, datos)}
             </div>
           ))}
+          {(sec.grupos || []).map(g => (
+            <div key={g.id} style={{ marginTop: 4 }}>
+              <div style={{ fontWeight: 800 }}>{g.emoji} {g.titulo}</div>
+              {g.equipos.map(e => (
+                <div key={e.club}>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{e.club}</div>
+                  {e.items.map((i, k) => <div key={k} style={{ paddingLeft: 12 }}>• {i}</div>)}
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       ))}
     </div>

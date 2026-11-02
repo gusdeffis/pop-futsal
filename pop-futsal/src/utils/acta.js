@@ -1,5 +1,5 @@
 import { generarBloqueDesvios, capitalizarFrase } from './desviosHorarios';
-import { lineasGolesTarjetasActa } from './golesTarjetas';
+import { gruposGolesTarjetas } from './golesTarjetas';
 
 // Ítems de Control Previo (Pantalla2) — campo interno, texto legible para
 // el resumen del Acta, y la ETIQUETA exacta (mayúscula) que guarda el panel
@@ -131,11 +131,10 @@ export function generarActaSecciones(datos) {
     ...(durante.length ? [{ label: 'Durante el partido', texto: `${capitalizarFrase(durante.join(', '))}.` }] : []),
   ]);
 
-  // Goles y tarjetas (en el WhatsApp van en su propia sección, arriba)
-  agregar('goles', 'Goles y tarjetas', '⚽', lineasGolesTarjetasActa(datos).map(l => {
-    const i = l.indexOf(': ');
-    return { label: l.slice(0, i), texto: l.slice(i + 2), crudo: true };
-  }));
+  // Goles, tarjetas y cuerpo técnico: agrupados por club, un ítem por
+  // renglón (en el WhatsApp van en su propia sección, arriba).
+  const grupos = gruposGolesTarjetas(datos);
+  if (grupos.length) secciones.push({ id: 'goles', titulo: 'Goles y tarjetas', emoji: '⚽', items: [], grupos });
 
   return { encabezado, secciones };
 }
@@ -147,10 +146,16 @@ const textoItem = (it, datos) => (it.crudo ? it.texto : aOracion(it.texto, datos
 // minúscula.
 function actaPlana(datos, { encabezado, secciones }) {
   const lineas = [...encabezado];
-  secciones.forEach(sec => sec.items.forEach(it => {
-    const txt = textoItem(it, datos);
-    lineas.push(it.label ? `• ${it.label.toUpperCase()}: ${txt}`.trim() : `• ${txt}`);
-  }));
+  secciones.forEach(sec => {
+    sec.items.forEach(it => {
+      const txt = textoItem(it, datos);
+      lineas.push(it.label ? `• ${it.label.toUpperCase()}: ${txt}`.trim() : `• ${txt}`);
+    });
+    (sec.grupos || []).forEach(g => {
+      lineas.push(g.titulo.toUpperCase());
+      g.equipos.forEach(e => { lineas.push(e.club); e.items.forEach(i => lineas.push(`• ${i}`)); });
+    });
+  });
   return lineas.join('\n');
 }
 

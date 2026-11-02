@@ -14,14 +14,15 @@ import { golesDe, tarjetasDe, pendientesWsp, textoAvisoPendientes } from '../uti
 const AZUL = '#0d1f4e', CELESTE = '#c6dbf5', VERDE = '#1a9e4a', ENVIADO = '#4aa3e0';
 const AMARILLA = '#fff1a6', AMARILLA_BORDE = '#d9b800', ROJA = '#d32626', ROJA_BORDE = '#8f1414';
 const CLAVE_WSP = 'pop_wsp_destino'; // último número usado, para no tipearlo en cada partido
+const CLAVE_COD = 'pop_wsp_codigo';  // último código de país usado (por defecto Argentina celular: 54 9)
 
 let seq = 0;
 const nuevoId = () => `${Date.now().toString(36)}${(seq++).toString(36)}`;
 const soloDigitos = (v) => String(v).replace(/\D/g, '').slice(0, 3);
 
 const inp = {
-  height: 38, border: `1.5px solid ${AZUL}`, borderRadius: 7, background: CELESTE, color: AZUL,
-  fontSize: 16, fontWeight: 700, textAlign: 'center', padding: 0, width: '100%', boxSizing: 'border-box', minWidth: 0, outline: 'none',
+  height: 34, border: `1.5px solid ${AZUL}`, borderRadius: 7, background: CELESTE, color: AZUL,
+  fontSize: 15, fontWeight: 700, textAlign: 'center', padding: 0, width: '100%', boxSizing: 'border-box', minWidth: 0, outline: 'none',
 };
 const encabezadoCol = { fontSize: 9, fontWeight: 700, color: '#5a6b8c', textTransform: 'uppercase', textAlign: 'center' };
 const subtitulo = { fontSize: 15, fontWeight: 800, color: AZUL, letterSpacing: .8, textTransform: 'uppercase', textAlign: 'left', borderBottom: `2px solid ${AZUL}`, paddingBottom: 3, marginTop: 2 };
@@ -54,6 +55,23 @@ function CampoMinuto({ value, onChange }) {
 }
 
 
+// Número para wa.me: código de país (por defecto "54 9", Argentina celular)
+// + número con característica, sin 0 adelante ni 15. Si el número ya viene
+// con el código adelante, no se repite. Vacío = WhatsApp deja elegir contacto.
+export function numeroWhatsApp(codigo, numero) {
+  const cod = String(codigo || '').replace(/\D/g, '');
+  let num = String(numero || '').replace(/\D/g, '');
+  if (!num) return '';
+  if (cod && num.startsWith(cod) && num.length > 10) return num;
+  if (cod.startsWith('54') && num.startsWith('54') && num.length === 12) return `549${num.slice(2)}`; // 54 11 ... sin el 9
+  num = num.replace(/^0+/, '');
+  if (cod.startsWith('54')) {
+    // 11 15 3631 0202 → 11 3631 0202 (el 15 de celular no va en formato internacional)
+    num = num.replace(/^(\d{2,4})15(\d{6,8})$/, (m, car, resto) => ((car + resto).length === 10 ? car + resto : m));
+  }
+  return cod + num;
+}
+
 function IconWsp({ size = 18, color = '#fff' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true">
@@ -65,7 +83,7 @@ function IconWsp({ size = 18, color = '#fff' }) {
 function BtnBorrar({ onClick }) {
   return (
     <button onClick={onClick} aria-label="Borrar" style={{
-      height: 38, width: 24, border: 'none', background: 'none', color: ROJA, fontSize: 24, fontWeight: 700,
+      height: 34, width: 24, border: 'none', background: 'none', color: ROJA, fontSize: 24, fontWeight: 700,
       lineHeight: 1, cursor: 'pointer', padding: 0,
     }}>×</button>
   );
@@ -75,8 +93,9 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   const goles = golesDe(datos);
   const tarjetas = tarjetasDe(datos);
 
-  const leerWspGuardado = () => { try { return localStorage.getItem(CLAVE_WSP) || ''; } catch { return ''; } };
-  const wspDestino = datos.wsp_destino || leerWspGuardado();
+  const leer = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+  const wspDestino = datos.wsp_destino || leer(CLAVE_WSP);
+  const wspCodigo = datos.wsp_codigo || leer(CLAVE_COD) || '54 9';
 
   // Cada cambio en los goles recalcula el resultado del Acta Final. Si
   // después alguien lo corrige a mano allá, queda lo que escribió hasta
@@ -95,6 +114,10 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
     setDatos(d => ({ ...d, wsp_destino: v }));
     try { localStorage.setItem(CLAVE_WSP, v); } catch { /* sin almacenamiento: no pasa nada */ }
   };
+  const setCodigo = (v) => {
+    setDatos(d => ({ ...d, wsp_codigo: v }));
+    try { localStorage.setItem(CLAVE_COD, v); } catch { /* idem */ }
+  };
 
   const pend = pendientesWsp(datos);
   const cantPendientes = pend.goles.length + pend.tarjetas.length;
@@ -102,7 +125,7 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   const enviarPendientes = () => {
     const msj = textoAvisoPendientes(datos);
     if (!msj) return;
-    const tel = (wspDestino || '').replace(/\D/g, '');
+    const tel = numeroWhatsApp(wspCodigo, wspDestino);
     window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msj)}`);
     setDatos(d => ({
       ...d,
@@ -119,10 +142,10 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   // Las tres secciones (Goles, Tarjetas, Cuerpo técnico) usan la MISMA
   // línea: rayita de color (vacía en goles) → Min → Jugador o DT/AUX → ✕,
   // con los mismos anchos, para que los casilleros queden alineados.
-  const GRID = '20px 28px 1fr 1fr 24px';
+  const GRID = '24px 36px 1fr 1fr 24px';
   const encabezado = (segunda) => (
     <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5 }}>
-      <div /><div style={encabezadoCol}>T</div><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
+      <div /><div /><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
     </div>
   );
   // Tiempo de la fila: botoncito gris (como el minuto) que se toca para
@@ -130,14 +153,14 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   const tiempoActual = [...goles, ...tarjetas].some(x => tiempoDe(x) === 2) ? 2 : 1;
   const botonTiempo = (x, cambiar) => (
     <button aria-label="Tiempo" onClick={() => cambiar({ tiempo: tiempoDe(x) === 1 ? 2 : 1 })} style={{
-      height: 30, width: 28, borderRadius: 6, padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 800,
+      height: 34, width: 36, borderRadius: 7, padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 800,
       border: '1.5px solid #a3acbd', background: '#e4e7ee', color: '#000',
-    }}>{tiempoDe(x)}</button>
+    }}>{tiempoDe(x)}T</button>
   );
-  // A la izquierda de cada fila: rayita amarilla/roja en tarjetas, pelota en goles.
+  // A la izquierda de cada fila: tarjetita amarilla/roja en tarjetas, pelota en goles.
   const marca = (color) => color
-    ? <div style={{ display: 'flex', justifyContent: 'center' }}><div title={color === 'R' ? 'Roja' : 'Amarilla'} style={{ width: 8, height: 30, borderRadius: 2, boxSizing: 'border-box', background: color === 'R' ? ROJA : AMARILLA, border: `1px solid ${color === 'R' ? ROJA_BORDE : AMARILLA_BORDE}` }} /></div>
-    : <div aria-hidden="true" style={{ fontSize: 19, textAlign: 'center', lineHeight: 1 }}>⚽</div>;
+    ? <div style={{ display: 'flex', justifyContent: 'center' }}><div title={color === 'R' ? 'Roja' : 'Amarilla'} style={{ width: 20, height: 28, borderRadius: 3, boxSizing: 'border-box', background: color === 'R' ? ROJA : AMARILLA, border: `1.5px solid ${color === 'R' ? ROJA_BORDE : AMARILLA_BORDE}` }} /></div>
+    : <div aria-hidden="true" style={{ fontSize: 24, textAlign: 'center', lineHeight: 1 }}>⚽</div>;
   // Botones con forma de tarjeta (más angostos que altos).
   const botonesTarjeta = (agregar) => (
     <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 14 }}>
@@ -215,14 +238,14 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 800, color: AZUL, textTransform: 'uppercase' }}>{nombre(lado)}</div>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 16, fontWeight: 800, color: AZUL, textTransform: 'uppercase' }}>{nombre(lado)}</div>
           <div aria-label={`Total penales ${lado === 'L' ? 'local' : 'visitante'}`} style={{ fontSize: 22, fontWeight: 800, color: AZUL, minWidth: 24, textAlign: 'center' }}>{totPen(lado)}</div>
           <button aria-label="Penal convertido" onClick={() => guardarPenales([...penales, { id: nuevoId(), lado, ok: true }])} style={btnPen}>+⚽</button>
-          <button aria-label="Penal atajado" onClick={() => guardarPenales([...penales, { id: nuevoId(), lado, ok: false }])} style={{ ...btnPen, color: ROJA }}>+✗</button>
+          <button aria-label="Penal atajado" onClick={() => guardarPenales([...penales, { id: nuevoId(), lado, ok: false }])} style={{ ...btnPen, color: ROJA, fontSize: 20, lineHeight: 1 }}>+×</button>
           <button aria-label="Borrar último penal" disabled={!ultimo} onClick={() => guardarPenales(penales.filter(p => p.id !== ultimo.id))} style={{ ...btnPen, background: '#fff', opacity: ultimo ? 1 : .4 }}>⌫</button>
         </div>
         <div aria-label={`Penales ${lado === 'L' ? 'local' : 'visitante'}`} style={{ minHeight: 24, fontSize: 19, letterSpacing: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-          {lista.map(p => <span key={p.id} style={p.ok ? undefined : { color: ROJA, fontWeight: 800 }}>{p.ok ? '⚽' : '✗'}</span>)}
+          {lista.map(p => <span key={p.id} style={p.ok ? undefined : { color: ROJA, fontWeight: 700, fontSize: 26, lineHeight: '22px' }}>{p.ok ? '⚽' : '×'}</span>)}
         </div>
       </div>
     );
@@ -239,13 +262,13 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
 
   const seccionPenales = (
     <>
-      <div role="button" aria-label="Definición por penales" onClick={() => setVerPenales(true)} style={{
-        ...subtitulo, cursor: verPenales ? 'default' : 'pointer',
+      <div role="button" aria-label="Definición por penales" onClick={() => setVerPenales(v => !v)} style={{
+        ...subtitulo, cursor: 'pointer',
         color: verPenales ? AZUL : '#a3acbd', borderBottomColor: verPenales ? AZUL : '#c9cfdb',
         display: 'flex', alignItems: 'baseline',
       }}>
         <span style={{ flex: 1 }}>Definición por penales</span>
-        {verPenales && <span style={{ fontSize: 14 }}>{totPen('L')} - {totPen('V')}</span>}
+        {(verPenales || penales.length > 0) && <span style={{ fontSize: 14 }}>{totPen('L')} - {totPen('V')}</span>}
       </div>
       {verPenales && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -278,22 +301,24 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
         {fila2(columnaTarjetas('L', true), columnaTarjetas('V', true))}
         {seccionPenales}
 
-        {/* WhatsApp: un solo botón que manda todo lo pendiente, y al lado el número de destino */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 132px', gap: 8, marginTop: 4, alignItems: 'end' }}>
-          <button onClick={enviarPendientes} disabled={cantPendientes === 0} style={{
-            height: 50, borderRadius: 8, border: 'none', cursor: cantPendientes ? 'pointer' : 'default',
-            background: cantPendientes ? VERDE : '#b9c2d3', color: '#fff', fontWeight: 800, fontSize: 14,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 8px',
-          }}>
-            <IconWsp size={22} />
-            {cantPendientes ? `ENVIAR (${cantPendientes})` : 'TODO ENVIADO'}
-          </button>
-          <div>
-            <div style={{ ...encabezadoCol, textAlign: 'left', marginBottom: 2 }}>Enviar a</div>
-            <input type="tel" inputMode="tel" aria-label="Número de WhatsApp" placeholder="Elegir contacto" value={wspDestino}
-              onChange={e => setWsp(e.target.value)}
-              style={{ ...inp, height: 34, fontSize: 13, fontWeight: 600, background: '#fff', border: '1px solid #b8c8e8' }} />
+        {/* WhatsApp: un solo botón que manda todo lo pendiente; debajo, discreto, el número de destino */}
+        <button onClick={enviarPendientes} disabled={cantPendientes === 0} style={{
+          height: 50, borderRadius: 8, border: 'none', cursor: cantPendientes ? 'pointer' : 'default', marginTop: 4,
+          background: cantPendientes ? VERDE : '#b9c2d3', color: '#fff', fontWeight: 800, fontSize: 15,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 8px',
+        }}>
+          <IconWsp size={22} />
+          {cantPendientes ? `ENVIAR POR WHATSAPP (${cantPendientes})` : 'TODO ENVIADO'}
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: -4 }}>
+          <div style={{ ...encabezadoCol, fontSize: 10, whiteSpace: 'nowrap' }}>Enviar a</div>
+          <div style={{ display: 'flex', alignItems: 'center', height: 32, border: '1px solid #b8c8e8', borderRadius: 7, background: '#f1f3f8', paddingLeft: 6, color: '#8a96ad', fontSize: 13, fontWeight: 600 }}>
+            +<input aria-label="Código de país" inputMode="numeric" value={wspCodigo} onChange={e => setCodigo(e.target.value.replace(/[^\d ]/g, '').slice(0, 7))}
+              style={{ width: 44, border: 'none', background: 'transparent', color: '#8a96ad', fontSize: 13, fontWeight: 600, outline: 'none', padding: '0 2px' }} />
           </div>
+          <input type="tel" inputMode="tel" aria-label="Número de WhatsApp" placeholder="Ej: 11 3631 0202 (vacío: elegir contacto)" value={wspDestino}
+            onChange={e => setWsp(e.target.value)}
+            style={{ ...inp, flex: 1, height: 32, fontSize: 13, fontWeight: 600, background: '#fff', border: '1px solid #b8c8e8', textAlign: 'left', paddingLeft: 8 }} />
         </div>
       </div>
       <div style={{ padding: '8px 16px 24px', display: 'flex', gap: 10 }}>

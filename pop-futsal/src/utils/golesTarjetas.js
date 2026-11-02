@@ -36,18 +36,6 @@ export function quienTarjeta(t) {
 
 export function penalesDe(datos) { return Array.isArray(datos.penales) ? datos.penales : []; }
 
-// Definición por penales: "RACING 3 (⚽⚽✗⚽)". `marcas` cambia cómo se
-// muestran convertido/atajado (letras G/X en el PDF, que no admite emojis).
-function lineaPenales(datos, marcas, separador) {
-  const pen = penalesDe(datos);
-  return ['L', 'V'].map(lado => {
-    const del = pen.filter(p => p.lado === lado);
-    if (!del.length) return '';
-    const conv = del.filter(p => p.ok).length;
-    return `${club(datos, lado)} ${conv} (${del.map(p => (p.ok ? marcas[0] : marcas[1])).join(marcas[2])})`;
-  }).filter(Boolean).join(separador);
-}
-
 export function golesDe(datos) { return Array.isArray(datos.goles) ? datos.goles : []; }
 export function tarjetasDe(datos) { return Array.isArray(datos.tarjetas) ? datos.tarjetas : []; }
 
@@ -67,32 +55,42 @@ const descGol = (g) => `${jugador(g)} (${momento(g)})`;
 const descTarjetaActa = (t) => `${t.color === 'R' ? 'Roja' : 'Amarilla'} ${quienTarjeta(t)} (${momento(t)})`;
 const descTarjetaWsp = (t) => `${t.color === 'R' ? '🟥' : '🟨'} ${quienTarjeta(t)} (${momento(t)})`;
 
-// Líneas para el Acta Final / PDF (sin emojis).
+// Goles, tarjetas y cuerpo técnico agrupados por tipo y por club, un ítem
+// por renglón. `emojis` = formato WhatsApp (🟨/🟥); sin emojis = Acta/PDF
+// ("Amarilla"/"Roja"). Los penales NO van acá: ya salen entre paréntesis
+// en el resultado del partido.
+export function gruposGolesTarjetas(datos, { emojis = false } = {}) {
+  const tarjetas = tarjetasDe(datos);
+  const descT = emojis ? descTarjetaWsp : descTarjetaActa;
+  return [
+    { id: 'goles', titulo: 'Goles', emoji: '⚽', lista: golesDe(datos), desc: descGol },
+    { id: 'tarjetas', titulo: 'Tarjetas', emoji: '🟨🟥', lista: tarjetas.filter(t => !esCuerpoTecnico(t)), desc: descT },
+    { id: 'ct', titulo: 'Cuerpo técnico', emoji: '🟨🟥', lista: tarjetas.filter(esCuerpoTecnico), desc: descT },
+  ].filter(g => g.lista.length).map(g => ({
+    id: g.id, titulo: g.titulo, emoji: g.emoji,
+    equipos: ['L', 'V']
+      .map(lado => ({ club: club(datos, lado), items: ordenCronologico(g.lista.filter(x => x.lado === lado)).map(g.desc) }))
+      .filter(e => e.items.length),
+  }));
+}
+
+// Renglones para el Acta Final / PDF (sin emojis):
+//   GOLES / RACING / • N° 9 (5' 1T) / ...
 export function lineasGolesTarjetasActa(datos) {
   const lineas = [];
-  const goles = golesDe(datos);
-  const tarjetas = tarjetasDe(datos);
-  if (goles.length) lineas.push(`Goles: ${porEquipo(datos, goles, descGol, ' — ')}.`);
-  const jug = tarjetas.filter(t => !esCuerpoTecnico(t));
-  const ct = tarjetas.filter(esCuerpoTecnico);
-  if (jug.length) lineas.push(`Tarjetas: ${porEquipo(datos, jug, descTarjetaActa, ' — ')}.`);
-  if (ct.length) lineas.push(`Cuerpo técnico: ${porEquipo(datos, ct, descTarjetaActa, ' — ')}.`);
-  if (penalesDe(datos).length) lineas.push(`Penales: ${lineaPenales(datos, ['G', 'X', ' '], ' — ')}.`);
+  gruposGolesTarjetas(datos).forEach(g => {
+    lineas.push(g.titulo.toUpperCase());
+    g.equipos.forEach(e => { lineas.push(e.club); e.items.forEach(i => lineas.push(`• ${i}`)); });
+  });
   return lineas;
 }
 
-// Bloque para el WhatsApp de resumen del partido (con emojis). Vacío si no hay nada.
+// Bloque para el WhatsApp de resumen del partido. Vacío si no hay nada.
 export function bloqueGolesTarjetasWSP(datos) {
-  const goles = golesDe(datos);
-  const tarjetas = tarjetasDe(datos);
-  let out = '';
-  if (goles.length) out += `⚽ Goles:\n${porEquipo(datos, goles, descGol, '\n')}\n`;
-  const jug = tarjetas.filter(t => !esCuerpoTecnico(t));
-  const ct = tarjetas.filter(esCuerpoTecnico);
-  if (jug.length) out += `Tarjetas:\n${porEquipo(datos, jug, descTarjetaWsp, '\n')}\n`;
-  if (ct.length) out += `Cuerpo técnico:\n${porEquipo(datos, ct, descTarjetaWsp, '\n')}\n`;
-  if (penalesDe(datos).length) out += `Penales:\n${lineaPenales(datos, ['⚽', '✗', ''], '\n')}\n`;
-  return out;
+  const grupos = gruposGolesTarjetas(datos, { emojis: true });
+  if (!grupos.length) return '';
+  return grupos.map(g => `${g.emoji} *${g.titulo}*\n` +
+    g.equipos.map(e => `${e.club}\n${e.items.map(i => `• ${i}`).join('\n')}`).join('\n')).join('\n\n') + '\n';
 }
 
 // Lo que todavía no se avisó por WhatsApp (goles y tarjetas).
