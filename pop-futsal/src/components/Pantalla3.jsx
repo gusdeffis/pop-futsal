@@ -199,6 +199,13 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
             onToggle={() => set('comenzo_si')(datos.comenzo_si === 'si' ? 'no' : 'si')} />
         </div>
 
+        {datos.protocolo === false && (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6 }}>Observación del protocolo de inicio</div>
+            <Textarea value={datos.protocolo_obs || ''} onChange={set('protocolo_obs')} placeholder="Qué pasó con el protocolo..." minHeight={44} />
+          </div>
+        )}
+
         {datos.comenzo_si === 'no' && (
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#0d1f4e', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6 }}>Motivo de demora de inicio de partido</div>

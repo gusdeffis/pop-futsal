@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Header, SeccionHeader, BtnNext, BtnBack } from './UI';
 import { golesDe, tarjetasDe, pendientesWsp, textoAvisoPendientes } from '../utils/golesTarjetas';
 
-// Pantalla 4 — GOLES: goles y tarjetas del partido, separados por 1er y
-// 2do tiempo (goles, tarjetas de jugadores y del cuerpo técnico), local a la izquierda y visitante a la derecha. Los goles
+// Pantalla 4 — GOLES: goles, tarjetas de jugadores y del cuerpo técnico,
+// local a la izquierda y visitante a la derecha. Cada fila tiene su tiempo
+// (1 o 2, botoncito que se toca para cambiar): las filas nuevas arrancan
+// con el tiempo de la última que se cargó o se cambió. Los goles
 // completan solos el resultado del Acta Final (que sigue siendo editable
 // a mano). Un solo botón de WhatsApp abajo manda todo lo que todavía no
 // se avisó; lo enviado queda pintado. Si se corrige algo ya enviado,
@@ -22,7 +24,7 @@ const inp = {
   fontSize: 16, fontWeight: 700, textAlign: 'center', padding: 0, width: '100%', boxSizing: 'border-box', minWidth: 0, outline: 'none',
 };
 const encabezadoCol = { fontSize: 9, fontWeight: 700, color: '#5a6b8c', textTransform: 'uppercase', textAlign: 'center' };
-const subtitulo = { fontSize: 14, fontWeight: 800, color: AZUL, letterSpacing: .5, textTransform: 'uppercase', borderBottom: `2px solid ${AZUL}`, paddingBottom: 3, marginTop: 4 };
+const subtitulo = { fontSize: 15, fontWeight: 800, color: AZUL, letterSpacing: .8, textTransform: 'uppercase', textAlign: 'center', borderBottom: `2px solid ${AZUL}`, paddingBottom: 3, marginTop: 2 };
 // Casillero del jugador (o DT/AUX): celeste, azul cuando ya se avisó por WhatsApp.
 function estiloJugador(enviado) {
   return enviado ? { ...inp, background: ENVIADO, borderColor: ENVIADO, color: '#fff' } : inp;
@@ -114,11 +116,20 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   // Las tres secciones (Goles, Tarjetas, Cuerpo técnico) usan la MISMA
   // línea: rayita de color (vacía en goles) → Min → Jugador o DT/AUX → ✕,
   // con los mismos anchos, para que los casilleros queden alineados.
-  const GRID = '8px 1fr 1fr 24px';
+  const GRID = '8px 28px 1fr 1fr 24px';
   const encabezado = (segunda) => (
     <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5 }}>
-      <div /><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
+      <div /><div style={encabezadoCol}>T</div><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
     </div>
+  );
+  // Tiempo de la fila: botoncito 1/2; al tocarlo cambia y pasa a ser el
+  // tiempo de las próximas filas que se agreguen.
+  const tiempoActual = Number(datos.tiempo_actual) === 2 ? 2 : 1;
+  const botonTiempo = (x, cambiar) => (
+    <button aria-label="Tiempo" onClick={() => { const t = tiempoDe(x) === 1 ? 2 : 1; cambiar({ tiempo: t }); setDatos(d => ({ ...d, tiempo_actual: t })); }} style={{
+      height: 30, width: 28, borderRadius: 6, padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 800,
+      border: `1.5px solid ${AZUL}`, background: tiempoDe(x) === 2 ? AZUL : '#fff', color: tiempoDe(x) === 2 ? '#fff' : AZUL,
+    }}>{tiempoDe(x)}</button>
   );
   // Rayita de color a la izquierda de cada fila de tarjeta (vacía en goles,
   // para que todas las filas queden alineadas).
@@ -134,10 +145,10 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   );
   const columna = (children) => <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>{children}</div>;
 
-  const columnaGoles = (lado, tiempo) => {
-    const lista = goles.filter(g => g.lado === lado && tiempoDe(g) === tiempo);
+  const columnaGoles = (lado) => {
+    const lista = goles.filter(g => g.lado === lado);
     return columna(<>
-      <button onClick={() => guardarGoles([...goles, { id: nuevoId(), lado, tiempo, min: '', num: '', wsp: false }])} style={{
+      <button onClick={() => guardarGoles([...goles, { id: nuevoId(), lado, tiempo: tiempoActual, min: '', num: '', wsp: false }])} style={{
         height: 38, borderRadius: 8, border: `2px solid ${AZUL}`, background: CELESTE, color: AZUL,
         fontWeight: 800, fontSize: 14, cursor: 'pointer',
       }}>+ GOL</button>
@@ -147,6 +158,7 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
         return (
           <div key={g.id} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5, alignItems: 'center' }}>
             {marca(null)}
+            {botonTiempo(g, c => cambiarGol(g.id, c))}
             <CampoMinuto value={g.min} onChange={v => cambiarGol(g.id, { min: v })} />
             <input aria-label="Número de jugador" inputMode="numeric" value={g.num} onChange={e => cambiarGol(g.id, { num: soloDigitos(e.target.value) })} style={st} />
             <BtnBorrar onClick={() => guardarGoles(goles.filter(x => x.id !== g.id))} />
@@ -157,18 +169,19 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   };
 
   // Tarjetas de jugadores (quien = 'JUG') o del cuerpo técnico (DT/AUX).
-  const columnaTarjetas = (lado, tiempo, cuerpoTecnico) => {
+  const columnaTarjetas = (lado, cuerpoTecnico) => {
     const esCT = (t) => t.quien === 'DT' || t.quien === 'AUX';
-    const lista = tarjetas.filter(t => t.lado === lado && tiempoDe(t) === tiempo && esCT(t) === cuerpoTecnico);
-    const agregar = (color) => guardarTarjetas([...tarjetas, { id: nuevoId(), lado, tiempo, color, quien: cuerpoTecnico ? 'DT' : 'JUG', min: '', num: '', wsp: false }]);
+    const lista = tarjetas.filter(t => t.lado === lado && esCT(t) === cuerpoTecnico);
+    const agregar = (color) => guardarTarjetas([...tarjetas, { id: nuevoId(), lado, tiempo: tiempoActual, color, quien: cuerpoTecnico ? 'DT' : 'JUG', min: '', num: '', wsp: false }]);
     return columna(<>
       {botonesTarjeta(agregar)}
-      {lista.length > 0 && encabezado(cuerpoTecnico ? 'DT / Aux.' : 'Jugador')}
+      {lista.length > 0 && encabezado(cuerpoTecnico ? 'DT/AUX' : 'Jugador')}
       {lista.map(t => {
         const st = estiloJugador(t.wsp);
         return (
           <div key={t.id} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5, alignItems: 'center' }}>
             {marca(t.color)}
+            {botonTiempo(t, c => cambiarTarjeta(t.id, c))}
             <CampoMinuto value={t.min} onChange={v => cambiarTarjeta(t.id, { min: v })} />
             {cuerpoTecnico
               ? <select aria-label="DT o auxiliar" value={t.quien} onChange={e => cambiarTarjeta(t.id, { quien: e.target.value })}
@@ -185,33 +198,17 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
 
   const separador = { borderLeft: '1px solid #dde1ec', paddingLeft: 10, minWidth: 0 };
 
-  const bloqueTiempo = (tiempo) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ background: '#e8edf8', color: AZUL, fontSize: 15, fontWeight: 800, letterSpacing: .8, textTransform: 'uppercase', padding: '8px 10px', borderRadius: 6, textAlign: 'center', border: `1.5px solid ${AZUL}` }}>
-        {tiempo === 1 ? '1er Tiempo' : '2do Tiempo'}
-      </div>
-      <div style={subtitulo}>⚽ Goles</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {columnaGoles('L', tiempo)}
-        <div style={separador}>{columnaGoles('V', tiempo)}</div>
-      </div>
-      <div style={subtitulo}>🟨🟥 Tarjetas</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {columnaTarjetas('L', tiempo, false)}
-        <div style={separador}>{columnaTarjetas('V', tiempo, false)}</div>
-      </div>
-      <div style={subtitulo}>🟨🟥 Cuerpo técnico</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {columnaTarjetas('L', tiempo, true)}
-        <div style={separador}>{columnaTarjetas('V', tiempo, true)}</div>
-      </div>
+  const fila2 = (izq, der) => (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {izq}
+      <div style={separador}>{der}</div>
     </div>
   );
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', background: '#fff', minHeight: '100vh', fontFamily: 'system-ui,sans-serif' }}>
       <Header paso={4} onIrA={onIrA} />
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <SeccionHeader>4. Goles</SeccionHeader>
 
         {/* Marcador: local a la izquierda, visitante a la derecha (igual que las columnas) */}
@@ -221,11 +218,15 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
           <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>{nombre('V')}</div>
         </div>
 
-        {bloqueTiempo(1)}
-        {bloqueTiempo(2)}
+        <div style={subtitulo}>⚽ Goles</div>
+        {fila2(columnaGoles('L'), columnaGoles('V'))}
+        <div style={subtitulo}>🟨🟥 Tarjetas</div>
+        {fila2(columnaTarjetas('L', false), columnaTarjetas('V', false))}
+        <div style={subtitulo}>🟨🟥 Cuerpo técnico</div>
+        {fila2(columnaTarjetas('L', true), columnaTarjetas('V', true))}
 
         {/* WhatsApp: un solo botón que manda todo lo pendiente, y al lado el número de destino */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 132px', gap: 8, marginTop: 6, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 132px', gap: 8, marginTop: 4, alignItems: 'end' }}>
           <button onClick={enviarPendientes} disabled={cantPendientes === 0} style={{
             height: 50, borderRadius: 8, border: 'none', cursor: cantPendientes ? 'pointer' : 'default',
             background: cantPendientes ? VERDE : '#b9c2d3', color: '#fff', fontWeight: 800, fontSize: 14,

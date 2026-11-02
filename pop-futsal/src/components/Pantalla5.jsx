@@ -1,5 +1,6 @@
 import { Header, SeccionHeader, Textarea, Divider, BtnBack } from './UI';
-import { generarActaTexto } from '../utils/acta';
+import { generarActaTexto, generarActaSecciones, aOracion } from '../utils/acta';
+import { capitalizarFrase } from '../utils/desviosHorarios';
 import { armarTextoWhatsApp } from '../utils/whatsappTexto';
 import { resultadoConPenales } from '../utils/resultado';
 import { useState, useEffect, useRef } from 'react';
@@ -11,6 +12,31 @@ const CONCL_OPCIONES = [
   { id: 'tdd', label: 'Informe al TDD', color: '#e03030', bg: '#fff0f0', exclusivo: false },
   { id: 'susp', label: 'Suspensión', color: '#e03030', bg: '#fff0f0', exclusivo: false },
 ];
+
+// Acta en pantalla: misma estructura que el PDF y el WhatsApp
+// (generarActaSecciones), con el nombre de cada ítem en negrita y la
+// explicación en letra normal.
+function ActaVista({ datos, textoVacio }) {
+  if ((datos.conclusiones || []).length === 0) {
+    return <div style={{ fontSize: 15, fontWeight: 700, color: '#0d1f4e', lineHeight: 1.6 }}>{textoVacio}</div>;
+  }
+  const { encabezado, secciones } = generarActaSecciones(datos);
+  return (
+    <div style={{ color: '#0d1f4e', fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word', overflowWrap: 'break-word', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {encabezado.map((l, i) => <div key={i} style={{ fontSize: 15, fontWeight: 700 }}>{l}</div>)}
+      {secciones.map(sec => (
+        <div key={sec.id}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: .5, textTransform: 'uppercase', color: '#5a6b8c', marginBottom: 2 }}>{sec.titulo}</div>
+          {sec.items.map((it, i) => (
+            <div key={i} style={{ paddingLeft: 12, textIndent: -12 }}>
+              • {it.label && <b>{capitalizarFrase(it.label)}: </b>}{it.crudo ? it.texto : aOracion(it.texto, datos)}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinalizar, onIrA, listas }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
@@ -235,9 +261,7 @@ export default function Pantalla5({ datos, setDatos, onBack, onInicio, onFinaliz
           <div style={{ fontSize: 10, fontWeight: 700, color: '#0d1f4e', letterSpacing: .8, textTransform: 'uppercase', marginBottom: 8 }}>
             Texto generado automáticamente
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#0d1f4e', lineHeight: 1.7, minHeight: 50, wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
-            {actaTexto}
-          </div>
+          <ActaVista datos={datos} textoVacio={actaTexto} />
           <div style={{ marginTop: 10 }}>
             <Textarea value={datos.acta_extra} onChange={set('acta_extra')} placeholder="Agregá texto adicional si es necesario..." minHeight={60} />
           </div>

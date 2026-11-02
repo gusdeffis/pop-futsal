@@ -129,7 +129,7 @@ export const OFICIAL_PINS = {
 
 // Versión de la app: se muestra en la pantalla de inicio, debajo del botón
 // Ingresar. Subir este número cuando le pases una versión nueva a Gustavo.
-export const APP_VERSION = 'v122';
+export const APP_VERSION = 'v123';
 
 // Apps Script que guarda cada partido finalizado en la planilla compartida
 // "POPA-2026-Partidos" (además del historial local del dispositivo).
@@ -148,7 +148,7 @@ export const ESTADO_INICIAL = {
 
   // Pantalla GOL - goles y tarjetas del partido (ver utils/golesTarjetas.js)
   // y número de WhatsApp al que se avisan los goles.
-  goles: [], tarjetas: [], wsp_destino: '',
+  goles: [], tarjetas: [], wsp_destino: '', tiempo_actual: 1,
   deleg_l: '', deleg_v: '', oficial_afa: '',
 
   // Sección 2 - Control previo
@@ -166,7 +166,7 @@ export const ESTADO_INICIAL = {
 
   // Sección 3 - Horarios
   // protocolo: null = sin tocar, true = cumplido, false = no cumplido
-  ingreso: '', protocolo: null, comenzo_si: null,
+  ingreso: '', protocolo: null, protocolo_obs: '', comenzo_si: null,
   motivo_inicio: '', motivo_inicio_pdf: '', hora_real: '',
   final_1t: '', inicio_2t: '', et_min: '', excedido: false, desvio_inicio: '',
   motivo_et: '', motivo_et_pdf: '', final_partido: '', duracion_partido: '',
