@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Header, SeccionHeader, HoraInput, CheckAzul, Textarea, BtnNext, BtnBack } from './UI';
+import { Header, SeccionHeader, HoraInput, Textarea, BtnNext, BtnBack } from './UI';
 import { generarBloqueDesvios } from '../utils/desviosHorarios';
 
 const selectStyle = {
@@ -84,6 +84,30 @@ function calcularDemoraContra(horaReferencia, horaReal) {
 // y otros no, así que sin un alto fijo común quedaban desparejos.
 const ALTO_RECUADRO_HORARIO = 112;
 
+// Botón de 3 estados con el formato de CheckAzul (casillero + texto en
+// mayúscula): sin tocar → SÍ (✓, verde) → NO (✗, rojo) → SÍ ...
+function BotonSiNo({ label, ariaLabel, valor, onToggle }) {
+  const fondo = valor === 'si' ? '#1a7a3a' : valor === 'no' ? '#e03030' : '#c6dbf5';
+  const borde = valor ? fondo : '#0d1f4e';
+  return (
+    <div role="button" aria-label={ariaLabel} onClick={onToggle} style={{
+      display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, minHeight: 50, padding: '0 10px', boxSizing: 'border-box',
+      background: fondo, border: `1.5px solid ${borde}`, borderRadius: 8, cursor: 'pointer', userSelect: 'none', transition: 'all .15s',
+    }}>
+      <div style={{
+        width: 22, height: 22, borderRadius: 4, flexShrink: 0, boxSizing: 'border-box', background: '#fff',
+        border: `2px solid ${valor ? '#fff' : '#0d1f4e'}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {valor === 'si' && <span style={{ color: '#1a7a3a', fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
+        {valor === 'no' && <span style={{ color: '#e03030', fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✗</span>}
+      </div>
+      <span style={{ fontSize: 13, color: valor ? '#fff' : '#0d1f4e', lineHeight: 1.2, fontWeight: 600, textTransform: 'uppercase', minWidth: 0 }}>
+        {label}{valor === 'si' ? ': SÍ' : valor === 'no' ? ': NO' : ''}
+      </span>
+    </div>
+  );
+}
+
 export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onIrA, onAbrirObs, cantObs }) {
   const set = (campo) => (valor) => setDatos(d => ({ ...d, [campo]: valor }));
 
@@ -165,31 +189,14 @@ export default function Pantalla3({ datos, setDatos, onNext, onBack, listas, onI
           <HoraInput label="Ingreso al Campo" value={datos.ingreso} onChange={set('ingreso')} />
         </div>
 
-        {/* Protocolo y comienzo, en la misma fila (mitad y mitad).
-            "Comenzó en hora" es un solo botón: un toque = SÍ, otro = NO. */}
+        {/* Protocolo y comienzo, en la misma fila (mitad y mitad). Los dos
+            funcionan igual: sin tocar (vacío) → SÍ (✓, verde) → NO (✗, rojo) → SÍ ... */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <CheckAzul label="Protocolo de inicio" checked={datos.protocolo} onChange={set('protocolo')} minHeight={50} padding="0 10px" />
-          {/* Mismo formato que "Protocolo de inicio" (CheckAzul), con 3 estados:
-              sin tocar (vacío) → SÍ (✓, verde) → NO (✗, rojo) → SÍ ... */}
-          <div role="button" aria-label="Comenzó en hora" onClick={() => set('comenzo_si')(datos.comenzo_si === 'si' ? 'no' : 'si')} style={{
-            display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, minHeight: 50, padding: '0 10px', boxSizing: 'border-box',
-            background: datos.comenzo_si === 'si' ? '#1a7a3a' : datos.comenzo_si === 'no' ? '#e03030' : '#c6dbf5',
-            border: `1.5px solid ${datos.comenzo_si === 'si' ? '#1a7a3a' : datos.comenzo_si === 'no' ? '#e03030' : '#0d1f4e'}`,
-            borderRadius: 8, cursor: 'pointer', userSelect: 'none', transition: 'all .15s',
-          }}>
-            <div style={{
-              width: 22, height: 22, borderRadius: 4, flexShrink: 0, boxSizing: 'border-box',
-              background: '#fff',
-              border: `2px solid ${datos.comenzo_si ? '#fff' : '#0d1f4e'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {datos.comenzo_si === 'si' && <span style={{ color: '#1a7a3a', fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✓</span>}
-              {datos.comenzo_si === 'no' && <span style={{ color: '#e03030', fontSize: 14, lineHeight: 1, fontWeight: 700 }}>✗</span>}
-            </div>
-            <span style={{ fontSize: 13, color: datos.comenzo_si ? '#fff' : '#0d1f4e', lineHeight: 1.2, fontWeight: 600, textTransform: 'uppercase', minWidth: 0 }}>
-              Comenzó en hora{datos.comenzo_si === 'si' ? ': SÍ' : datos.comenzo_si === 'no' ? ': NO' : ''}
-            </span>
-          </div>
+          <BotonSiNo label="Protocolo de inicio" ariaLabel="Protocolo de inicio"
+            valor={datos.protocolo === true ? 'si' : datos.protocolo === false ? 'no' : null}
+            onToggle={() => set('protocolo')(datos.protocolo !== true)} />
+          <BotonSiNo label="Comenzó en hora" ariaLabel="Comenzó en hora" valor={datos.comenzo_si}
+            onToggle={() => set('comenzo_si')(datos.comenzo_si === 'si' ? 'no' : 'si')} />
         </div>
 
         {datos.comenzo_si === 'no' && (

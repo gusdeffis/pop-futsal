@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Header, SeccionHeader, BtnNext, BtnBack } from './UI';
 import { golesDe, tarjetasDe, pendientesWsp, textoAvisoPendientes } from '../utils/golesTarjetas';
 
@@ -20,9 +21,38 @@ const inp = {
   height: 38, border: `1.5px solid ${AZUL}`, borderRadius: 7, background: CELESTE, color: AZUL,
   fontSize: 16, fontWeight: 700, textAlign: 'center', padding: 0, width: '100%', boxSizing: 'border-box', minWidth: 0, outline: 'none',
 };
-const inpEnviado = { ...inp, background: ENVIADO, borderColor: ENVIADO, color: '#fff' };
 const encabezadoCol = { fontSize: 9, fontWeight: 700, color: '#5a6b8c', textTransform: 'uppercase', textAlign: 'center' };
-const subtitulo = { fontSize: 11, fontWeight: 700, color: AZUL, letterSpacing: .5, textTransform: 'uppercase' };
+const subtitulo = { fontSize: 14, fontWeight: 800, color: AZUL, letterSpacing: .5, textTransform: 'uppercase', borderBottom: `2px solid ${AZUL}`, paddingBottom: 3, marginTop: 4 };
+const ROJA_PASTEL = '#f9c4c4';
+
+// Casillero del jugador (o DT/AUX): celeste en goles, del color de la
+// tarjeta en tarjetas, azul cuando ya se avisó por WhatsApp.
+function estiloJugador(color, enviado) {
+  if (enviado) return { ...inp, background: ENVIADO, borderColor: ENVIADO, color: '#fff' };
+  if (color === 'A') return { ...inp, background: AMARILLA, borderColor: AMARILLA_BORDE, color: '#5a4a00' };
+  if (color === 'R') return { ...inp, background: ROJA_PASTEL, borderColor: ROJA, color: '#7a1030' };
+  return inp;
+}
+
+// Minuto: recuadro gris con letra negra mientras se escribe (o si está
+// vacío); al salir del casillero queda solo el número ("15'") sin recuadro.
+// Tocándolo de nuevo vuelve el recuadro para corregirlo.
+function CampoMinuto({ value, onChange }) {
+  const [editando, setEditando] = useState(false);
+  const soloTexto = !editando && value !== '';
+  return (
+    <input aria-label="Minuto" inputMode="numeric"
+      value={soloTexto ? `${value}'` : value}
+      onFocus={() => setEditando(true)} onBlur={() => setEditando(false)}
+      onChange={e => onChange(soloDigitos(e.target.value))}
+      style={{
+        ...inp, color: '#000',
+        background: soloTexto ? 'transparent' : '#e4e7ee',
+        border: `1.5px solid ${soloTexto ? 'transparent' : '#a3acbd'}`,
+        fontSize: soloTexto ? 18 : 16,
+      }} />
+  );
+}
 
 
 function IconWsp({ size = 18, color = '#fff' }) {
@@ -88,21 +118,19 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   const tiempoDe = (x) => (Number(x.tiempo) === 2 ? 2 : 1);
 
   // Las tres secciones (Goles, Tarjetas, Cuerpo técnico) usan la MISMA
-  // línea: marca de color (vacía en goles) → Min → Jugador o DT/AUX → ✕,
+  // línea: Min → Jugador o DT/AUX → ✕ (el color de la tarjeta va en el casillero),
   // con los mismos anchos, para que los casilleros queden alineados.
-  const GRID = '8px 1fr 1fr 24px';
+  const GRID = '1fr 1fr 24px';
   const encabezado = (segunda) => (
     <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5 }}>
-      <div /><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
+      <div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
     </div>
   );
-  const marca = (color) => color
-    ? <div title={color === 'R' ? 'Roja' : 'Amarilla'} style={{ width: 8, height: 30, borderRadius: 2, boxSizing: 'border-box', background: color === 'R' ? ROJA : AMARILLA, border: `1px solid ${color === 'R' ? ROJA_BORDE : AMARILLA_BORDE}` }} />
-    : <div />;
+  // Botones con forma de tarjeta (más angostos que altos).
   const botonesTarjeta = (agregar) => (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-      <button onClick={() => agregar('A')} style={{ height: 38, borderRadius: 8, border: `2px solid ${AMARILLA_BORDE}`, background: AMARILLA, color: '#5a4a00', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>+ AM.</button>
-      <button onClick={() => agregar('R')} style={{ height: 38, borderRadius: 8, border: `2px solid ${ROJA_BORDE}`, background: ROJA, color: '#fff', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>+ ROJA</button>
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 14 }}>
+      <button onClick={() => agregar('A')} aria-label="Agregar amarilla" style={{ width: 30, height: 40, borderRadius: 4, border: `2px solid ${AMARILLA_BORDE}`, background: AMARILLA, color: '#5a4a00', fontWeight: 800, fontSize: 18, cursor: 'pointer', padding: 0 }}>+</button>
+      <button onClick={() => agregar('R')} aria-label="Agregar roja" style={{ width: 30, height: 40, borderRadius: 4, border: `2px solid ${ROJA_BORDE}`, background: ROJA, color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer', padding: 0 }}>+</button>
     </div>
   );
   const columna = (children) => <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>{children}</div>;
@@ -116,11 +144,10 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
       }}>+ GOL</button>
       {lista.length > 0 && encabezado('Jugador')}
       {lista.map(g => {
-        const st = g.wsp ? inpEnviado : inp;
+        const st = estiloJugador(null, g.wsp);
         return (
           <div key={g.id} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5, alignItems: 'center' }}>
-            {marca(null)}
-            <input aria-label="Minuto" inputMode="numeric" value={g.min} onChange={e => cambiarGol(g.id, { min: soloDigitos(e.target.value) })} style={st} />
+            <CampoMinuto value={g.min} onChange={v => cambiarGol(g.id, { min: v })} />
             <input aria-label="Número de jugador" inputMode="numeric" value={g.num} onChange={e => cambiarGol(g.id, { num: soloDigitos(e.target.value) })} style={st} />
             <BtnBorrar onClick={() => guardarGoles(goles.filter(x => x.id !== g.id))} />
           </div>
@@ -138,11 +165,10 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
       {botonesTarjeta(agregar)}
       {lista.length > 0 && encabezado(cuerpoTecnico ? 'DT / Aux.' : 'Jugador')}
       {lista.map(t => {
-        const st = t.wsp ? inpEnviado : inp;
+        const st = estiloJugador(t.color, t.wsp);
         return (
           <div key={t.id} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5, alignItems: 'center' }}>
-            {marca(t.color)}
-            <input aria-label="Minuto" inputMode="numeric" value={t.min} onChange={e => cambiarTarjeta(t.id, { min: soloDigitos(e.target.value) })} style={st} />
+            <CampoMinuto value={t.min} onChange={v => cambiarTarjeta(t.id, { min: v })} />
             {cuerpoTecnico
               ? <select aria-label="DT o auxiliar" value={t.quien} onChange={e => cambiarTarjeta(t.id, { quien: e.target.value })}
                   style={{ ...st, fontSize: 14, padding: 0, textAlign: 'center', textAlignLast: 'center', appearance: 'none' }}>
@@ -160,7 +186,7 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
 
   const bloqueTiempo = (tiempo) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ background: '#e8edf8', color: AZUL, fontSize: 12, fontWeight: 800, letterSpacing: .5, textTransform: 'uppercase', padding: '6px 10px', borderRadius: 6, borderLeft: `4px solid ${AZUL}` }}>
+      <div style={{ background: '#e8edf8', color: AZUL, fontSize: 15, fontWeight: 800, letterSpacing: .8, textTransform: 'uppercase', padding: '8px 10px', borderRadius: 6, textAlign: 'center', border: `1.5px solid ${AZUL}` }}>
         {tiempo === 1 ? '1er Tiempo' : '2do Tiempo'}
       </div>
       <div style={subtitulo}>⚽ Goles</div>
@@ -168,12 +194,12 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
         {columnaGoles('L', tiempo)}
         <div style={separador}>{columnaGoles('V', tiempo)}</div>
       </div>
-      <div style={subtitulo}>Tarjetas</div>
+      <div style={subtitulo}>🟨🟥 Tarjetas</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {columnaTarjetas('L', tiempo, false)}
         <div style={separador}>{columnaTarjetas('V', tiempo, false)}</div>
       </div>
-      <div style={subtitulo}>Cuerpo técnico</div>
+      <div style={subtitulo}>🟨🟥 Cuerpo técnico</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {columnaTarjetas('L', tiempo, true)}
         <div style={separador}>{columnaTarjetas('V', tiempo, true)}</div>
