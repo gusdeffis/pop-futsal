@@ -128,7 +128,7 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   );
   // Botones con forma de tarjeta (más angostos que altos).
   const botonesTarjeta = (agregar) => (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: 14 }}>
+    <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 14 }}>
       <button onClick={() => agregar('A')} aria-label="Agregar amarilla" style={{ width: 30, height: 40, borderRadius: 4, border: `2px solid ${AMARILLA_BORDE}`, background: AMARILLA, color: '#5a4a00', fontWeight: 800, fontSize: 18, cursor: 'pointer', padding: 0 }}>+</button>
       <button onClick={() => agregar('R')} aria-label="Agregar roja" style={{ width: 30, height: 40, borderRadius: 4, border: `2px solid ${ROJA_BORDE}`, background: ROJA, color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer', padding: 0 }}>+</button>
     </div>
@@ -139,7 +139,7 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
     const lista = goles.filter(g => g.lado === lado && tiempoDe(g) === tiempo);
     return columna(<>
       <button onClick={() => guardarGoles([...goles, { id: nuevoId(), lado, tiempo, min: '', num: '', wsp: false }])} style={{
-        height: 38, borderRadius: 8, border: `2px solid ${AZUL}`, background: '#fff', color: AZUL,
+        height: 38, borderRadius: 8, border: `2px solid ${AZUL}`, background: CELESTE, color: AZUL,
         fontWeight: 800, fontSize: 14, cursor: 'pointer',
       }}>+ GOL</button>
       {lista.length > 0 && encabezado('Jugador')}
