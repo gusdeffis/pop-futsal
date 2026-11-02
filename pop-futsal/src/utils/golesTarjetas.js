@@ -34,6 +34,21 @@ export function quienTarjeta(t) {
   return texto(t.num) ? `N° ${texto(t.num)}` : 'Jugador';
 }
 
+export function penalesDe(datos) { return Array.isArray(datos.penales) ? datos.penales : []; }
+
+// Definición por penales: "RACING 4 (N° 9 conv., N° 7 err.)". `marcas`
+// cambia la forma de mostrar convertido/errado (palabras en el PDF,
+// emojis en WhatsApp).
+function lineaPenales(datos, marcas, separador) {
+  const pen = penalesDe(datos);
+  return ['L', 'V'].map(lado => {
+    const del = pen.filter(p => p.lado === lado);
+    if (!del.length) return '';
+    const conv = del.filter(p => p.ok).length;
+    return `${club(datos, lado)} ${conv} (${del.map(p => `${jugador(p)} ${p.ok ? marcas[0] : marcas[1]}`).join(', ')})`;
+  }).filter(Boolean).join(separador);
+}
+
 export function golesDe(datos) { return Array.isArray(datos.goles) ? datos.goles : []; }
 export function tarjetasDe(datos) { return Array.isArray(datos.tarjetas) ? datos.tarjetas : []; }
 
@@ -63,6 +78,7 @@ export function lineasGolesTarjetasActa(datos) {
   const ct = tarjetas.filter(esCuerpoTecnico);
   if (jug.length) lineas.push(`Tarjetas: ${porEquipo(datos, jug, descTarjetaActa, ' — ')}.`);
   if (ct.length) lineas.push(`Cuerpo técnico: ${porEquipo(datos, ct, descTarjetaActa, ' — ')}.`);
+  if (penalesDe(datos).length) lineas.push(`Penales: ${lineaPenales(datos, ['conv.', 'err.'], ' — ')}.`);
   return lineas;
 }
 
@@ -76,6 +92,7 @@ export function bloqueGolesTarjetasWSP(datos) {
   const ct = tarjetas.filter(esCuerpoTecnico);
   if (jug.length) out += `Tarjetas:\n${porEquipo(datos, jug, descTarjetaWsp, '\n')}\n`;
   if (ct.length) out += `Cuerpo técnico:\n${porEquipo(datos, ct, descTarjetaWsp, '\n')}\n`;
+  if (penalesDe(datos).length) out += `Penales:\n${lineaPenales(datos, ['✅', '❌'], '\n')}\n`;
   return out;
 }
 

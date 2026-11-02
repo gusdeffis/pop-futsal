@@ -24,29 +24,32 @@ const inp = {
   fontSize: 16, fontWeight: 700, textAlign: 'center', padding: 0, width: '100%', boxSizing: 'border-box', minWidth: 0, outline: 'none',
 };
 const encabezadoCol = { fontSize: 9, fontWeight: 700, color: '#5a6b8c', textTransform: 'uppercase', textAlign: 'center' };
-const subtitulo = { fontSize: 15, fontWeight: 800, color: AZUL, letterSpacing: .8, textTransform: 'uppercase', textAlign: 'center', borderBottom: `2px solid ${AZUL}`, paddingBottom: 3, marginTop: 2 };
-// Casillero del jugador (o DT/AUX): celeste, azul cuando ya se avisó por WhatsApp.
+const subtitulo = { fontSize: 15, fontWeight: 800, color: AZUL, letterSpacing: .8, textTransform: 'uppercase', textAlign: 'left', borderBottom: `2px solid ${AZUL}`, paddingBottom: 3, marginTop: 2 };
+const tituloGoles = { ...subtitulo, fontSize: 19, textAlign: 'center' };
+// Casillero del jugador (o DT/AUX): azul oscuro con número blanco; verde
+// cuando ya se avisó por WhatsApp.
+const VERDE_ENVIADO = '#1a9e4a';
 function estiloJugador(enviado) {
-  return enviado ? { ...inp, background: ENVIADO, borderColor: ENVIADO, color: '#fff' } : inp;
+  return { ...inp, background: enviado ? VERDE_ENVIADO : AZUL, borderColor: enviado ? VERDE_ENVIADO : AZUL, color: '#fff' };
 }
 
-// Minuto: recuadro gris con letra negra mientras se escribe (o si está
-// vacío); al salir del casillero queda solo el número ("15'") sin recuadro.
-// Tocándolo de nuevo vuelve el recuadro para corregirlo.
+// "Ir" del teclado numérico: en el minuto pasa al casillero del jugador de
+// la misma fila; en el jugador cierra el teclado (el dato ya queda cargado).
+function alApretarIr(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const siguiente = e.target.getAttribute('aria-label') === 'Minuto'
+    ? e.target.parentElement?.querySelector('[data-jugador]')
+    : null;
+  if (siguiente) siguiente.focus(); else e.target.blur();
+}
+
+// Minuto: siempre en recuadro gris con letra negra.
 function CampoMinuto({ value, onChange }) {
-  const [editando, setEditando] = useState(false);
-  const soloTexto = !editando && value !== '';
   return (
-    <input aria-label="Minuto" inputMode="numeric"
-      value={soloTexto ? `${value}'` : value}
-      onFocus={() => setEditando(true)} onBlur={() => setEditando(false)}
-      onChange={e => onChange(soloDigitos(e.target.value))}
-      style={{
-        ...inp, color: '#000',
-        background: soloTexto ? 'transparent' : '#e4e7ee',
-        border: `1.5px solid ${soloTexto ? 'transparent' : '#a3acbd'}`,
-        fontSize: soloTexto ? 18 : 16,
-      }} />
+    <input aria-label="Minuto" inputMode="numeric" enterKeyHint="next" value={value}
+      onChange={e => onChange(soloDigitos(e.target.value))} onKeyDown={alApretarIr}
+      style={{ ...inp, color: '#000', background: '#e4e7ee', border: '1.5px solid #a3acbd' }} />
   );
 }
 
@@ -116,26 +119,25 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   // Las tres secciones (Goles, Tarjetas, Cuerpo técnico) usan la MISMA
   // línea: rayita de color (vacía en goles) → Min → Jugador o DT/AUX → ✕,
   // con los mismos anchos, para que los casilleros queden alineados.
-  const GRID = '8px 28px 1fr 1fr 24px';
+  const GRID = '16px 28px 1fr 1fr 24px';
   const encabezado = (segunda) => (
     <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5 }}>
       <div /><div style={encabezadoCol}>T</div><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
     </div>
   );
-  // Tiempo de la fila: botoncito 1/2; al tocarlo cambia y pasa a ser el
-  // tiempo de las próximas filas que se agreguen.
-  const tiempoActual = Number(datos.tiempo_actual) === 2 ? 2 : 1;
+  // Tiempo de la fila: botoncito 1 (blanco) / 2 (celeste) que se toca para
+  // cambiar. Las filas nuevas arrancan en 2 si ya hay algo cargado en 2do tiempo.
+  const tiempoActual = [...goles, ...tarjetas].some(x => tiempoDe(x) === 2) ? 2 : 1;
   const botonTiempo = (x, cambiar) => (
-    <button aria-label="Tiempo" onClick={() => { const t = tiempoDe(x) === 1 ? 2 : 1; cambiar({ tiempo: t }); setDatos(d => ({ ...d, tiempo_actual: t })); }} style={{
+    <button aria-label="Tiempo" onClick={() => cambiar({ tiempo: tiempoDe(x) === 1 ? 2 : 1 })} style={{
       height: 30, width: 28, borderRadius: 6, padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 800,
-      border: `1.5px solid ${AZUL}`, background: tiempoDe(x) === 2 ? AZUL : '#fff', color: tiempoDe(x) === 2 ? '#fff' : AZUL,
+      border: `1.5px solid ${AZUL}`, background: tiempoDe(x) === 2 ? CELESTE : '#fff', color: AZUL,
     }}>{tiempoDe(x)}</button>
   );
-  // Rayita de color a la izquierda de cada fila de tarjeta (vacía en goles,
-  // para que todas las filas queden alineadas).
+  // A la izquierda de cada fila: rayita amarilla/roja en tarjetas, pelota en goles.
   const marca = (color) => color
-    ? <div title={color === 'R' ? 'Roja' : 'Amarilla'} style={{ width: 8, height: 30, borderRadius: 2, boxSizing: 'border-box', background: color === 'R' ? ROJA : AMARILLA, border: `1px solid ${color === 'R' ? ROJA_BORDE : AMARILLA_BORDE}` }} />
-    : <div />;
+    ? <div style={{ display: 'flex', justifyContent: 'center' }}><div title={color === 'R' ? 'Roja' : 'Amarilla'} style={{ width: 8, height: 30, borderRadius: 2, boxSizing: 'border-box', background: color === 'R' ? ROJA : AMARILLA, border: `1px solid ${color === 'R' ? ROJA_BORDE : AMARILLA_BORDE}` }} /></div>
+    : <div aria-hidden="true" style={{ fontSize: 14, textAlign: 'center', lineHeight: 1 }}>⚽</div>;
   // Botones con forma de tarjeta (más angostos que altos).
   const botonesTarjeta = (agregar) => (
     <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 14 }}>
@@ -160,7 +162,7 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
             {marca(null)}
             {botonTiempo(g, c => cambiarGol(g.id, c))}
             <CampoMinuto value={g.min} onChange={v => cambiarGol(g.id, { min: v })} />
-            <input aria-label="Número de jugador" inputMode="numeric" value={g.num} onChange={e => cambiarGol(g.id, { num: soloDigitos(e.target.value) })} style={st} />
+            <input aria-label="Número de jugador" data-jugador inputMode="numeric" enterKeyHint="done" onKeyDown={alApretarIr} value={g.num} onChange={e => cambiarGol(g.id, { num: soloDigitos(e.target.value) })} style={st} />
             <BtnBorrar onClick={() => guardarGoles(goles.filter(x => x.id !== g.id))} />
           </div>
         );
@@ -184,11 +186,9 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
             {botonTiempo(t, c => cambiarTarjeta(t.id, c))}
             <CampoMinuto value={t.min} onChange={v => cambiarTarjeta(t.id, { min: v })} />
             {cuerpoTecnico
-              ? <select aria-label="DT o auxiliar" value={t.quien} onChange={e => cambiarTarjeta(t.id, { quien: e.target.value })}
-                  style={{ ...st, fontSize: 14, padding: 0, textAlign: 'center', textAlignLast: 'center', appearance: 'none' }}>
-                  <option value="DT">DT</option><option value="AUX">AUX</option>
-                </select>
-              : <input aria-label="Número de jugador" inputMode="numeric" value={t.num} onChange={e => cambiarTarjeta(t.id, { num: soloDigitos(e.target.value) })} style={st} />}
+              ? <button aria-label="DT o auxiliar" onClick={() => cambiarTarjeta(t.id, { quien: t.quien === 'DT' ? 'AUX' : 'DT' })}
+                  style={{ ...st, fontSize: 14, cursor: 'pointer' }}>{t.quien}</button>
+              : <input aria-label="Número de jugador" data-jugador inputMode="numeric" enterKeyHint="done" onKeyDown={alApretarIr} value={t.num} onChange={e => cambiarTarjeta(t.id, { num: soloDigitos(e.target.value) })} style={st} />}
             <BtnBorrar onClick={() => guardarTarjetas(tarjetas.filter(x => x.id !== t.id))} />
           </div>
         );
@@ -196,12 +196,65 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
     </>);
   };
 
+  // Definición por penales: un remate por fila (N° de jugador → ✓ / ✗).
+  // Los convertidos completan solos el Def. Penales del Acta (editable).
+  const penales = Array.isArray(datos.penales) ? datos.penales : [];
+  const [verPenales, setVerPenales] = useState(penales.length > 0);
+  const guardarPenales = (lista) => setDatos(d => ({
+    ...d, penales: lista,
+    pen_local: lista.length ? String(lista.filter(p => p.lado === 'L' && p.ok).length) : '',
+    pen_visitante: lista.length ? String(lista.filter(p => p.lado === 'V' && p.ok).length) : '',
+  }));
+  const GRID_PEN = '1fr 44px 24px';
+  const columnaPenales = (lado) => {
+    const lista = penales.filter(p => p.lado === lado);
+    return columna(<>
+      <button onClick={() => guardarPenales([...penales, { id: nuevoId(), lado, num: '', ok: true }])} style={{
+        height: 34, borderRadius: 8, border: `2px solid ${AZUL}`, background: CELESTE, color: AZUL, fontWeight: 800, fontSize: 13, cursor: 'pointer',
+      }}>+ REMATE</button>
+      {lista.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: GRID_PEN, gap: 5 }}>
+          <div style={encabezadoCol}>Jugador</div><div style={encabezadoCol}>Gol</div><div />
+        </div>
+      )}
+      {lista.map(p => (
+        <div key={p.id} style={{ display: 'grid', gridTemplateColumns: GRID_PEN, gap: 5, alignItems: 'center' }}>
+          <input aria-label="Jugador del penal" data-jugador inputMode="numeric" enterKeyHint="done" onKeyDown={alApretarIr} value={p.num}
+            onChange={e => guardarPenales(penales.map(x => x.id === p.id ? { ...x, num: soloDigitos(e.target.value) } : x))} style={estiloJugador(false)} />
+          <button aria-label="Convirtió o erró" onClick={() => guardarPenales(penales.map(x => x.id === p.id ? { ...x, ok: !x.ok } : x))} style={{
+            height: 38, borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 18, fontWeight: 800, color: '#fff',
+            background: p.ok ? VERDE_ENVIADO : ROJA,
+          }}>{p.ok ? '✓' : '✗'}</button>
+          <BtnBorrar onClick={() => guardarPenales(penales.filter(x => x.id !== p.id))} />
+        </div>
+      ))}
+    </>);
+  };
+  const totPen = (lado) => penales.filter(p => p.lado === lado && p.ok).length;
+
   const separador = { borderLeft: '1px solid #dde1ec', paddingLeft: 10, minWidth: 0 };
 
   const fila2 = (izq, der) => (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
       {izq}
       <div style={separador}>{der}</div>
+    </div>
+  );
+
+  const seccionPenales = !verPenales ? (
+    <button onClick={() => setVerPenales(true)} style={{
+      alignSelf: 'center', height: 34, padding: '0 18px', borderRadius: 8, border: `1.5px solid ${AZUL}`, background: '#fff',
+      color: AZUL, fontWeight: 800, fontSize: 13, letterSpacing: .5, cursor: 'pointer',
+    }}>PENALES</button>
+  ) : (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, border: `1.5px solid ${AZUL}`, borderRadius: 8, padding: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ flex: 1, fontSize: 13, fontWeight: 800, color: AZUL, textTransform: 'uppercase', letterSpacing: .5 }}>
+          Definición por penales {penales.length > 0 && `· ${totPen('L')} - ${totPen('V')}`}
+        </div>
+        {penales.length === 0 && <button onClick={() => setVerPenales(false)} aria-label="Cerrar penales" style={{ border: 'none', background: 'none', color: '#999', fontSize: 18, cursor: 'pointer' }}>×</button>}
+      </div>
+      {fila2(columnaPenales('L'), columnaPenales('V'))}
     </div>
   );
 
@@ -218,8 +271,9 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
           <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>{nombre('V')}</div>
         </div>
 
-        <div style={subtitulo}>⚽ Goles</div>
+        <div style={tituloGoles}>Goles</div>
         {fila2(columnaGoles('L'), columnaGoles('V'))}
+        {seccionPenales}
         <div style={subtitulo}>🟨🟥 Tarjetas</div>
         {fila2(columnaTarjetas('L', false), columnaTarjetas('V', false))}
         <div style={subtitulo}>🟨🟥 Cuerpo técnico</div>
