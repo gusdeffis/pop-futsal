@@ -119,25 +119,25 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
   // Las tres secciones (Goles, Tarjetas, Cuerpo técnico) usan la MISMA
   // línea: rayita de color (vacía en goles) → Min → Jugador o DT/AUX → ✕,
   // con los mismos anchos, para que los casilleros queden alineados.
-  const GRID = '16px 28px 1fr 1fr 24px';
+  const GRID = '20px 28px 1fr 1fr 24px';
   const encabezado = (segunda) => (
     <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 5 }}>
       <div /><div style={encabezadoCol}>T</div><div style={encabezadoCol}>Min.</div><div style={encabezadoCol}>{segunda}</div><div />
     </div>
   );
-  // Tiempo de la fila: botoncito 1 (blanco) / 2 (celeste) que se toca para
-  // cambiar. Las filas nuevas arrancan en 2 si ya hay algo cargado en 2do tiempo.
+  // Tiempo de la fila: botoncito gris (como el minuto) que se toca para
+  // cambiar 1 ↔ 2. Las filas nuevas arrancan en 2 si ya hay algo cargado en 2do tiempo.
   const tiempoActual = [...goles, ...tarjetas].some(x => tiempoDe(x) === 2) ? 2 : 1;
   const botonTiempo = (x, cambiar) => (
     <button aria-label="Tiempo" onClick={() => cambiar({ tiempo: tiempoDe(x) === 1 ? 2 : 1 })} style={{
       height: 30, width: 28, borderRadius: 6, padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 800,
-      border: `1.5px solid ${AZUL}`, background: tiempoDe(x) === 2 ? CELESTE : '#fff', color: AZUL,
+      border: '1.5px solid #a3acbd', background: '#e4e7ee', color: '#000',
     }}>{tiempoDe(x)}</button>
   );
   // A la izquierda de cada fila: rayita amarilla/roja en tarjetas, pelota en goles.
   const marca = (color) => color
     ? <div style={{ display: 'flex', justifyContent: 'center' }}><div title={color === 'R' ? 'Roja' : 'Amarilla'} style={{ width: 8, height: 30, borderRadius: 2, boxSizing: 'border-box', background: color === 'R' ? ROJA : AMARILLA, border: `1px solid ${color === 'R' ? ROJA_BORDE : AMARILLA_BORDE}` }} /></div>
-    : <div aria-hidden="true" style={{ fontSize: 14, textAlign: 'center', lineHeight: 1 }}>⚽</div>;
+    : <div aria-hidden="true" style={{ fontSize: 19, textAlign: 'center', lineHeight: 1 }}>⚽</div>;
   // Botones con forma de tarjeta (más angostos que altos).
   const botonesTarjeta = (agregar) => (
     <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 14 }}>
@@ -196,8 +196,10 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
     </>);
   };
 
-  // Definición por penales: un remate por fila (N° de jugador → ✓ / ✗).
-  // Los convertidos completan solos el Def. Penales del Acta (editable).
+  // Definición por penales: por equipo, una secuencia de ⚽ (convirtió) y
+  // ✗ (atajado/errado), con su total. Los convertidos completan solos el
+  // Def. Penales del Acta (editable). Arranca grisada: se habilita tocando
+  // el título.
   const penales = Array.isArray(datos.penales) ? datos.penales : [];
   const [verPenales, setVerPenales] = useState(penales.length > 0);
   const guardarPenales = (lista) => setDatos(d => ({
@@ -205,32 +207,26 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
     pen_local: lista.length ? String(lista.filter(p => p.lado === 'L' && p.ok).length) : '',
     pen_visitante: lista.length ? String(lista.filter(p => p.lado === 'V' && p.ok).length) : '',
   }));
-  const GRID_PEN = '1fr 44px 24px';
-  const columnaPenales = (lado) => {
-    const lista = penales.filter(p => p.lado === lado);
-    return columna(<>
-      <button onClick={() => guardarPenales([...penales, { id: nuevoId(), lado, num: '', ok: true }])} style={{
-        height: 34, borderRadius: 8, border: `2px solid ${AZUL}`, background: CELESTE, color: AZUL, fontWeight: 800, fontSize: 13, cursor: 'pointer',
-      }}>+ REMATE</button>
-      {lista.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: GRID_PEN, gap: 5 }}>
-          <div style={encabezadoCol}>Jugador</div><div style={encabezadoCol}>Gol</div><div />
-        </div>
-      )}
-      {lista.map(p => (
-        <div key={p.id} style={{ display: 'grid', gridTemplateColumns: GRID_PEN, gap: 5, alignItems: 'center' }}>
-          <input aria-label="Jugador del penal" data-jugador inputMode="numeric" enterKeyHint="done" onKeyDown={alApretarIr} value={p.num}
-            onChange={e => guardarPenales(penales.map(x => x.id === p.id ? { ...x, num: soloDigitos(e.target.value) } : x))} style={estiloJugador(false)} />
-          <button aria-label="Convirtió o erró" onClick={() => guardarPenales(penales.map(x => x.id === p.id ? { ...x, ok: !x.ok } : x))} style={{
-            height: 38, borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 18, fontWeight: 800, color: '#fff',
-            background: p.ok ? VERDE_ENVIADO : ROJA,
-          }}>{p.ok ? '✓' : '✗'}</button>
-          <BtnBorrar onClick={() => guardarPenales(penales.filter(x => x.id !== p.id))} />
-        </div>
-      ))}
-    </>);
-  };
   const totPen = (lado) => penales.filter(p => p.lado === lado && p.ok).length;
+  const btnPen = { height: 34, minWidth: 38, borderRadius: 7, border: `1.5px solid ${AZUL}`, background: CELESTE, color: AZUL, fontWeight: 800, fontSize: 15, cursor: 'pointer', padding: '0 6px' };
+  const filaPenales = (lado) => {
+    const lista = penales.filter(p => p.lado === lado);
+    const ultimo = lista[lista.length - 1];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 800, color: AZUL, textTransform: 'uppercase' }}>{nombre(lado)}</div>
+          <div aria-label={`Total penales ${lado === 'L' ? 'local' : 'visitante'}`} style={{ fontSize: 22, fontWeight: 800, color: AZUL, minWidth: 24, textAlign: 'center' }}>{totPen(lado)}</div>
+          <button aria-label="Penal convertido" onClick={() => guardarPenales([...penales, { id: nuevoId(), lado, ok: true }])} style={btnPen}>+⚽</button>
+          <button aria-label="Penal atajado" onClick={() => guardarPenales([...penales, { id: nuevoId(), lado, ok: false }])} style={{ ...btnPen, color: ROJA }}>+✗</button>
+          <button aria-label="Borrar último penal" disabled={!ultimo} onClick={() => guardarPenales(penales.filter(p => p.id !== ultimo.id))} style={{ ...btnPen, background: '#fff', opacity: ultimo ? 1 : .4 }}>⌫</button>
+        </div>
+        <div aria-label={`Penales ${lado === 'L' ? 'local' : 'visitante'}`} style={{ minHeight: 24, fontSize: 19, letterSpacing: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          {lista.map(p => <span key={p.id} style={p.ok ? undefined : { color: ROJA, fontWeight: 800 }}>{p.ok ? '⚽' : '✗'}</span>)}
+        </div>
+      </div>
+    );
+  };
 
   const separador = { borderLeft: '1px solid #dde1ec', paddingLeft: 10, minWidth: 0 };
 
@@ -241,21 +237,24 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
     </div>
   );
 
-  const seccionPenales = !verPenales ? (
-    <button onClick={() => setVerPenales(true)} style={{
-      alignSelf: 'center', height: 34, padding: '0 18px', borderRadius: 8, border: `1.5px solid ${AZUL}`, background: '#fff',
-      color: AZUL, fontWeight: 800, fontSize: 13, letterSpacing: .5, cursor: 'pointer',
-    }}>PENALES</button>
-  ) : (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, border: `1.5px solid ${AZUL}`, borderRadius: 8, padding: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <div style={{ flex: 1, fontSize: 13, fontWeight: 800, color: AZUL, textTransform: 'uppercase', letterSpacing: .5 }}>
-          Definición por penales {penales.length > 0 && `· ${totPen('L')} - ${totPen('V')}`}
-        </div>
-        {penales.length === 0 && <button onClick={() => setVerPenales(false)} aria-label="Cerrar penales" style={{ border: 'none', background: 'none', color: '#999', fontSize: 18, cursor: 'pointer' }}>×</button>}
+  const seccionPenales = (
+    <>
+      <div role="button" aria-label="Definición por penales" onClick={() => setVerPenales(true)} style={{
+        ...subtitulo, cursor: verPenales ? 'default' : 'pointer',
+        color: verPenales ? AZUL : '#a3acbd', borderBottomColor: verPenales ? AZUL : '#c9cfdb',
+        display: 'flex', alignItems: 'baseline',
+      }}>
+        <span style={{ flex: 1 }}>Definición por penales</span>
+        {verPenales && <span style={{ fontSize: 14 }}>{totPen('L')} - {totPen('V')}</span>}
       </div>
-      {fila2(columnaPenales('L'), columnaPenales('V'))}
-    </div>
+      {verPenales && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filaPenales('L')}
+          <div style={{ borderTop: '1px solid #dde1ec' }} />
+          {filaPenales('V')}
+        </div>
+      )}
+    </>
   );
 
   return (
@@ -273,11 +272,11 @@ export default function PantallaGol({ datos, setDatos, onNext, onBack, onIrA }) 
 
         <div style={tituloGoles}>Goles</div>
         {fila2(columnaGoles('L'), columnaGoles('V'))}
-        {seccionPenales}
         <div style={subtitulo}>🟨🟥 Tarjetas</div>
         {fila2(columnaTarjetas('L', false), columnaTarjetas('V', false))}
         <div style={subtitulo}>🟨🟥 Cuerpo técnico</div>
         {fila2(columnaTarjetas('L', true), columnaTarjetas('V', true))}
+        {seccionPenales}
 
         {/* WhatsApp: un solo botón que manda todo lo pendiente, y al lado el número de destino */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 132px', gap: 8, marginTop: 4, alignItems: 'end' }}>
