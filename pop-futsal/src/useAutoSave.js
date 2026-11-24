@@ -151,15 +151,81 @@ function guardarActivo(datos, pantalla) {
   guardarPuntero(datos._id, pantalla);
 }
 
-export function useAutoSave(datos, pantalla, activo) {
+// --- Envío automático "EN CURSO" a la planilla compartida ---
+// Mientras el partido se carga, se manda solo a la planilla (marcado
+// "EN CURSO"), así el administrador lo ve desde cualquier aparato aunque
+// el oficial nunca toque "Finalizar Partido" o cambie de celular. Reglas:
+// - solo partidos EN CURSO (uno ya finalizado se reenvía únicamente con
+//   "Finalizar Partido", como siempre);
+// - solo cuando ya tiene Local y Visitante (no manda filas vacías);
+// - espera DEMORA_ENVIO_MS sin cambios antes de mandar (no manda en cada
+//   tecla), y no repite si los datos no cambiaron desde el último envío;
+// - al salir de la app se manda al instante.
+// El script de la planilla NUNCA deja que un envío "EN CURSO" pise un
+// partido que ya figura "FINALIZADO".
+const DEMORA_ENVIO_MS = 15000;
+let timerEnvio = null;
+let ultimoEnviado = {}; // id -> firma de los datos ya enviados
+
+function estaEnCurso(id) {
+  const h = obtenerHistorial().find(x => x.id === id);
+  return !h || h.estado !== 'finalizado';
+}
+
+function listoParaEnviar(datos) {
+  return !!(datos && datos._id && String(datos.local || '').trim() && String(datos.visitante || '').trim());
+}
+
+async function enviarEnCurso(datos, oficialLogueado, { alSalir = false } = {}) {
+  if (!listoParaEnviar(datos) || !estaEnCurso(datos._id)) return false;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+  const firma = JSON.stringify(datos);
+  if (ultimoEnviado[datos._id] === firma) return true;
+  const acta = (datos.conclusiones || []).length ? generarActaTexto(datos) : '';
+  const ok = await enviarAPlanillaCompartida(datos, acta, oficialLogueado, { estado: 'EN CURSO', keepalive: alSalir });
+  if (ok) ultimoEnviado[datos._id] = firma;
+  return ok;
+}
+
+export function programarEnvioEnCurso(datos, oficialLogueado) {
+  if (timerEnvio) clearTimeout(timerEnvio);
+  timerEnvio = null;
+  if (!listoParaEnviar(datos)) return;
+  timerEnvio = setTimeout(() => { timerEnvio = null; enviarEnCurso(datos, oficialLogueado); }, DEMORA_ENVIO_MS);
+}
+
+export function enviarEnCursoYa(datos, oficialLogueado) {
+  if (timerEnvio) clearTimeout(timerEnvio);
+  timerEnvio = null;
+  return enviarEnCurso(datos, oficialLogueado, { alSalir: true });
+}
+
+// Al finalizar: se cancela cualquier envío "EN CURSO" pendiente.
+export function cancelarEnvioEnCurso() {
+  if (timerEnvio) clearTimeout(timerEnvio);
+  timerEnvio = null;
+}
+
+// Solo para pruebas automáticas.
+export function _reiniciarEnvioEnCurso() { cancelarEnvioEnCurso(); ultimoEnviado = {}; }
+
+export function useAutoSave(datos, pantalla, activo, oficialLogueado) {
   useEffect(() => {
     if (!activo) return;
     guardarActivo(datos, pantalla);
-  }, [datos, pantalla, activo]);
+    programarEnvioEnCurso(datos, oficialLogueado);
+  }, [datos, pantalla, activo, oficialLogueado]);
 }
 
-export function guardarInmediato(datos, pantalla) {
+export function guardarInmediato(datos, pantalla, oficialLogueado) {
   guardarActivo(datos, pantalla);
+  enviarEnCursoYa(datos, oficialLogueado);
+}
+
+// Fila de la planilla que todavía está "EN CURSO" (no finalizada). Las filas
+// viejas no tienen la columna Estado: cuentan como finalizadas.
+export function esEnCursoNube(p) {
+  return String((p && p['Estado']) || '').trim().toUpperCase() === 'EN CURSO';
 }
 
 // --- Perfil Administrador: trae TODOS los partidos de la planilla
@@ -179,7 +245,9 @@ export async function obtenerTodosLosPartidos() {
 
 // --- Envío a la planilla compartida ---
 
-export async function enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado) {
+// `estado`: 'FINALIZADO' (por defecto: Finalizar Partido / Subir) o
+// 'EN CURSO' (envío automático mientras se carga).
+export async function enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado, { estado = 'FINALIZADO', keepalive = false } = {}) {
   if (!APPS_SCRIPT_PARTIDOS_URL) return false;
   try {
     // Punto pedido: "Sin balón de back-up" tiene 2 controles independientes
@@ -187,10 +255,11 @@ export async function enviarAPlanillaCompartida(datos, actaTexto, oficialLoguead
     // Back-up" de Control Previo) — pero a la planilla compartida debe
     // viajar UN SOLO valor combinado en la columna "sin_balon", como si se
     // hubiera tildado ahí, sin importar cuál de los 2 detectó el problema.
-    const payload = { ...datos, sin_balon: calcularSinBalonBackup(datos), acta_texto: actaTexto, oficial_logueado: oficialLogueado };
+    const payload = { ...datos, sin_balon: calcularSinBalonBackup(datos), acta_texto: actaTexto, oficial_logueado: oficialLogueado, estado_envio: estado };
     const res = await fetch(APPS_SCRIPT_PARTIDOS_URL, {
       method: 'POST',
       body: JSON.stringify(payload),
+      keepalive,
     });
     const json = await res.json();
     return !!json.ok;

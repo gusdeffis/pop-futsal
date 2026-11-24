@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { obtenerTodosLosPartidos } from '../useAutoSave';
+import { obtenerTodosLosPartidos, esEnCursoNube } from '../useAutoSave';
 import {
   calcularIndicadoresPorClub, filtrarPartidos, demoraInicioMin,
   esSi, tuvoIncidente, tuvoObsInstalaciones, planillaFueraDeTermino, normalizarClub,
@@ -330,7 +330,8 @@ export default function PantallaInformes({ onBack, listas, onInformeClub }) {
     setCargando(true);
     const { ok, partidos: nuevos } = await obtenerTodosLosPartidos();
     setError(!ok);
-    setPartidos(nuevos);
+    // Los partidos todavía EN CURSO no cuentan para tableros ni informes.
+    setPartidos((nuevos || []).filter(p => !esEnCursoNube(p)));
     setCargando(false);
   };
 

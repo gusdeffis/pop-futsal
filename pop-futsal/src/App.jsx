@@ -21,7 +21,7 @@ import { parsearFixture, partidosPendientes } from './utils/fixture';
 import { borrarFotosFormacion } from './utils/fotosFormacion';
 import {
   useAutoSave, cargarGuardado, guardarInmediato, limpiarPuntero,
-  obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube,
+  obtenerHistorial, guardarEnHistorial, enviarAPlanillaCompartida, marcarEnviadoNube, cancelarEnvioEnCurso,
   guardarLogin, cargarLogin, borrarLogin, generarId, obtenerTodosLosPartidos,
 } from './useAutoSave';
 
@@ -142,7 +142,7 @@ export default function App() {
   // en el Historial (estado "en curso") y mueve el marcapáginas a él. Así
   // cualquier partido, apenas se crea, ya vive en el Historial — tocar otro
   // por error nunca lo puede pisar ni hacerlo desaparecer.
-  useAutoSave(datos, pantalla, vista === 'partido' && !esEdicionAdmin);
+  useAutoSave(datos, pantalla, vista === 'partido' && !esEdicionAdmin, oficialLogueado);
 
   // Guardado reforzado: si el usuario sale de la app (cambia a otra app,
   // apaga la pantalla, cierra la pestaña) sin esperar el próximo cambio,
@@ -150,7 +150,7 @@ export default function App() {
   useEffect(() => {
     const handler = () => {
       if (document.visibilityState === 'hidden' && vista === 'partido' && !esEdicionAdmin) {
-        guardarInmediato(datos, pantalla);
+        guardarInmediato(datos, pantalla, oficialLogueado);
       }
     };
     document.addEventListener('visibilitychange', handler);
@@ -159,7 +159,7 @@ export default function App() {
       document.removeEventListener('visibilitychange', handler);
       window.removeEventListener('pagehide', handler);
     };
-  }, [datos, pantalla, vista, esEdicionAdmin]);
+  }, [datos, pantalla, vista, esEdicionAdmin, oficialLogueado]);
 
   const handleLogin = (nombre) => {
     guardarLogin(nombre);
@@ -214,8 +214,9 @@ export default function App() {
   // finalizado en el Historial y lo manda a la planilla compartida.
   const finalizarPartido = () => {
     const actaTexto = generarActaTexto(datos) + (datos.acta_extra ? ' ' + datos.acta_extra : '');
+    cancelarEnvioEnCurso();
     const id = guardarEnHistorial(datos, actaTexto, { estado: 'finalizado' });
-    enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado).then(ok => marcarEnviadoNube(id, ok));
+    enviarAPlanillaCompartida(datos, actaTexto, oficialLogueado, { estado: 'FINALIZADO' }).then(ok => marcarEnviadoNube(id, ok));
     // Punto pedido: las fotos de Planillas se guardaban a propósito hasta
     // este momento (por si había que reenviarlas a otra persona) — recién
     // ahora, con el partido finalizado del todo, se limpian del celular.

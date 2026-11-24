@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { generarPDFOficial, descargarPDF } from '../utils/pdfFiller';
 import { generarActaTexto } from '../utils/acta';
-import { enviarAPlanillaCompartida, marcarEnviadoNube, marcarIntentoEnvio, obtenerTodosLosPartidos } from '../useAutoSave';
+import { enviarAPlanillaCompartida, marcarEnviadoNube, marcarIntentoEnvio, obtenerTodosLosPartidos, esEnCursoNube } from '../useAutoSave';
 import { sheetRowToDatos } from '../utils/sheetRowToDatos';
 
 const C = { azul: '#0d1f4e', celeste: '#c6dbf5', verde: '#1a7a3a', rojo: '#e03030', enCursoBg: '#fadfba', enCursoBorde: '#c96a1c' };
@@ -69,7 +69,7 @@ export default function PantallaHistorial({ historial: historialCompleto, onBack
             res_local: datos.res_local, res_visitante: datos.res_visitante,
             dia: datos.dia, conclusiones: datos.conclusiones,
             timestamp: p['Guardado'] ? String(p['Guardado']) : null,
-            estado: 'finalizado', enviadoNube: true, fechaEnvioNube: null,
+            estado: esEnCursoNube(p) ? 'en_curso' : 'finalizado', enviadoNube: true, fechaEnvioNube: null,
             datos,
           };
         });
@@ -132,7 +132,7 @@ export default function PantallaHistorial({ historial: historialCompleto, onBack
     setSubiendoId(h.id);
     try {
       const actaTexto = h.actaTexto || generarActaTexto(h.datos);
-      const ok = await enviarAPlanillaCompartida(h.datos, actaTexto, oficialLogueado);
+      const ok = await enviarAPlanillaCompartida(h.datos, actaTexto, oficialLogueado, { estado: h.estado === 'en_curso' ? 'EN CURSO' : 'FINALIZADO' });
       marcarEnviadoNube(h.id, ok);
       if (!ok) alert('No se pudo subir a la planilla compartida. Revisá la conexión e intentá de nuevo.');
       onRecargar && onRecargar();

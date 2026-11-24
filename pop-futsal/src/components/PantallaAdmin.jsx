@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { obtenerTodosLosPartidos } from '../useAutoSave';
+import { obtenerTodosLosPartidos, esEnCursoNube } from '../useAutoSave';
 import { esISO, formatearDia, formatearHora, claveDia, valorFecha } from '../utils/fechasSheet';
 import { sheetRowToDatos } from '../utils/sheetRowToDatos';
 import { generarActaTexto } from '../utils/acta';
@@ -225,6 +225,11 @@ export default function PantallaAdmin({ onBack, onEditarListas, onEditar, listas
 
         {!cargando && filtrados.map((p, i) => (
           <div key={i} style={{ border: `1.5px solid ${C.azul}`, borderRadius: 10, padding: 12, background: C.celeste }}>
+            {esEnCursoNube(p) && (
+              <div style={{ display: 'inline-block', background: '#f5a623', color: '#fff', fontSize: 12, fontWeight: 800, borderRadius: 6, padding: '3px 8px', letterSpacing: .5 }}>
+                ⏳ EN CURSO — todavía no finalizado
+              </div>
+            )}
             {/* Punto: reorganizado en 2 líneas más chicas (Torneo+Fecha+N°
                 arriba, Día+Hora+Oficial abajo), con Local/Visitante
                 quedando más grande y arriba de todo lo demás en jerarquía
